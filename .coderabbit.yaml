@@ -11,9 +11,9 @@ reviews:
 
   request_changes_workflow: false
   path_filters:
-    - "!*.claude/**"
-    - "!*.idea/**"
-    - "!*.gradle/**"
+    - "!.claude/**"
+    - "!.idea/**"
+    - "!.gradle/**"
 
   enable_prompt_for_ai_agents: true
   custom_instructions: |
