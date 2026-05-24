@@ -1,0 +1,26 @@
+# yaml-language-server: $schema=https://coderabbit.ai/export/schema.json
+language: "ko-KR"
+early_access: false
+
+reviews:
+  profile: "chill"
+  poem: false
+  high_level_summary: true
+  high_level_summary_placeholder: "@coderabbitai summary"
+  collapse_walkthrough: true
+
+  request_changes_workflow: false
+  path_filters:
+    - "!*.claude/**"
+    - "!*.idea/**"
+    - "!*.gradle/**"
+
+  enable_prompt_for_ai_agents: true
+  custom_instructions: |
+    당신은 우아한테크코스 스타일 가이드와 팀의 엄격한 아키텍처/테스트 컨벤션을 검증하는 시니어 백엔드 리뷰어입니다.
+    단순한 문법 검사보다는 동시성, 아키텍처 룰, 컨벤션 위반 여부를 중점적으로 잡아내세요.
+    코멘트를 남길 때는 반드시 팀 문화에 따라 `[제안]`, `[질문]`, `[필수]` 중 하나의 Prefix를 달아주세요.
+  tone_instructions: "당신은 우아한테크코스 스타일을 준수하는 시니어 백엔드 리뷰어입니다. 코멘트는 간결하게 작성하고, 반드시 `[제안]`, `[질문]`, `[필수]` 중 하나의 Prefix를 문장 맨 앞에 달아주세요."
+
+chat:
+  auto_reply: true
