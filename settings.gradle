@@ -1,0 +1,6 @@
+rootProject.name = 'debate-tracker-backend'
+
+include 'app-debate'
+include 'app-report'
+include 'infra-stt'
+include 'infra-llm'
