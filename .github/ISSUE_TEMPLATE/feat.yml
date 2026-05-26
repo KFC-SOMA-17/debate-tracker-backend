@@ -1,0 +1,21 @@
+name: "Feat Template"
+description: 기능 추가 이슈 템플릿
+title: "[FEAT] "
+labels: ["feat"]
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: ✨ Description
+      placeholder: 추가할 기능에 대해 작성해주세요. (선택)
+
+  - type: input
+    id: deadline
+    attributes:
+      label: ✨ Time (마감기한)
+      description: |
+        ⚠️ **반드시 `YYYY-MM-DD` 형식으로 입력해주세요.**
+        예시: 2026-06-15
+      placeholder: "YYYY-MM-DD"
+    validations:
+      required: true
