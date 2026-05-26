@@ -70,7 +70,12 @@ jobs:
               author: .issue.user.login,
               assignee: ((.issue.assignees // []) | map(.login) | join(", ")),
               createdAt: .issue.created_at,
-              body: (.issue.body // "")
+              body: (.issue.body // ""),
+              deadline: ((
+                (.issue.body // "")
+                | capture("### ✨ Time \\(마감기한\\)\\s*\n+(?<d>\\d{4}-\\d{2}-\\d{2})")
+                | .d
+              ) // null)
             }' "$GITHUB_EVENT_PATH" > github-event-data.json
 
           elif [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
@@ -205,6 +210,15 @@ jobs:
                   }
                 }
               }
+              + if $e.deadline then
+                {
+                  "마감일자": {
+                    date: {
+                      start: $e.deadline
+                    }
+                  }
+                }
+              else {} end
             }' > notion-page-properties.json
 
           cat notion-page-properties.json
