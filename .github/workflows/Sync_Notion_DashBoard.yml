@@ -1,0 +1,297 @@
+name: Sync_Notion_DashBoard
+
+on:
+  issues:
+    types:
+      - opened
+      - edited
+      - closed
+      - reopened
+      - assigned
+      - unassigned
+
+  pull_request:
+    types:
+      - opened
+      - edited
+      - closed
+      - reopened
+      - assigned
+      - unassigned
+
+permissions:
+  contents: read
+  issues: read
+  pull-requests: read
+
+concurrency:
+  group: notion-sync-${{ github.repository }}-${{ github.event_name }}-${{ github.event.issue.number || github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: false
+
+jobs:
+  sync-to-notion:
+    runs-on: ubuntu-latest
+
+    env:
+      NOTION_API_KEY: ${{ secrets.NOTION_API_KEY }}
+      NOTION_DATA_SOURCE_ID: ${{ secrets.NOTION_DATA_SOURCE_ID }}
+      NOTION_VERSION: "2025-09-03"
+
+    steps:
+      - name: Validate required secrets
+        run: |
+          if [ -z "$NOTION_API_KEY" ]; then
+            echo "NOTION_API_KEY is not set"
+            exit 1
+          fi
+
+          if [ -z "$NOTION_DATA_SOURCE_ID" ]; then
+            echo "NOTION_DATA_SOURCE_ID is not set"
+            exit 1
+          fi
+
+      - name: Extract GitHub event data
+        run: |
+          set -euo pipefail
+
+          if [ "$GITHUB_EVENT_NAME" = "issues" ]; then
+            jq '{
+              type: "Issue",
+              title: .issue.title,
+              status: (
+                if .issue.state == "closed" then
+                  "closed"
+                else
+                  "open"
+                end
+              ),
+              number: .issue.number,
+              url: .issue.html_url,
+              author: .issue.user.login,
+              assignee: ((.issue.assignees // []) | map(.login) | join(", ")),
+              createdAt: .issue.created_at,
+              body: (.issue.body // "")
+            }' "$GITHUB_EVENT_PATH" > github-event-data.json
+
+          elif [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
+            jq '{
+              type: "Pull Request",
+              title: .pull_request.title,
+              status: (
+                if .pull_request.merged == true then
+                  "merged"
+                elif .pull_request.state == "closed" then
+                  "closed"
+                else
+                  "open"
+                end
+              ),
+              number: .pull_request.number,
+              url: .pull_request.html_url,
+              author: .pull_request.user.login,
+              assignee: ((.pull_request.assignees // []) | map(.login) | join(", ")),
+              createdAt: .pull_request.created_at,
+              body: (.pull_request.body // "")
+            }' "$GITHUB_EVENT_PATH" > github-event-data.json
+
+          else
+            echo "Unsupported event: $GITHUB_EVENT_NAME"
+            exit 1
+          fi
+
+          cat github-event-data.json
+
+      - name: Query existing Notion page
+        run: |
+          set -euo pipefail
+
+          jq -n \
+            --slurpfile event github-event-data.json \
+            '($event[0]) as $e |
+            {
+              page_size: 1,
+              filter: {
+                and: [
+                  {
+                    property: "Type",
+                    select: {
+                      equals: $e.type
+                    }
+                  },
+                  {
+                    property: "Number",
+                    number: {
+                      equals: $e.number
+                    }
+                  }
+                ]
+              }
+            }' > notion-query-payload.json
+
+          HTTP_STATUS=$(curl -sS -o notion-query-response.json -w "%{http_code}" \
+            -X POST "https://api.notion.com/v1/data_sources/${NOTION_DATA_SOURCE_ID}/query" \
+            -H "Authorization: Bearer ${NOTION_API_KEY}" \
+            -H "Notion-Version: ${NOTION_VERSION}" \
+            -H "Content-Type: application/json" \
+            --data @notion-query-payload.json)
+
+          echo "Query HTTP status: $HTTP_STATUS"
+          cat notion-query-response.json
+
+          if [ "$HTTP_STATUS" -lt 200 ] || [ "$HTTP_STATUS" -ge 300 ]; then
+            echo "Failed to query Notion data source"
+            exit 1
+          fi
+
+          PAGE_ID=$(jq -r '.results[0].id // empty' notion-query-response.json)
+
+          echo "PAGE_ID=${PAGE_ID}" >> "$GITHUB_ENV"
+
+      - name: Build Notion page properties
+        run: |
+          set -euo pipefail
+
+          jq -n \
+            --slurpfile event github-event-data.json \
+            '($event[0]) as $e |
+            {
+              properties: {
+                "Name": {
+                  title: [
+                    {
+                      text: {
+                        content: $e.title
+                      }
+                    }
+                  ]
+                },
+                "Type": {
+                  select: {
+                    name: $e.type
+                  }
+                },
+                "Status": {
+                  select: {
+                    name: $e.status
+                  }
+                },
+                "Number": {
+                  number: $e.number
+                },
+                "GitHub URL": {
+                  url: $e.url
+                },
+                "Author": {
+                  rich_text: [
+                    {
+                      text: {
+                        content: $e.author
+                      }
+                    }
+                  ]
+                },
+                "Assignee": {
+                  rich_text: [
+                    {
+                      text: {
+                        content: $e.assignee
+                      }
+                    }
+                  ]
+                },
+                "Created At": {
+                  date: {
+                    start: $e.createdAt
+                  }
+                }
+              }
+            }' > notion-page-properties.json
+
+          cat notion-page-properties.json
+
+      - name: Build Notion page content
+        run: |
+          set -euo pipefail
+
+          jq -n \
+            --slurpfile event github-event-data.json \
+            '($event[0]) as $e |
+            {
+              children: [
+                {
+                  object: "block",
+                  type: "code",
+                  code: {
+                    rich_text: [
+                      {
+                        type: "text",
+                        text: {
+                          content: (
+                            if $e.body == "" then
+                              "No body provided."
+                            elif ($e.body | length) > 1900 then
+                              ($e.body[0:1900] + "\n\n... truncated")
+                            else
+                              $e.body
+                            end
+                          )
+                        }
+                      }
+                    ],
+                    language: "markdown"
+                  }
+                }
+              ]
+            }' > notion-page-content.json
+
+          cat notion-page-content.json
+
+      - name: Create or update Notion page
+        run: |
+          set -euo pipefail
+
+          if [ -z "${PAGE_ID}" ]; then
+            echo "No existing Notion page found. Creating a new page."
+
+            jq -s \
+              --arg dataSourceId "$NOTION_DATA_SOURCE_ID" \
+              '.[0] * .[1] + {
+                parent: {
+                  type: "data_source_id",
+                  data_source_id: $dataSourceId
+                }
+              }' notion-page-properties.json notion-page-content.json > notion-create-payload.json
+
+            HTTP_STATUS=$(curl -sS -o notion-create-response.json -w "%{http_code}" \
+              -X POST "https://api.notion.com/v1/pages" \
+              -H "Authorization: Bearer ${NOTION_API_KEY}" \
+              -H "Notion-Version: ${NOTION_VERSION}" \
+              -H "Content-Type: application/json" \
+              --data @notion-create-payload.json)
+
+            echo "Create HTTP status: $HTTP_STATUS"
+            cat notion-create-response.json
+
+            if [ "$HTTP_STATUS" -lt 200 ] || [ "$HTTP_STATUS" -ge 300 ]; then
+              echo "Failed to create Notion page"
+              exit 1
+            fi
+
+          else
+            echo "Existing Notion page found: ${PAGE_ID}. Updating page properties only."
+
+            HTTP_STATUS=$(curl -sS -o notion-update-response.json -w "%{http_code}" \
+              -X PATCH "https://api.notion.com/v1/pages/${PAGE_ID}" \
+              -H "Authorization: Bearer ${NOTION_API_KEY}" \
+              -H "Notion-Version: ${NOTION_VERSION}" \
+              -H "Content-Type: application/json" \
+              --data @notion-page-properties.json)
+
+            echo "Update HTTP status: $HTTP_STATUS"
+            cat notion-update-response.json
+
+            if [ "$HTTP_STATUS" -lt 200 ] || [ "$HTTP_STATUS" -ge 300 ]; then
+              echo "Failed to update Notion page"
+              exit 1
+            fi
+          fi
