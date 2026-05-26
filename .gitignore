@@ -38,9 +38,3 @@ out/
 
 ### AI ###
 .omc
-
-# Claude Code 개인 자산 (팀 공용은 커밋)
-.claude/agents/my/
-.claude/commands/my/
-.claude/skills/my/
-.claude/settings.local.json
