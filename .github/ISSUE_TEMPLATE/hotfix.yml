@@ -1,0 +1,21 @@
+name: "Hot-Fix Template"
+description: 핫픽스 이슈 템플릿
+title: "[HOTFIX] "
+labels: ["hotfix"]
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: ✨ Description
+      placeholder: 핫픽스 내용에 대해 작성해주세요. (선택)
+
+  - type: input
+    id: deadline
+    attributes:
+      label: ✨ Time (마감기한)
+      description: |
+        ⚠️ **반드시 `YYYY-MM-DD` 형식으로 입력해주세요.**
+        예시: 2026-06-15
+      placeholder: "YYYY-MM-DD"
+    validations:
+      required: true

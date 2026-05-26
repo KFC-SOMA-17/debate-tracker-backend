@@ -1,0 +1,21 @@
+name: "Docs Template"
+description: 문서화 이슈 템플릿
+title: "[DOCS] "
+labels: ["docs"]
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: ✨ Description
+      placeholder: 문서화할 내용을 작성해주세요. (선택)
+
+  - type: input
+    id: deadline
+    attributes:
+      label: ✨ Time (마감기한)
+      description: |
+        ⚠️ **반드시 `YYYY-MM-DD` 형식으로 입력해주세요.**
+        예시: 2026-06-15
+      placeholder: "YYYY-MM-DD"
+    validations:
+      required: true
