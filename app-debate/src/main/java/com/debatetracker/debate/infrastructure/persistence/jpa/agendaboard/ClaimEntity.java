@@ -27,7 +27,6 @@ public class ClaimEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @NotNull
     @Column(name = "agenda_id")
     private long agendaId;
 

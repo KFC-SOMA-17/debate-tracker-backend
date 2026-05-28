@@ -27,7 +27,6 @@ public class EvidenceEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @NotNull
     @Column(name = "claim_id")
     private long claimId;
 
