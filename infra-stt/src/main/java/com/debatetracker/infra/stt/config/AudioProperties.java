@@ -1,8 +1,6 @@
 package com.debatetracker.infra.stt.config;
 
-/**
- * 오디오 캡처 설정 바인딩. application.yml의 stt.audio 섹션에 매핑된다.
- */
+
 public record AudioProperties(
         int sampleRate,
         int channels,

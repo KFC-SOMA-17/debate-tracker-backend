@@ -1,0 +1,128 @@
+package com.debatetracker.infra.stt.adapter.azure;
+
+import com.debatetracker.infra.stt.client.SttClient;
+import com.debatetracker.infra.stt.config.AudioProperties;
+import com.debatetracker.infra.stt.config.AzureConfig;
+import com.debatetracker.infra.stt.dto.SttSegment;
+import com.debatetracker.infra.stt.dto.TranscriberSession;
+import com.microsoft.cognitiveservices.speech.*;
+import com.microsoft.cognitiveservices.speech.audio.*;
+import com.microsoft.cognitiveservices.speech.transcription.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.math.BigDecimal;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Consumer;
+
+/**
+ * Azure AI Speech STT 벤더 어댑터.
+ * ConversationTranscriber를 사용하여 화자분리 + 한국어 전사를 수행한다.
+ * 세션별로 독립된 연결을 관리하여 다중 세션 동시 처리를 지원한다.
+ */
+public class AzureAdapter implements SttClient {
+
+    private static final Logger log = LoggerFactory.getLogger(AzureAdapter.class);
+    private static final String VENDOR_NAME = "azure";
+
+    private final AzureConfig config;
+    private final AudioProperties audioProperties;
+    private final ConcurrentHashMap<String, TranscriberSession> sessions = new ConcurrentHashMap<>();
+
+    public AzureAdapter(AzureConfig azureConfig, AudioProperties audioProperties) {
+        if (azureConfig == null || !azureConfig.enabled()) {
+            throw new RuntimeException("Azure configuration is not set"); //TODO DebateTrackerException으로 변경 예정
+        }
+        this.config = azureConfig;
+        this.audioProperties = audioProperties;
+    }
+
+    @Override
+    public String getVendorName() {
+        return VENDOR_NAME;
+    }
+
+    @Override
+    public void startStreaming(String sessionId, Consumer<SttSegment> onSegment) {
+        if (sessions.containsKey(sessionId)) {
+            log.warn("[{}] 이미 활성 세션이 존재합니다: {}", VENDOR_NAME, sessionId);
+            return;
+        }
+        connect(sessionId, onSegment);
+    }
+
+    private void connect(String sessionId, Consumer<SttSegment> onSegment) {
+        try {
+            SpeechConfig speechConfig = config.toSpeechConfig();
+            AudioStreamFormat format = AudioStreamFormat.getWaveFormatPCM(audioProperties.sampleRate(), (short) 16, (short) 1);
+            PushAudioInputStream pushStream = AudioInputStream.createPushStream(format);
+            AudioConfig audioConfig = AudioConfig.fromStreamInput(pushStream);
+            ConversationTranscriber transcriber = new ConversationTranscriber(speechConfig, audioConfig);
+            TranscriberSession session = new TranscriberSession(
+                    sessionId, transcriber, pushStream, audioConfig, speechConfig, onSegment);
+
+            transcriber.transcribed.addEventListener((s, e) -> {
+                if (e.getResult().getReason() == ResultReason.RecognizedSpeech) {
+                    String text = e.getResult().getText();
+                    if (text == null || text.isEmpty()) return;
+
+                    String speaker = e.getResult().getSpeakerId();
+                    long offsetTicks = e.getResult().getOffset().longValue();
+                    long durationTicks = e.getResult().getDuration().longValue();
+                    double startSec = offsetTicks / 10_000_000.0;
+                    double endSec = (offsetTicks + durationTicks) / 10_000_000.0;
+
+                    SttSegment segment = new SttSegment(
+                            BigDecimal.valueOf(startSec), BigDecimal.valueOf(endSec), speaker, text);
+                    onSegment.accept(segment);
+                }
+            });
+
+            transcriber.sessionStarted.addEventListener((s, e) ->
+                    log.info("[{}] 세션 시작: {}", VENDOR_NAME, sessionId));
+
+            transcriber.sessionStopped.addEventListener((s, e) -> {
+                log.info("[{}] 세션 종료: {}", VENDOR_NAME, sessionId);
+                sessions.remove(sessionId);
+            });
+
+            transcriber.canceled.addEventListener((s, e) ->
+                    log.error("[{}] 인식 취소: session={}, reason={}, errorCode={}, errorDetails={}",
+                            VENDOR_NAME, sessionId, e.getReason(), e.getErrorCode(), e.getErrorDetails()));
+
+            transcriber.startTranscribingAsync().get();
+            sessions.put(sessionId, session);
+            log.info("[{}] 전사 시작 성공, session={}", VENDOR_NAME, sessionId);
+
+        } catch (Exception e) {
+            log.error("[{}] 연결 실패: session={}, error={}", VENDOR_NAME, sessionId, e.getMessage(), e);
+        }
+    }
+
+    @Override
+    public void sendAudioChunk(String sessionId, byte[] pcmData) {
+        TranscriberSession session = sessions.get(sessionId);
+        if (session == null) {
+            log.debug("[{}] 활성 세션 없음, 오디오 무시: {}", VENDOR_NAME, sessionId);
+            return;
+        }
+        try {
+            session.pushStream().write(pcmData);
+        } catch (Exception e) {
+            log.error("[{}] 오디오 전송 에러: session={}, error={}", VENDOR_NAME, sessionId, e.getMessage(), e);
+        }
+    }
+
+    @Override
+    public void stopStreaming(String sessionId) {
+        log.info("[{}] stopStreaming called: {}", VENDOR_NAME, sessionId);
+        TranscriberSession session = sessions.remove(sessionId);
+        if (session == null) return;
+        session.close();
+    }
+
+    @Override
+    public boolean isConnected(String sessionId) {
+        return sessions.containsKey(sessionId);
+    }
+}
