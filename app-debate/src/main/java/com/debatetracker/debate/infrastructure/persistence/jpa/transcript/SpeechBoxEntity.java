@@ -13,7 +13,7 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-@Table(name = "speech_segment")
+@Table(name = "speech_box")
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
