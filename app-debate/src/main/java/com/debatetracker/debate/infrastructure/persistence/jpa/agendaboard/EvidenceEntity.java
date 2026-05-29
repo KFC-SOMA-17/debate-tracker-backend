@@ -17,9 +17,9 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+@Table(name = "evidence")
 @Entity
 @Getter
-@Table(name = "evidence")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class EvidenceEntity {
 

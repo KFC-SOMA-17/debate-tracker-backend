@@ -11,9 +11,9 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+@Table(name = "agenda")
 @Entity
 @Getter
-@Table(name = "agenda")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class AgendaEntity {
 

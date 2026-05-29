@@ -13,9 +13,9 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+@Table(name = "speech_segment")
 @Entity
 @Getter
-@Table(name = "speech_segment")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class SpeechBoxEntity {
 

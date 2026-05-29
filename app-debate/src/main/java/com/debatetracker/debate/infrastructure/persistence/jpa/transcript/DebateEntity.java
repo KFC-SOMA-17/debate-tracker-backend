@@ -12,9 +12,9 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+@Table(name = "debate")
 @Entity
 @Getter
-@Table(name = "debate")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class DebateEntity {
 

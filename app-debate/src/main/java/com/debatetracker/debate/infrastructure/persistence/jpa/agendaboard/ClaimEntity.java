@@ -17,9 +17,9 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+@Table(name = "claim")
 @Entity
 @Getter
-@Table(name = "claim")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class ClaimEntity {
 
