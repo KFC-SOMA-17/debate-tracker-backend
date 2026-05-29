@@ -5,6 +5,9 @@ import com.debatetracker.infra.stt.config.AudioProperties;
 import com.debatetracker.infra.stt.config.AzureConfig;
 import com.debatetracker.infra.stt.dto.SttSegment;
 import com.debatetracker.infra.stt.dto.TranscriberSession;
+import com.microsoft.cognitiveservices.speech.OutputFormat;
+import com.microsoft.cognitiveservices.speech.ProfanityOption;
+import com.microsoft.cognitiveservices.speech.PropertyId;
 import com.microsoft.cognitiveservices.speech.ResultReason;
 import com.microsoft.cognitiveservices.speech.SpeechConfig;
 import com.microsoft.cognitiveservices.speech.audio.AudioConfig;
@@ -54,7 +57,7 @@ public class AzureAdapter implements SttClient {
 
     private void connect(String sessionId, Consumer<SttSegment> onSegment) {
         try {
-            SpeechConfig speechConfig = config.toSpeechConfig();
+            SpeechConfig speechConfig = buildSpeechConfig();
             AudioStreamFormat format = AudioStreamFormat.getWaveFormatPCM(audioProperties.sampleRate(), (short) 16, (short) 1);
             PushAudioInputStream pushStream = AudioInputStream.createPushStream(format);
             AudioConfig audioConfig = AudioConfig.fromStreamInput(pushStream);
@@ -127,5 +130,16 @@ public class AzureAdapter implements SttClient {
     @Override
     public boolean isConnected(String sessionId) {
         return sessions.containsKey(sessionId);
+    }
+
+    private SpeechConfig buildSpeechConfig() {
+        SpeechConfig speechConfig = SpeechConfig.fromSubscription(config.subscriptionKey(), config.region());
+        speechConfig.setSpeechRecognitionLanguage(config.language());
+        speechConfig.setProfanity(ProfanityOption.Raw);
+        speechConfig.setProperty(PropertyId.Speech_SegmentationSilenceTimeoutMs,
+                String.valueOf(config.silenceTimeoutMs()));
+        speechConfig.enableDictation();
+        speechConfig.setOutputFormat(OutputFormat.Detailed);
+        return speechConfig;
     }
 }

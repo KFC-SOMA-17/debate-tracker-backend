@@ -1,6 +1,8 @@
 package com.debatetracker.infra.stt.config;
 
+import org.springframework.boot.context.properties.ConfigurationProperties;
 
+@ConfigurationProperties(prefix = "stt.audio")
 public record AudioProperties(
         int sampleRate,
         int channels,
