@@ -5,20 +5,21 @@ import com.debatetracker.infra.stt.config.AudioProperties;
 import com.debatetracker.infra.stt.config.AzureConfig;
 import com.debatetracker.infra.stt.dto.SttSegment;
 import com.debatetracker.infra.stt.dto.TranscriberSession;
-import com.microsoft.cognitiveservices.speech.*;
-import com.microsoft.cognitiveservices.speech.audio.*;
-import com.microsoft.cognitiveservices.speech.transcription.*;
+import com.microsoft.cognitiveservices.speech.ResultReason;
+import com.microsoft.cognitiveservices.speech.SpeechConfig;
+import com.microsoft.cognitiveservices.speech.audio.AudioConfig;
+import com.microsoft.cognitiveservices.speech.audio.AudioInputStream;
+import com.microsoft.cognitiveservices.speech.audio.AudioStreamFormat;
+import com.microsoft.cognitiveservices.speech.audio.PushAudioInputStream;
+import com.microsoft.cognitiveservices.speech.transcription.ConversationTranscriber;
+import com.microsoft.cognitiveservices.speech.transcription.ConversationTranscriptionResult;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Consumer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.math.BigDecimal;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.Consumer;
-
 /**
- * Azure AI Speech STT 벤더 어댑터.
- * ConversationTranscriber를 사용하여 화자분리 + 한국어 전사를 수행한다.
- * 세션별로 독립된 연결을 관리하여 다중 세션 동시 처리를 지원한다.
+ * Azure AI Speech STT 벤더 어댑터. ConversationTranscriber를 사용하여 화자분리 + 한국어 전사를 수행한다. 세션별로 독립된 연결을 관리하여 다중 세션 동시 처리를 지원한다.
  */
 public class AzureAdapter implements SttClient {
 
@@ -59,22 +60,21 @@ public class AzureAdapter implements SttClient {
             AudioConfig audioConfig = AudioConfig.fromStreamInput(pushStream);
             ConversationTranscriber transcriber = new ConversationTranscriber(speechConfig, audioConfig);
             TranscriberSession session = new TranscriberSession(
-                    sessionId, transcriber, pushStream, audioConfig, speechConfig, onSegment);
+                    sessionId,
+                    transcriber,
+                    pushStream,
+                    audioConfig,
+                    speechConfig,
+                    onSegment
+            );
 
             transcriber.transcribed.addEventListener((s, e) -> {
-                if (e.getResult().getReason() == ResultReason.RecognizedSpeech) {
-                    String text = e.getResult().getText();
-                    if (text == null || text.isEmpty()) return;
-
-                    String speaker = e.getResult().getSpeakerId();
-                    long offsetTicks = e.getResult().getOffset().longValue();
-                    long durationTicks = e.getResult().getDuration().longValue();
-                    double startSec = offsetTicks / 10_000_000.0;
-                    double endSec = (offsetTicks + durationTicks) / 10_000_000.0;
-
-                    SttSegment segment = new SttSegment(
-                            BigDecimal.valueOf(startSec), BigDecimal.valueOf(endSec), speaker, text);
-                    onSegment.accept(segment);
+                ConversationTranscriptionResult result = e.getResult();
+                if (result.getReason() == ResultReason.RecognizedSpeech
+                        && result.getText() != null
+                        && !result.getText().isEmpty()
+                ) {
+                    onSegment.accept(SttSegment.fromAzureResult(e.getResult()));
                 }
             });
 
@@ -96,6 +96,7 @@ public class AzureAdapter implements SttClient {
 
         } catch (Exception e) {
             log.error("[{}] 연결 실패: session={}, error={}", VENDOR_NAME, sessionId, e.getMessage(), e);
+            throw new RuntimeException("Streaming Connection Failed"); //DebateTrackerException으로 변경 예정
         }
     }
 
@@ -117,7 +118,9 @@ public class AzureAdapter implements SttClient {
     public void stopStreaming(String sessionId) {
         log.info("[{}] stopStreaming called: {}", VENDOR_NAME, sessionId);
         TranscriberSession session = sessions.remove(sessionId);
-        if (session == null) return;
+        if (session == null) {
+            return;
+        }
         session.close();
     }
 
