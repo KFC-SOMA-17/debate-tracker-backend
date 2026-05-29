@@ -1,7 +1,6 @@
 package com.debatetracker.debate.infrastructure.persistence.jpa.agendaboard;
 
 import com.debatetracker.debate.domain.agendaboard.Agenda;
-import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -21,7 +20,6 @@ public class AgendaEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "debate_id")
     private long debateId;
 
     private String content;

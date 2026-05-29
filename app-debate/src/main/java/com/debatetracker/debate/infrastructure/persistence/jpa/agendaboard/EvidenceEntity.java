@@ -3,7 +3,6 @@ package com.debatetracker.debate.infrastructure.persistence.jpa.agendaboard;
 import com.debatetracker.debate.domain.agendaboard.Evidence;
 import com.debatetracker.debate.domain.agendaboard.EvidenceType;
 
-import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -27,7 +26,6 @@ public class EvidenceEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "claim_id")
     private long claimId;
 
     @NotBlank

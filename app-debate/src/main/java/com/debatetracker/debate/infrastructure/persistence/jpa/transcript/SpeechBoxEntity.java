@@ -23,7 +23,6 @@ public class SpeechBoxEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "debate_id")
     private long debateId;
 
     @NotBlank
