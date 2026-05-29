@@ -7,7 +7,7 @@ import lombok.RequiredArgsConstructor;
 
 @Getter
 @RequiredArgsConstructor
-public class Segment {
+public class SpeechSegment {
 
     private final String id;
     private final String content;
