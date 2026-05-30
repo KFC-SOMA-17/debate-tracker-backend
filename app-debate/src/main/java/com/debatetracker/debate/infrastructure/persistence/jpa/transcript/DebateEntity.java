@@ -1,7 +1,6 @@
 package com.debatetracker.debate.infrastructure.persistence.jpa.transcript;
 
-import com.debatetracker.debate.domain.transcript.Debate;
-
+import com.debatetracker.debate.domain.debate.Debate;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
