@@ -2,8 +2,8 @@ package com.debatetracker.debate.infrastructure.persistence;
 
 import com.debatetracker.debate.domain.debate.Debate;
 import com.debatetracker.debate.domain.debate.DebateRepository;
+import com.debatetracker.debate.infrastructure.persistence.jpa.debate.DebateEntity;
 import com.debatetracker.debate.infrastructure.persistence.jpa.debate.DebateJpaRepository;
-import com.debatetracker.debate.infrastructure.persistence.jpa.transcript.DebateEntity;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 

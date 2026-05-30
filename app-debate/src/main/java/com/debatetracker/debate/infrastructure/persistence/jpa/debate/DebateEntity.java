@@ -1,4 +1,4 @@
-package com.debatetracker.debate.infrastructure.persistence.jpa.transcript;
+package com.debatetracker.debate.infrastructure.persistence.jpa.debate;
 
 import com.debatetracker.debate.domain.debate.Debate;
 import jakarta.persistence.Entity;
