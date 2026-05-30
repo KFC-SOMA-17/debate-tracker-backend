@@ -29,10 +29,13 @@ public class DatabaseCleaner implements BeforeEachCallback {
 
     private void truncateTables(EntityManager em) {
         em.createNativeQuery("SET REFERENTIAL_INTEGRITY FALSE").executeUpdate();
-        for (String tableName : findTableNames(em)) {
-            em.createNativeQuery("TRUNCATE TABLE %s RESTART IDENTITY".formatted(tableName)).executeUpdate();
+        try {
+            for (String tableName : findTableNames(em)) {
+                em.createNativeQuery("TRUNCATE TABLE %s RESTART IDENTITY".formatted(tableName)).executeUpdate();
+            }
+        } finally {
+            em.createNativeQuery("SET REFERENTIAL_INTEGRITY TRUE").executeUpdate();
         }
-        em.createNativeQuery("SET REFERENTIAL_INTEGRITY TRUE").executeUpdate();
     }
 
     @SuppressWarnings("unchecked")

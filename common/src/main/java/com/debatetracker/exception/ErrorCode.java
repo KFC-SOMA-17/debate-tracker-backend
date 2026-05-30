@@ -1,8 +1,10 @@
 package com.debatetracker.exception;
 
 import lombok.Getter;
+import lombok.RequiredArgsConstructor;
 
 @Getter
+@RequiredArgsConstructor
 public enum ErrorCode {
 
     FIELD_ERROR(400, "요청 값이 올바르지 않습니다."),
@@ -18,9 +20,4 @@ public enum ErrorCode {
 
     private final int statusCode;
     private final String message;
-
-    ErrorCode(int statusCode, String message) {
-        this.statusCode = statusCode;
-        this.message = message;
-    }
 }
