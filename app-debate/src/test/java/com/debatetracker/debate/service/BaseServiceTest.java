@@ -6,6 +6,6 @@ import org.springframework.boot.test.context.SpringBootTest;
 
 @ExtendWith(DatabaseCleaner.class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE)
-public abstract class BaseServiceTest {
+abstract class BaseServiceTest {
 
 }

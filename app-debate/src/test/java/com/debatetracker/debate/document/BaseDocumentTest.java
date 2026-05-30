@@ -19,7 +19,7 @@ import org.springframework.restdocs.restassured.RestDocumentationFilter;
 
 @ExtendWith({RestDocumentationExtension.class, MockitoExtension.class})
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-public abstract class BaseDocumentTest {
+abstract class BaseDocumentTest {
 
     protected static final RestDocsResponse ERROR_RESPONSE = new RestDocsResponse()
             .responseBodyField(

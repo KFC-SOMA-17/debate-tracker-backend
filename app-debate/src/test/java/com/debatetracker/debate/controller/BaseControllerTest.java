@@ -15,7 +15,7 @@ import org.springframework.boot.test.web.server.LocalServerPort;
 
 @ExtendWith(DatabaseCleaner.class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-public abstract class BaseControllerTest {
+abstract class BaseControllerTest {
 
     private static final List<Filter> SPEC_FILTERS = List.of(
             new RequestLoggingFilter(),
