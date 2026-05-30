@@ -74,6 +74,7 @@ Controller 의 경우 추가로: HTTP 메서드/경로, `@RequestBody` DTO 필�
 
 - **DB 격리는 `DatabaseCleaner`** (`org.junit.jupiter.api.extension.BeforeEachCallback` 구현체). 매 테스트 전 truncate. `@Transactional` 로 격리하지 않는다.
 - `BaseControllerTest` / `BaseServiceTest` / `BaseDomainRepositoryTest` / `BaseDocumentTest` 는 `public`. 따라서 하위 패키지(`controller.debate`, `document.debate` 등)에서 상속 가능하다. **새 Base 클래스를 package-private 으로 만들지 말 것** — 하위 패키지 상속이 깨진다.
+- **infra-* client(`SttClient` / `LlmClient`)는 mock 한다 — "협력자 mock 금지" 규칙의 유일한 예외.** app-* Controller/Service 통합 테스트가 이 인터페이스를(또는 이를 감싼 wrapper 가) 호출해도 STT/LLM 외부 호출은 실제 빈으로 띄울 수 없다(비용·rate limit·비결정성). `@MockitoBean` 으로 교체해 고정 응답을 stub 한다. 공유한다면 `BaseControllerTest` / `BaseServiceTest` 에, 단발성이면 해당 테스트 클래스에 `@MockitoBean` 필드를 둔다(Document 테스트의 service mock 과 동일 방식). **mock 대상은 infra-* 인터페이스(`SttClient` / `LlmClient`) 자체이지 app-* wrapper(`UtteranceCorrector` / `IssueTreeExtractor` 등)가 아니다** — wrapper 는 실제 빈으로 두고 그 내부의 client 만 mock 한다. repository·DB 등 나머지 협력자는 여전히 실제 빈을 쓴다.
 
 **Base 클래스가 아직 프로젝트에 없으면**:
 - target 파일을 작성하되 상단 주석으로 `// TODO ...` 를 남기지 말고, **사용자에게 알리고 진행 여부를 묻는다**. 베이스 클래스 도입은 인프라 결정이므로 임의 생성 금지.
@@ -432,11 +433,14 @@ class {Entity}Test {
 
 ## infra-* client adapter 테스트
 
-`SttClient` / `LlmClient` 구현체는 외부 호출 비용 때문에 별도 가이드:
+`SttClient` / `LlmClient` 는 infra-* 모듈이 제공하는 **벤더 중립 인터페이스**다. 두 관점으로 나뉜다:
+
+**(A) infra-* 모듈 안 — adapter 구현체 검증** (외부 호출 비용 때문에 별도 가이드):
 
 - **단위 테스트**: 벤더 SDK 응답을 mock해서 어댑터 → 도메인 타입 변환만 검증. SDK 타입(`OpenAIResponse`, AWS SDK 타입 등)은 시그니처 노출 금지지만 테스트 내부에서 mock 객체로 사용 가능.
-- **mock profile 통합 테스트**: `@ConditionalOnProperty(name="llm.mode", havingValue="mock")` 빈이 fixture 응답을 돌려주는지 검증. 실제 외부 호출은 하지 않음 (CI 비용/rate limit).
 - **외부 client 실 호출 테스트는 작성 금지**. CI 비용/rate limit 때문.
+
+**(B) app-* 모듈 안 — 인터페이스 mock 사용**: app-* Controller/Service 통합 테스트는 infra-* 가 제공하는 인터페이스(`SttClient` / `LlmClient`)를 **`@MockitoBean` 으로 mock** 해서 진행한다. 실제 구현체(벤더 호출)는 띄우지 않는다. 위 §"레이어별 Base 클래스 & 어노테이션" 의 예외 규칙 참조 — wrapper(`UtteranceCorrector` 등)가 아니라 인터페이스를 mock 하고, stub 인자는 `any(...)` 매처를 쓴다.
 
 ## Assertion 컨벤션
 
@@ -474,7 +478,7 @@ import static org.springframework.restdocs.payload.PayloadDocumentation.fieldWit
 - **REST API(Controller) 구현 시 Controller 테스트 + Document 테스트를 한 쌍으로 작성** — 둘 다 통과 + 스니펫 생성 확인.
 - **public 메서드 / endpoint 당 @Nested 1개**.
 - **각 레이어는 자기 로직만 테스트** — 호출하는 하위 메서드의 happy case 는 통과한다고 가정.
-- **Controller/Service/Persistence 통합 테스트에서 협력자 mock 금지** — 실제 빈 + `DatabaseCleaner` 격리. 현재는 데이터도 `new` 로 직접 생성(generator 미도입).
+- **Controller/Service/Persistence 통합 테스트에서 협력자 mock 금지** — 실제 빈 + `DatabaseCleaner` 격리. 현재는 데이터도 `new` 로 직접 생성(generator 미도입). **유일한 예외: infra-* client(`SttClient` / `LlmClient`)는 외부 호출이라 `@MockitoBean` 으로 mock**(wrapper 가 아니라 인터페이스를, stub 인자는 `any(...)`).
 - **Document 테스트에서만 service 를 `@MockitoBean` 으로 mock** — DB 미접근, 문서화에 집중. stub 인자는 `any(...)`.
 - **Document 테스트의 실패 케이스는 코드 1개여도 항상 `@ParameterizedTest` + `@EnumSource(ErrorCode.class)`.** 요청 본문 검증 에러는 본문 필드 없는 `errorRequestDocument` 로 문서화(타입 불일치 회피).
 - **테스트에 `@Transactional` 금지** — `DatabaseCleaner` 가 격리.

@@ -21,7 +21,6 @@ description: debate-tracker-backend 팀 컨벤션에 맞춰 REST API 한 개를 
 | `app-report` | `com.debatetracker.report` | Sprint 3+ 스켈레톤. **DB read-only** — write API 스캐폴딩 금지(§아래) |
 
 - `infra-*` 는 REST/Controller 가 없다. 이 스킬 대상 아님 (벤더 중립 client adapter — 루트 `CLAUDE.md` §2.4).
-- **Sprint 1-2 동안 `app-report` 에 write endpoint 를 만들지 않는다.** read-only 조회 API 만 허용되며, 그조차 `app-debate` 가 owner 인 스키마를 read 하는 형태여야 한다. write 가 필요하면 사용자에게 확인.
 
 ## 계층 구조 — 의존성은 항상 안쪽(도메인)으로
 

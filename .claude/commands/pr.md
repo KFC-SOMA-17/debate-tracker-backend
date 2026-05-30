@@ -31,43 +31,41 @@ git diff develop...HEAD --stat
 
 순서대로 시도:
 
-1. **브랜치명에서 prefix 추출**
-- `feat/#10`, `refactor/#23`, `hotfix/#4` → prefix는 브랜치명 첫 segment.
+1. **이슈와 동일한 제목 우선**
+- 브랜치명에서 `#숫자`를 추출 (예: `feat/#10` → `10`).
+- `gh issue view <번호> --json title,body` 로 이슈 정보 가져옴.
+- 성공하면 → **제목 = 이슈 타이틀 그대로** (예: `[FEAT] 토론 세션 API 구현`).
+- 이슈 타이틀이 `[FEAT] ...` 형식이 아니면 형식 규칙에 맞춰 보정.
+
+2. **이슈를 못 찾으면 브랜치 prefix + 작업 내용으로 작성**
+- 브랜치명 첫 segment에서 prefix 추출 (`feat/#10`, `refactor/#23`, `hotfix/#4` → `feat`/`refactor`/`hotfix`).
+- prefix를 대문자 헤더로 변환 (`feat` → `[FEAT]`, `fix`/`bug` → `[BUG]`, `refactor` → `[REFACTOR]`, `hotfix` → `[HOTFIX]` 등).
+- `git log develop..HEAD --oneline` 커밋 목록과 diff를 종합해 작업 내용을 한국어 설명으로 작성.
+- 최종 형식은 반드시 `[FEAT] 토론 세션 API 구현` 처럼 `[HEADER] <한국어 설명>` 형태로 맞춘다.
 - `hotfix/*`라면 base를 `main`으로 추정 (사용자에게 재확인).
 
-2. **이슈 타이틀 우선**
-- 브랜치명에서 `#숫자`를 추출.
-- `gh issue view <번호> --json title,body` 로 이슈 정보 가져옴.
-- 성공하면 → 제목 = `<prefix>: <이슈 타이틀에서 [FEAT]/[BUG] 같은 헤더 제거한 본문>`.
-
-3. **이슈 없으면 커밋/diff 종합**
-- `git log develop..HEAD --oneline` 으로 커밋 목록 확인.
-- 커밋 1개면 그 커밋 메시지 제목 사용.
-- 여러 개면 Claude가 diff와 커밋을 종합해 한국어 제목 작성.
-
-4. **사용자 confirm** 단계에서 수정 가능.
+3. **사용자 confirm** 단계에서 수정 가능.
 
 제목 형식 규칙:
-- `<prefix>: <한국어 설명>` (커밋과 동일)
+- `[<HEADER>] <한국어 설명>` (ex. `[FEAT] 토론 세션 API 구현`)
+- 헤더는 대문자 대괄호, 뒤에 공백 한 칸 (콜론 `:` 사용 안 함)
 - 70자 이내
 - 마침표 없음, 명사형 종결
 
 ### 3. 본문 작성
 
-기존 `.github/pull_request_template.md`의 구조를 **유지**하고, 그 사이에 `## ✨ 변경사항` 섹션을 끼워 넣는다.
+`.github/pull_request_template.md`의 구조를 **그대로 따른다**. 템플릿에 이미 `## 변경사항` 섹션이 포함되어 있으니, 각 섹션의 내용만 채운다.
 
 ```markdown
 # 🚩 연관 이슈
 closed #<번호>
 
 ## ✨ 변경사항
-
 - <커밋/diff에서 추출한 핵심 변경 1>
 - <핵심 변경 2>
 - <핵심 변경 3>
 
 # 🗣️ 리뷰 요구사항 (선택)
-
 - <자동 제안된 리뷰 포인트 후보 1>
 - <후보 2>
 ```
@@ -114,13 +112,13 @@ git status -sb 로 ahead/behind 확인
 [Push]   origin/feat/#10 에 push 필요
 
 [제목]
-feat: 토론 세션 생성 API 구현
+[FEAT] 토론 세션 API 구현
 
 [본문]
 # 🚩 연관 이슈
 closed #10
 
-## ✨ 변경사항
+## 변경사항
 
 - POST /api/sessions 엔드포인트 추가
 - 세션 lifecycle 상태 머신 도입 (READY → IN_PROGRESS → CLOSED)
@@ -153,16 +151,6 @@ EOF
 
 생성 후 PR URL을 출력한다.
 
-### 8. 후속 안내
-
-다음 사항은 PR 생성 후 사용자에게 안내(자동 처리 X — 사람 판단 영역):
-
-- Reviewers 할당
-- Label 부여 (라벨순서: 파트 - 워크플로우)
-- Project 할당
-- Milestone (이슈에서 상속될 수 있음)
-
-자동화 가능한 것(`/noti`로 디스코드 공지)이 있으면 마지막에 한 줄 알려준다.
 
 ## 머지 방식 안내
 
