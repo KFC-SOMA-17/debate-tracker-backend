@@ -4,7 +4,7 @@ description: 팀 git-convention과 PR 템플릿에 맞춰 PR 본문 작성 후 g
 
 # /pr
 
-debate-tracker-backend 팀 컨벤션(`docs/git-convention.md`, `.github/pull_request_template.md`)에 맞춰 PR을 생성한다.
+debate-tracker-backend 팀 컨벤션(`.claude/conventions/git-convention.md`, `.github/pull_request_template.md`)에 맞춰 PR을 생성한다.
 
 ## 입력
 
@@ -32,18 +32,18 @@ git diff develop...HEAD --stat
 순서대로 시도:
 
 1. **브랜치명에서 prefix 추출**
-   - `feat/#10`, `refactor/#23`, `hotfix/#4` → prefix는 브랜치명 첫 segment.
-   - `hotfix/*`라면 base를 `main`으로 추정 (사용자에게 재확인).
+- `feat/#10`, `refactor/#23`, `hotfix/#4` → prefix는 브랜치명 첫 segment.
+- `hotfix/*`라면 base를 `main`으로 추정 (사용자에게 재확인).
 
 2. **이슈 타이틀 우선**
-   - 브랜치명에서 `#숫자`를 추출.
-   - `gh issue view <번호> --json title,body` 로 이슈 정보 가져옴.
-   - 성공하면 → 제목 = `<prefix>: <이슈 타이틀에서 [FEAT]/[BUG] 같은 헤더 제거한 본문>`.
+- 브랜치명에서 `#숫자`를 추출.
+- `gh issue view <번호> --json title,body` 로 이슈 정보 가져옴.
+- 성공하면 → 제목 = `<prefix>: <이슈 타이틀에서 [FEAT]/[BUG] 같은 헤더 제거한 본문>`.
 
 3. **이슈 없으면 커밋/diff 종합**
-   - `git log develop..HEAD --oneline` 으로 커밋 목록 확인.
-   - 커밋 1개면 그 커밋 메시지 제목 사용.
-   - 여러 개면 Claude가 diff와 커밋을 종합해 한국어 제목 작성.
+- `git log develop..HEAD --oneline` 으로 커밋 목록 확인.
+- 커밋 1개면 그 커밋 메시지 제목 사용.
+- 여러 개면 Claude가 diff와 커밋을 종합해 한국어 제목 작성.
 
 4. **사용자 confirm** 단계에서 수정 가능.
 

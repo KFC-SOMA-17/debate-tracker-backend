@@ -4,7 +4,7 @@ description: 팀 git-convention에 맞춰 한국어 커밋 메시지 작성 후 
 
 # /commit
 
-debate-tracker-backend 팀 컨벤션(`docs/git-convention.md`)에 맞춰 커밋 메시지를 작성하고 커밋을 만든다.
+debate-tracker-backend 팀 컨벤션(`.claude/conventions/git-convention.md`)에 맞춰 커밋 메시지를 작성하고 커밋을 만든다.
 
 ## 입력
 
@@ -68,7 +68,7 @@ git log -5 --oneline
 - 변경 라인 수가 `git diff --shortstat` 기준 **추가+삭제 ≥ 100**
 - 한 커밋에 의도적으로 두 가지 이상의 의도가 묶여 있음(분리 거부 시)
 
-body 형식 (`docs/git-convention.md` 예시 그대로):
+body 형식 (`.claude/conventions/git-convention.md` 예시 그대로):
 
 ```
 <prefix>: <제목>
