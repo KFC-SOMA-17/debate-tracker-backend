@@ -1,5 +1,6 @@
 package com.debatetracker.debate.document;
 
+import static org.springframework.restdocs.payload.JsonFieldType.NUMBER;
 import static org.springframework.restdocs.payload.JsonFieldType.STRING;
 import static org.springframework.restdocs.payload.PayloadDocumentation.fieldWithPath;
 
@@ -23,7 +24,8 @@ abstract class BaseDocumentTest {
 
     protected static final RestDocsResponse ERROR_RESPONSE = new RestDocsResponse()
             .responseBodyField(
-                    fieldWithPath("errorCode").type(STRING).description("에러 코드"),
+                    fieldWithPath("code").type(STRING).description("에러 코드"),
+                    fieldWithPath("status").type(NUMBER).description("에러 코드"),
                     fieldWithPath("message").type(STRING).description("에러 메시지")
             );
 
