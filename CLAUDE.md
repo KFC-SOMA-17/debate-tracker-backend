@@ -15,8 +15,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ```
 app-debate ──┐                                  app-report ──┐
              ├──► infra-stt                                  │
-             └──► infra-llm                                  ├──► infra-llm
+             ├──► infra-llm                                  ├──► infra-llm
+             └──► common                                     ├──► common
                                                              │   (Sprint 3+)
+
+infra-stt ──► common
+infra-llm ──► common
 ```
 
 | 모듈 | 종류 | 책임 |
@@ -25,6 +29,7 @@ app-debate ──┐                                  app-report ──┐
 | `app-report` | Bootable Spring Boot (Sprint 3+ 스켈레톤) | 사후 분석 F2, 카드뉴스/세특 F3. 1차에서 **DB read-only** |
 | `infra-stt` | `java-library` | STT 외부 호출 어댑터. **벤더 중립 `SttClient` 인터페이스** + 구현체 |
 | `infra-llm` | `java-library` | LLM 외부 호출 어댑터. **벤더 중립 `LlmClient` 인터페이스** + 구현체. 보정용/쟁점추출용 빈 동시 노출 |
+| `common` | `java-library` | **공통 에러 객체 (`DebateTrackerException`, `ErrorCode`) 만 관리.** 도메인 식별자/VO·비즈니스 로직·벤더 SDK 의존 금지. 자세한 규칙은 [common/CLAUDE.md](common/CLAUDE.md) |
 
 ### 절대 깨면 안 되는 규칙 (§2.4, §6.1)
 
@@ -141,3 +146,4 @@ Gradle wrapper 사용 (Windows PowerShell — `./gradlew` 대신 `.\gradlew`).
 - [app-report/CLAUDE.md](app-report/CLAUDE.md)
 - [infra-stt/CLAUDE.md](infra-stt/CLAUDE.md)
 - [infra-llm/CLAUDE.md](infra-llm/CLAUDE.md)
+- [common/CLAUDE.md](common/CLAUDE.md)
