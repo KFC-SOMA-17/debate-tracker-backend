@@ -83,4 +83,4 @@ app-debate/src/main/java/com/debatetracker/debate/
 - 단위 테스트: 도메인 로직 (라벨링, 트리거 주기 계산, 발화 ID 단조성 검증).
 - 통합 테스트: WebSocket 라이프사이클은 `@SpringBootTest(webEnvironment = RANDOM_PORT)` + Spring TestClient.
 - `infra-*` 호출은 `@MockBean` 또는 `llm.mode=mock` / `stt.mode=mock` 프로파일로 격리 (§5.2).
-- DB: 메인 런타임 MySQL(로컬 Docker Compose), 테스트도 MySQL. **프로파일로 분기** — 로컬은 떠 있는 MySQL/Redis 접속(`test`, 기본값), CI는 Testcontainers(`ci`, `SPRING_PROFILES_ACTIVE=ci`). 컨테이너 설정은 `config.TestcontainersConfiguration`(`@Profile("ci")`), DB 정리는 `DatabaseCleaner`(MySQL `TRUNCATE`). 새 통합 테스트 베이스에는 `@Import(TestcontainersConfiguration.class)` 를 붙인다(`@DataJpaTest` 는 `@AutoConfigureTestDatabase(replace = NONE)` 추가).
+- DB: 메인 런타임 MySQL(로컬 Docker Compose), 테스트도 MySQL. **프로파일로 분기** — 로컬은 떠 있는 MySQL/Redis 접속(`local-test`, 기본값), CI는 Testcontainers(`ci`, `SPRING_PROFILES_ACTIVE=ci`). 컨테이너 설정은 `config.TestcontainersConfiguration`(`@Profile("ci")`), DB 정리는 `DatabaseCleaner`(MySQL `TRUNCATE`). 새 통합 테스트 베이스에는 `@Import(TestcontainersConfiguration.class)` 를 붙인다(`@DataJpaTest` 는 `@AutoConfigureTestDatabase(replace = NONE)` 추가).

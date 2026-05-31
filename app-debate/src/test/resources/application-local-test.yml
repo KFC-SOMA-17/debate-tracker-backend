@@ -9,3 +9,4 @@ spring:
     redis:
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:16379}
+      database: ${TEST_REDIS_DATABASE:1} # local 환경 구분

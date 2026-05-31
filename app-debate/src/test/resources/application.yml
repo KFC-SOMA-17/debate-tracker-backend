@@ -1,6 +1,6 @@
 spring:
   profiles:
-    active: ${SPRING_PROFILES_ACTIVE:test}
+    active: ${SPRING_PROFILES_ACTIVE:local-test}
 
   jpa:
     show-sql: true
@@ -10,10 +10,6 @@ spring:
     hibernate:
       ddl-auto: create-drop
     open-in-view: false
-
-  data:
-    redis:
-      database: ${TEST_REDIS_DATABASE:1} # local 환경 구분
 
   cache:
     type: redis
