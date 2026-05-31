@@ -109,10 +109,10 @@ Gradle wrapper 사용 (Windows PowerShell — `./gradlew` 대신 `.\gradlew`).
 
 ## DB 공유와 마이그레이션 (§2.5)
 
-- 1차에서 두 앱이 **같은 Postgres** 를 본다.
-- **`app-debate` 만 Flyway 실행** — 마이그레이션 owner. `app-report` 는 read-only 접속 (Postgres role + repository 분리 권장).
+- 1차에서 두 앱이 **같은 MySQL** 을 본다.
+- **`app-debate` 만 Flyway 실행** — 마이그레이션 owner. 단 1차에는 Flyway 비활성(`ddl-auto`)으로 시작하고 추후 도입. `app-report` 는 read-only 접속 (MySQL 계정 + repository 분리 권장).
 - 스키마 변경 PR 은 **양쪽 앱 영향 확인 체크박스** 필수. `app-debate` 스키마가 바뀌면 `app-report` 의 read 엔티티/DTO 매핑도 같이 손봐야 한다.
-- 1차 H2 (`runtimeOnly 'com.h2database:h2'`) — Sprint 진행하며 Postgres + Testcontainers 로 전환 예정.
+- 메인 런타임은 **MySQL** (`runtimeOnly 'com.mysql:mysql-connector-j'`, 로컬은 Docker Compose). 테스트는 **H2** in-memory(`testRuntimeOnly 'com.h2database:h2'`) — Sprint 진행하며 Testcontainers MySQL 로 전환 검토.
 
 ## 트래픽 분리 / 배포 (§3.2, §3.5)
 
@@ -134,7 +134,7 @@ Gradle wrapper 사용 (Windows PowerShell — `./gradlew` 대신 `.\gradlew`).
 
 - `SttClient` / `LlmClient` 시그니처 (async 타입, partial/final 구분, speaker label 정규화 형태)
 - `infra-*` mock profile 위치 (`infra-*` 자체 vs 별도 `*-test-fixtures` 모듈)
-- `app-report` 의 DB read-only 강제 방식 (Postgres role 분리 시점)
+- `app-report` 의 DB read-only 강제 방식 (MySQL 계정 분리 시점)
 - `common-domain` 도입 트리거 임계값
 - `QAS-CO-02` "벤더 교체 ≤ 5 파일" 기준 (빌드 타임 vs 런타임 무중단)
 
