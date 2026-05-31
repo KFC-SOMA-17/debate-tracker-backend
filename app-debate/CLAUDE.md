@@ -58,7 +58,7 @@ app-debate/src/main/java/com/debatetracker/debate/
 
 - 보정·쟁점추출 트리거 주기를 어떻게 잴 것인지 (스케줄러 vs 발화 임계치 기반 vs 둘 다).
 - broadcast 순서 보장 — 발화 ID 단조 증가 + 클라이언트 last-received-id 기반 재요청. NFR [RE-01](../docs/NFR.md).
-- 중간 합류 viewer 의 초기 화면 ≤ 2초 (NFR [RE-02](../docs/NFR.md)) — MySQL 인덱스 + Redis 캐시 + WS 핸드셰이크 합산 예산.
+- 중간 합류 viewer 의 초기 화면 ≤ 2초 (NFR [RE-02](../docs/NFR.md)) — Postgres 인덱스 + Redis 캐시 + WS 핸드셰이크 합산 예산.
 - ArchUnit 규칙 위치 — 이 모듈 테스트에 두기 (§2.4).
 
 ## NFR 책임 매핑
@@ -78,4 +78,4 @@ app-debate/src/main/java/com/debatetracker/debate/
 - 단위 테스트: 도메인 로직 (라벨링, 트리거 주기 계산, 발화 ID 단조성 검증).
 - 통합 테스트: WebSocket 라이프사이클은 `@SpringBootTest(webEnvironment = RANDOM_PORT)` + Spring TestClient.
 - `infra-*` 호출은 `@MockBean` 또는 `llm.mode=mock` / `stt.mode=mock` 프로파일로 격리 (§5.2).
-- DB: 메인 런타임 MySQL(로컬 Docker Compose), 테스트 H2 in-memory. Sprint 진행 시 Testcontainers MySQL 로 전환 검토.
+- DB: 1차 H2, Sprint 진행 시 Testcontainers Postgres 로 전환.
