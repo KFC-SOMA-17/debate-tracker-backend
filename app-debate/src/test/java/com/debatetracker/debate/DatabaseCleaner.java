@@ -28,18 +28,13 @@ public class DatabaseCleaner implements BeforeEachCallback {
     }
 
     private void truncateTables(EntityManager em) {
-        List<String> tableNames = findTableNames(em);
-        if (tableNames.isEmpty()) {
-            return;
-        }
-
-        em.createNativeQuery("SET FOREIGN_KEY_CHECKS = 0").executeUpdate();
+        em.createNativeQuery("SET REFERENTIAL_INTEGRITY FALSE").executeUpdate();
         try {
-            for (String tableName : tableNames) {
-                em.createNativeQuery("TRUNCATE TABLE `%s`".formatted(tableName)).executeUpdate();
+            for (String tableName : findTableNames(em)) {
+                em.createNativeQuery("TRUNCATE TABLE %s RESTART IDENTITY".formatted(tableName)).executeUpdate();
             }
         } finally {
-            em.createNativeQuery("SET FOREIGN_KEY_CHECKS = 1").executeUpdate();
+            em.createNativeQuery("SET REFERENTIAL_INTEGRITY TRUE").executeUpdate();
         }
     }
 
@@ -48,8 +43,7 @@ public class DatabaseCleaner implements BeforeEachCallback {
         String tableNameSelectQuery = """
                 SELECT TABLE_NAME
                 FROM INFORMATION_SCHEMA.TABLES
-                WHERE TABLE_SCHEMA = (SELECT DATABASE())
-                  AND TABLE_TYPE = 'BASE TABLE'
+                WHERE TABLE_SCHEMA = 'PUBLIC'
                 """;
         return em.createNativeQuery(tableNameSelectQuery).getResultList();
     }

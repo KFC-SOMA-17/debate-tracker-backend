@@ -1,7 +1,6 @@
 package com.debatetracker.debate.controller;
 
 import com.debatetracker.debate.DatabaseCleaner;
-import com.debatetracker.debate.config.TestcontainersConfiguration;
 import io.restassured.RestAssured;
 import io.restassured.builder.RequestSpecBuilder;
 import io.restassured.filter.Filter;
@@ -13,9 +12,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
-import org.springframework.context.annotation.Import;
 
-@Import(TestcontainersConfiguration.class)
 @ExtendWith(DatabaseCleaner.class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 abstract class BaseControllerTest {
