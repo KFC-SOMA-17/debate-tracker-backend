@@ -1,0 +1,14 @@
+spring:
+  application:
+    name: app-debate
+  profiles:
+    active: local
+
+  jpa:
+    open-in-view: false
+
+  cache:
+    type: redis
+
+  flyway:
+    enabled: false

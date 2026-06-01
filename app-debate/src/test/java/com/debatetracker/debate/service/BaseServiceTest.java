@@ -1,16 +1,14 @@
 package com.debatetracker.debate.service;
 
 import com.debatetracker.debate.DatabaseCleaner;
-import com.debatetracker.debate.domain.debate.DebateRepository;
+import com.debatetracker.debate.config.TestcontainersConfiguration;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 
+@Import(TestcontainersConfiguration.class)
 @ExtendWith(DatabaseCleaner.class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE)
 public abstract class BaseServiceTest {
-
-    @Autowired
-    protected DebateRepository debateRepository;
 
 }

@@ -4,6 +4,7 @@ import static org.springframework.restdocs.payload.JsonFieldType.NUMBER;
 import static org.springframework.restdocs.payload.JsonFieldType.STRING;
 import static org.springframework.restdocs.payload.PayloadDocumentation.fieldWithPath;
 
+import com.debatetracker.debate.config.TestcontainersConfiguration;
 import com.debatetracker.debate.service.debate.DebateService;
 import io.restassured.RestAssured;
 import io.restassured.builder.RequestSpecBuilder;
@@ -13,6 +14,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.context.annotation.Import;
 import org.springframework.restdocs.RestDocumentationContextProvider;
 import org.springframework.restdocs.RestDocumentationExtension;
 import org.springframework.restdocs.restassured.RestAssuredRestDocumentation;
@@ -20,6 +22,7 @@ import org.springframework.restdocs.restassured.RestAssuredRestDocumentationConf
 import org.springframework.restdocs.restassured.RestDocumentationFilter;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
+@Import(TestcontainersConfiguration.class)
 @ExtendWith({RestDocumentationExtension.class, MockitoExtension.class})
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 public abstract class BaseDocumentTest {
