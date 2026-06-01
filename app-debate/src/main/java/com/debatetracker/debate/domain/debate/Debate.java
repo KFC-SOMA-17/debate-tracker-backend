@@ -1,4 +1,4 @@
-package com.debatetracker.debate.domain.transcript;
+package com.debatetracker.debate.domain.debate;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;

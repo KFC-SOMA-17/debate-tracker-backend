@@ -9,6 +9,6 @@ import org.springframework.context.annotation.Import;
 @Import(TestcontainersConfiguration.class)
 @ExtendWith(DatabaseCleaner.class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE)
-abstract class BaseServiceTest {
+public abstract class BaseServiceTest {
 
 }

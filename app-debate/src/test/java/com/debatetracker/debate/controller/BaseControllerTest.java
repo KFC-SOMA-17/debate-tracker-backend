@@ -18,7 +18,7 @@ import org.springframework.context.annotation.Import;
 @Import(TestcontainersConfiguration.class)
 @ExtendWith(DatabaseCleaner.class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-abstract class BaseControllerTest {
+public abstract class BaseControllerTest {
 
     private static final List<Filter> SPEC_FILTERS = List.of(
             new RequestLoggingFilter(),
