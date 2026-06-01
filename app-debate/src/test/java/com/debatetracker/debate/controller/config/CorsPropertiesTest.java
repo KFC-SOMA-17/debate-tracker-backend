@@ -1,10 +1,8 @@
 package com.debatetracker.debate.controller.config;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.assertj.core.api.InstanceOfAssertFactories.type;
 
 import com.debatetracker.exception.DebateTrackerException;
-import com.debatetracker.exception.ErrorCode;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -19,9 +17,8 @@ class CorsPropertiesTest {
         @Test
         void origin_배열이_null_이면_예외를_던진다() {
             assertThatThrownBy(() -> new CorsProperties(null))
-                    .asInstanceOf(type(DebateTrackerException.class))
-                    .extracting(DebateTrackerException::getErrorCode)
-                    .isEqualTo(ErrorCode.CORS_ORIGIN_EMPTY);
+                    .isInstanceOf(DebateTrackerException.class)
+                    .hasMessage("CORS Origin 은 적어도 한 개 있어야 합니다");
         }
 
         @Test
@@ -29,21 +26,19 @@ class CorsPropertiesTest {
             String[] originUrls = {};
 
             assertThatThrownBy(() -> new CorsProperties(originUrls))
-                    .asInstanceOf(type(DebateTrackerException.class))
-                    .extracting(DebateTrackerException::getErrorCode)
-                    .isEqualTo(ErrorCode.CORS_ORIGIN_EMPTY);
+                    .isInstanceOf(DebateTrackerException.class)
+                    .hasMessage("CORS Origin 은 적어도 한 개 있어야 합니다");
         }
 
-        @ParameterizedTest
         @NullSource
         @ValueSource(strings = {"", " ", "\t"})
+        @ParameterizedTest
         void origin_에_null_이거나_공백인_원소가_있으면_예외를_던진다(String blankOrigin) {
             String[] originUrls = {"https://example.com", blankOrigin};
 
             assertThatThrownBy(() -> new CorsProperties(originUrls))
-                    .asInstanceOf(type(DebateTrackerException.class))
-                    .extracting(DebateTrackerException::getErrorCode)
-                    .isEqualTo(ErrorCode.CORS_ORIGIN_STRING_BLANK);
+                    .isInstanceOf(DebateTrackerException.class)
+                    .hasMessage("CORS Origin 에 빈 값이 들어올 수 없습니다");
         }
     }
 }
