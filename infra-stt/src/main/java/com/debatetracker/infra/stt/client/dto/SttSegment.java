@@ -1,4 +1,4 @@
-package com.debatetracker.infra.stt.dto;
+package com.debatetracker.infra.stt.client.dto;
 
 import java.math.BigDecimal;
 

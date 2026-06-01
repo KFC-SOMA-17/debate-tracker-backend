@@ -7,7 +7,7 @@ import static org.junit.jupiter.api.DynamicTest.dynamicTest;
 import com.debatetracker.infra.stt.config.AudioProperties;
 import com.debatetracker.infra.stt.config.AzureConfig;
 import com.debatetracker.infra.stt.config.SttAutoConfiguration;
-import com.debatetracker.infra.stt.dto.SttSegment;
+import com.debatetracker.infra.stt.client.dto.SttSegment;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;

@@ -11,7 +11,7 @@ import static org.mockito.Mockito.verify;
 
 import com.debatetracker.infra.stt.config.AudioProperties;
 import com.debatetracker.infra.stt.config.AzureConfig;
-import com.debatetracker.infra.stt.dto.TranscriberSession;
+import com.debatetracker.infra.stt.adapter.azure.dto.TranscriberSession;
 import com.microsoft.cognitiveservices.speech.SpeechConfig;
 import java.lang.reflect.Field;
 import java.util.concurrent.ConcurrentHashMap;

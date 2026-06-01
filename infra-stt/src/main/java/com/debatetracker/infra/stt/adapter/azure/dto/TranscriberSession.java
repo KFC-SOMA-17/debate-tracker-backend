@@ -1,5 +1,6 @@
-package com.debatetracker.infra.stt.dto;
+package com.debatetracker.infra.stt.adapter.azure.dto;
 
+import com.debatetracker.infra.stt.client.dto.SttSegment;
 import com.microsoft.cognitiveservices.speech.SpeechConfig;
 import com.microsoft.cognitiveservices.speech.audio.AudioConfig;
 import com.microsoft.cognitiveservices.speech.audio.PushAudioInputStream;

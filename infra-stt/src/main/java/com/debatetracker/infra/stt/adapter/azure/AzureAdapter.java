@@ -3,8 +3,8 @@ package com.debatetracker.infra.stt.adapter.azure;
 import com.debatetracker.infra.stt.client.SttClient;
 import com.debatetracker.infra.stt.config.AudioProperties;
 import com.debatetracker.infra.stt.config.AzureConfig;
-import com.debatetracker.infra.stt.dto.SttSegment;
-import com.debatetracker.infra.stt.dto.TranscriberSession;
+import com.debatetracker.infra.stt.client.dto.SttSegment;
+import com.debatetracker.infra.stt.adapter.azure.dto.TranscriberSession;
 import com.microsoft.cognitiveservices.speech.OutputFormat;
 import com.microsoft.cognitiveservices.speech.ProfanityOption;
 import com.microsoft.cognitiveservices.speech.PropertyId;
@@ -20,8 +20,6 @@ import java.math.BigDecimal;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 import lombok.extern.slf4j.Slf4j;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Azure AI Speech STT 벤더 어댑터. ConversationTranscriber를 사용하여 화자분리 + 한국어 전사를 수행한다. 세션별로 독립된 연결을 관리하여 다중 세션 동시 처리를 지원한다.
