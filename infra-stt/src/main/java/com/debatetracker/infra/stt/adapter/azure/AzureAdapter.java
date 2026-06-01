@@ -16,6 +16,7 @@ import com.microsoft.cognitiveservices.speech.audio.AudioStreamFormat;
 import com.microsoft.cognitiveservices.speech.audio.PushAudioInputStream;
 import com.microsoft.cognitiveservices.speech.transcription.ConversationTranscriber;
 import com.microsoft.cognitiveservices.speech.transcription.ConversationTranscriptionResult;
+import java.math.BigDecimal;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 import org.slf4j.Logger;
@@ -77,7 +78,15 @@ public class AzureAdapter implements SttClient {
                         && result.getText() != null
                         && !result.getText().isEmpty()
                 ) {
-                    onSegment.accept(SttSegment.fromAzureResult(e.getResult()));
+                    long offsetTicks = result.getOffset().longValue();
+                    long durationTicks = result.getDuration().longValue();
+                    SttSegment sttSegment = new SttSegment(
+                            BigDecimal.valueOf(offsetTicks / 10_000_000.0),
+                            BigDecimal.valueOf(((offsetTicks + durationTicks) / 10_000_000.0)),
+                            result.getSpeakerId(),
+                            result.getText()
+                    );
+                    onSegment.accept(sttSegment);
                 }
             });
 
