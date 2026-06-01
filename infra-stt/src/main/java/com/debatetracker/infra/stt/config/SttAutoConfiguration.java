@@ -2,6 +2,7 @@ package com.debatetracker.infra.stt.config;
 
 import com.debatetracker.infra.stt.adapter.azure.AzureAdapter;
 import com.debatetracker.infra.stt.client.SttClient;
+import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -9,11 +10,10 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+@Slf4j
 @Configuration
 @EnableConfigurationProperties({AzureConfig.class, AudioProperties.class})
 public class SttAutoConfiguration {
-
-    private static final Logger log = LoggerFactory.getLogger(SttAutoConfiguration.class);
 
     @Bean
     @ConditionalOnProperty(name = "stt.azure.enabled", havingValue = "true")
