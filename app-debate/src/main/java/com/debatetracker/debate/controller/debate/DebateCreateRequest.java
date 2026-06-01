@@ -1,10 +1,10 @@
 package com.debatetracker.debate.controller.debate;
 
 import com.debatetracker.debate.domain.debate.Debate;
-import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.NotBlank;
 
 public record DebateCreateRequest(
-        @NotNull String topic
+        @NotBlank String topic
 ) {
 
     public Debate toDomain() {
