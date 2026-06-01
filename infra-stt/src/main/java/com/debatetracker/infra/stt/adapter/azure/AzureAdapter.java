@@ -19,15 +19,16 @@ import com.microsoft.cognitiveservices.speech.transcription.ConversationTranscri
 import java.math.BigDecimal;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
+import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
  * Azure AI Speech STT 벤더 어댑터. ConversationTranscriber를 사용하여 화자분리 + 한국어 전사를 수행한다. 세션별로 독립된 연결을 관리하여 다중 세션 동시 처리를 지원한다.
  */
+@Slf4j
 public class AzureAdapter implements SttClient {
 
-    private static final Logger log = LoggerFactory.getLogger(AzureAdapter.class);
     private static final String VENDOR_NAME = "azure";
 
     private final AzureConfig config;
@@ -49,6 +50,7 @@ public class AzureAdapter implements SttClient {
 
     @Override
     public void startStreaming(String sessionId, Consumer<SttSegment> onSegment) {
+        //TODO 따닥 문제 추후 고려
         if (sessions.containsKey(sessionId)) {
             log.warn("[{}] 이미 활성 세션이 존재합니다: {}", VENDOR_NAME, sessionId);
             return;
