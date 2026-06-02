@@ -7,6 +7,7 @@ import com.debatetracker.infra.stt.repository.InMemoryAzureSessionRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -24,7 +25,8 @@ public class SttAutoConfiguration {
     @ConditionalOnProperty(name = "stt.azure.enabled", havingValue = "true")
     public SttClient azureSttClient(AzureConfig azureConfig,
                                     AudioProperties audioProperties,
-                                    AzureSessionRepository sessionRepository) {
+                                    AzureSessionRepository sessionRepository,
+                                    ApplicationEventPublisher eventPublisher) {
         log.info("[STT] AzureConfig 주입 확인 — region={}, language={}, silenceTimeoutMs={}",
                 azureConfig.region(), azureConfig.language(), azureConfig.silenceTimeoutMs());
 
@@ -34,6 +36,6 @@ public class SttAutoConfiguration {
                 audioProperties.encoding(),
                 audioProperties.chunkDurationMs()
         );
-        return new AzureAdapter(azureConfig, audioProperties, sessionRepository);
+        return new AzureAdapter(azureConfig, audioProperties, sessionRepository, eventPublisher);
     }
 }

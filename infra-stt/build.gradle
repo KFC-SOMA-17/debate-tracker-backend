@@ -11,4 +11,5 @@ dependencies {
 
 	//Spring Boot 자동 주입 기능
 	compileOnly 'org.springframework.boot:spring-boot-autoconfigure'
+	compileOnly 'org.springframework:spring-context'
 }

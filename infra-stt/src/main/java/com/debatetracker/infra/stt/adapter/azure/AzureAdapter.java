@@ -2,6 +2,7 @@ package com.debatetracker.infra.stt.adapter.azure;
 
 import com.debatetracker.infra.stt.client.SttClient;
 import com.debatetracker.infra.stt.client.dto.SttSegment;
+import com.debatetracker.infra.stt.client.event.TranscribeEvent;
 import com.debatetracker.infra.stt.config.AudioProperties;
 import com.debatetracker.infra.stt.config.AzureConfig;
 import com.debatetracker.infra.stt.repository.AzureSessionRepository;
@@ -19,8 +20,8 @@ import com.microsoft.cognitiveservices.speech.transcription.ConversationTranscri
 import com.microsoft.cognitiveservices.speech.transcription.ConversationTranscriptionResult;
 import java.math.BigDecimal;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Consumer;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 
 /**
  * Azure AI Speech STT 벤더 어댑터. ConversationTranscriber를 사용하여 화자분리 + 한국어 전사를 수행한다. 세션별로 독립된 연결을 관리하여 다중 세션 동시 처리를 지원한다.
@@ -33,16 +34,19 @@ public class AzureAdapter implements SttClient {
     private final AzureConfig config;
     private final AudioProperties audioProperties;
     private final AzureSessionRepository sessionRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     public AzureAdapter(AzureConfig azureConfig,
                         AudioProperties audioProperties,
-                        AzureSessionRepository sessionRepository) {
+                        AzureSessionRepository sessionRepository,
+                        ApplicationEventPublisher eventPublisher) {
         if (azureConfig == null || !azureConfig.enabled()) {
             throw new RuntimeException("Azure configuration is not set"); //TODO DebateTrackerException으로 변경 예정
         }
         this.config = azureConfig;
         this.audioProperties = audioProperties;
         this.sessionRepository = sessionRepository;
+        this.eventPublisher = eventPublisher;
     }
 
     @Override
@@ -89,6 +93,7 @@ public class AzureAdapter implements SttClient {
                             result.getSpeakerId(),
                             result.getText()
                     );
+                    eventPublisher.publishEvent(new TranscribeEvent(sessionId, sttSegment));
                 }
             });
 
@@ -104,7 +109,8 @@ public class AzureAdapter implements SttClient {
                     log.error("[{}] 인식 취소: session={}, reason={}, errorCode={}, errorDetails={}",
                             VENDOR_NAME, sessionId, e.getReason(), e.getErrorCode(), e.getErrorDetails()));
 
-            transcriber.startTranscribingAsync().get(3L, TimeUnit.SECONDS);
+            transcriber.startTranscribingAsync()
+                    .get(3L, TimeUnit.SECONDS);
             sessionRepository.save(session);
             log.info("[{}] 전사 시작 성공, session={}", VENDOR_NAME, sessionId);
 

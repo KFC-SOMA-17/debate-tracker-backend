@@ -20,6 +20,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 
 
 @ExtendWith(MockitoExtension.class)
@@ -32,10 +33,12 @@ class AzureAdapterTest {
     private static final AudioProperties AUDIO_PROPERTIES = new AudioProperties(16000, 1, "LINEAR16", 200);
 
     private AzureSessionRepository sessionRepository;
+    private ApplicationEventPublisher eventPublisher;
 
     private AzureAdapter createAdapter() {
         sessionRepository = new InMemoryAzureSessionRepository();
-        return new AzureAdapter(VALID_CONFIG, AUDIO_PROPERTIES, sessionRepository);
+        eventPublisher = mock(ApplicationEventPublisher.class);
+        return new AzureAdapter(VALID_CONFIG, AUDIO_PROPERTIES, sessionRepository, eventPublisher);
     }
 
     @Nested
@@ -43,7 +46,7 @@ class AzureAdapterTest {
 
         @Test
         void config이_null이면_예외를_던진다() {
-            assertThatThrownBy(() -> new AzureAdapter(null, AUDIO_PROPERTIES, new InMemoryAzureSessionRepository()))
+            assertThatThrownBy(() -> new AzureAdapter(null, AUDIO_PROPERTIES, new InMemoryAzureSessionRepository(), mock(ApplicationEventPublisher.class)))
                     .isInstanceOf(RuntimeException.class);
         }
 
@@ -58,7 +61,7 @@ class AzureAdapterTest {
                     500
             );
 
-            assertThatThrownBy(() -> new AzureAdapter(disabledConfig, AUDIO_PROPERTIES, new InMemoryAzureSessionRepository()))
+            assertThatThrownBy(() -> new AzureAdapter(disabledConfig, AUDIO_PROPERTIES, new InMemoryAzureSessionRepository(), mock(ApplicationEventPublisher.class)))
                     .isInstanceOf(RuntimeException.class);
         }
     }
@@ -71,8 +74,7 @@ class AzureAdapterTest {
             AzureAdapter adapter = createAdapter();
             injectMockSession(SESSION_ID);
 
-            adapter.startStreaming(SESSION_ID, segment -> {
-            });
+            adapter.startStreaming(SESSION_ID);
 
             assertThat(adapter.isConnected(SESSION_ID)).isTrue();
         }
@@ -85,8 +87,7 @@ class AzureAdapterTest {
 
             AzureAdapter adapter = createAdapter();
 
-            assertThatThrownBy(() -> adapter.startStreaming(SESSION_ID, segment -> {
-            }))
+            assertThatThrownBy(() -> adapter.startStreaming(SESSION_ID))
                     .isInstanceOf(RuntimeException.class)
                     .hasMessage("Streaming Connection Failed");
         }

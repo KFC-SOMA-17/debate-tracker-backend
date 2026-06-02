@@ -1,11 +1,9 @@
 package com.debatetracker.infra.stt.session;
 
-import com.debatetracker.infra.stt.client.dto.SttSegment;
 import com.microsoft.cognitiveservices.speech.SpeechConfig;
 import com.microsoft.cognitiveservices.speech.audio.AudioConfig;
 import com.microsoft.cognitiveservices.speech.audio.PushAudioInputStream;
 import com.microsoft.cognitiveservices.speech.transcription.ConversationTranscriber;
-import java.util.function.Consumer;
 
 public record AzureSession(
         String sessionId,

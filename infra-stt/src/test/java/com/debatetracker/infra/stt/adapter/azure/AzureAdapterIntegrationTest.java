@@ -5,10 +5,9 @@ import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.DynamicTest.dynamicTest;
 
 import com.debatetracker.infra.stt.client.dto.SttSegment;
+import com.debatetracker.infra.stt.client.event.TranscribeEvent;
 import com.debatetracker.infra.stt.config.AudioProperties;
-import com.debatetracker.infra.stt.config.AzureConfig;
 import com.debatetracker.infra.stt.config.SttAutoConfiguration;
-import com.debatetracker.infra.stt.repository.InMemoryAzureSessionRepository;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -23,35 +22,32 @@ import org.junit.jupiter.api.DynamicTest;
 import org.junit.jupiter.api.TestFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.event.EventListener;
+import org.springframework.stereotype.Component;
 import org.springframework.test.context.ActiveProfiles;
 
 @Disabled("실제 Azure 연동 테스트 — application-test.yml 설정 및 test-audio.pcm 준비 후 수동 실행")
-@SpringBootTest(classes = SttAutoConfiguration.class)
+@SpringBootTest(classes = {SttAutoConfiguration.class, AzureAdapterIntegrationTest.TranscribeEventCollector.class})
 @ActiveProfiles("test")
 class AzureAdapterIntegrationTest {
 
     @Autowired
-    private AzureConfig azureConfig;
+    private AzureAdapter adapter;
 
     @Autowired
     private AudioProperties audioProperties;
+
+    @Autowired
+    private TranscribeEventCollector eventCollector;
 
     @DisplayName("스트리밍을 시작하고 음성을 전사한 뒤 종료할 수 있다")
     @TestFactory
     Stream<DynamicTest> 스트리밍_전사_시나리오() {
         String sessionId = "integration-test";
-        AzureAdapter adapter = new AzureAdapter(azureConfig, audioProperties, new InMemoryAzureSessionRepository());
-        List<SttSegment> results = new ArrayList<>();
-        CountDownLatch latch = new CountDownLatch(1);
 
         return Stream.of(
                 dynamicTest("스트리밍을 시작한다", () -> {
-                    adapter.startStreaming(sessionId, segment -> {
-                        results.add(segment);
-//                        System.out.printf("[전사 결과] speaker=%s, start=%.2f, end=%.2f, content=%s%n",
-//                                segment.speaker(), segment.start(), segment.end(), segment.content());
-                        latch.countDown();
-                    });
+                    adapter.startStreaming(sessionId);
 
                     assertThat(adapter.isConnected(sessionId)).isTrue();
                 }),
@@ -67,8 +63,9 @@ class AzureAdapterIntegrationTest {
                         Thread.sleep(audioProperties.chunkDurationMs());
                     }
 
-                    latch.await(5, TimeUnit.SECONDS);
+                    eventCollector.latch.await(5, TimeUnit.SECONDS);
 
+                    List<SttSegment> results = eventCollector.segments;
                     assertThat(results).isNotEmpty();
                     results.forEach(segment ->
                             assertAll(
@@ -85,5 +82,18 @@ class AzureAdapterIntegrationTest {
                     assertThat(adapter.isConnected(sessionId)).isFalse();
                 })
         );
+    }
+
+    @Component
+    static class TranscribeEventCollector {
+
+        final List<SttSegment> segments = new ArrayList<>();
+        final CountDownLatch latch = new CountDownLatch(1);
+
+        @EventListener
+        void onTranscribe(TranscribeEvent event) {
+            segments.add(event.segment());
+            latch.countDown();
+        }
     }
 }

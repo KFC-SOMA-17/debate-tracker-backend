@@ -1,8 +1,5 @@
 package com.debatetracker.infra.stt.client;
 
-import com.debatetracker.infra.stt.client.dto.SttSegment;
-import java.util.function.Consumer;
-
 public interface SttClient {
 
     /**
