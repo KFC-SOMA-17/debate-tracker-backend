@@ -12,8 +12,7 @@ public record AzureSession(
         ConversationTranscriber transcriber,
         PushAudioInputStream pushStream,
         AudioConfig audioConfig,
-        SpeechConfig speechConfig,
-        Consumer<SttSegment> callback
+        SpeechConfig speechConfig
 ) {
 
     //TODO close 장기 지연 문제 추후 해결

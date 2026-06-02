@@ -51,16 +51,16 @@ public class AzureAdapter implements SttClient {
     }
 
     @Override
-    public void startStreaming(String sessionId, Consumer<SttSegment> onSegment) {
+    public void startStreaming(String sessionId) {
         //TODO 따닥 문제 추후 고려
         if (sessionRepository.existsBySessionId(sessionId)) {
             log.warn("[{}] 이미 활성 세션이 존재합니다: {}", VENDOR_NAME, sessionId);
             return;
         }
-        connect(sessionId, onSegment);
+        connect(sessionId);
     }
 
-    private void connect(String sessionId, Consumer<SttSegment> onSegment) {
+    private void connect(String sessionId) {
         try {
             SpeechConfig speechConfig = buildSpeechConfig();
             AudioStreamFormat format = AudioStreamFormat.getWaveFormatPCM(audioProperties.sampleRate(), (short) 16, (short) 1);
@@ -72,8 +72,7 @@ public class AzureAdapter implements SttClient {
                     transcriber,
                     pushStream,
                     audioConfig,
-                    speechConfig,
-                    onSegment
+                    speechConfig
             );
 
             transcriber.transcribed.addEventListener((s, e) -> {
@@ -90,7 +89,6 @@ public class AzureAdapter implements SttClient {
                             result.getSpeakerId(),
                             result.getText()
                     );
-                    onSegment.accept(sttSegment);
                 }
             });
 

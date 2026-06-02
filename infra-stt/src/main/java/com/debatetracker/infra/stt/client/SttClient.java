@@ -9,9 +9,8 @@ public interface SttClient {
      * 스트리밍 전사를 시작한다.
      *
      * @param sessionId 세션 식별자
-     * @param onSegment 전사 세그먼트가 생성될 때마다 호출되는 콜백
      */
-    void startStreaming(String sessionId, Consumer<SttSegment> onSegment);
+    void startStreaming(String sessionId);
 
     /**
      * 특정 세션의 스트리밍을 중지한다.
