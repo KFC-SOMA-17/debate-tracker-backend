@@ -1,4 +1,4 @@
-package com.debatetracker.infra.stt.domain.azure;
+package com.debatetracker.infra.stt.session;
 
 import com.debatetracker.infra.stt.client.dto.SttSegment;
 import com.microsoft.cognitiveservices.speech.SpeechConfig;

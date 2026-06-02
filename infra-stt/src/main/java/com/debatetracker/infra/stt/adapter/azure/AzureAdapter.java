@@ -1,10 +1,11 @@
 package com.debatetracker.infra.stt.adapter.azure;
 
 import com.debatetracker.infra.stt.client.SttClient;
+import com.debatetracker.infra.stt.client.dto.SttSegment;
 import com.debatetracker.infra.stt.config.AudioProperties;
 import com.debatetracker.infra.stt.config.AzureConfig;
-import com.debatetracker.infra.stt.client.dto.SttSegment;
-import com.debatetracker.infra.stt.domain.azure.AzureTranscriberSession;
+import com.debatetracker.infra.stt.repository.AzureTranscriberSessionRepository;
+import com.debatetracker.infra.stt.session.AzureTranscriberSession;
 import com.microsoft.cognitiveservices.speech.OutputFormat;
 import com.microsoft.cognitiveservices.speech.ProfanityOption;
 import com.microsoft.cognitiveservices.speech.PropertyId;
@@ -17,7 +18,6 @@ import com.microsoft.cognitiveservices.speech.audio.PushAudioInputStream;
 import com.microsoft.cognitiveservices.speech.transcription.ConversationTranscriber;
 import com.microsoft.cognitiveservices.speech.transcription.ConversationTranscriptionResult;
 import java.math.BigDecimal;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import lombok.extern.slf4j.Slf4j;
@@ -32,14 +32,17 @@ public class AzureAdapter implements SttClient {
 
     private final AzureConfig config;
     private final AudioProperties audioProperties;
-    private final ConcurrentHashMap<String, AzureTranscriberSession> sessions = new ConcurrentHashMap<>();
+    private final AzureTranscriberSessionRepository sessionRepository;
 
-    public AzureAdapter(AzureConfig azureConfig, AudioProperties audioProperties) {
+    public AzureAdapter(AzureConfig azureConfig,
+                        AudioProperties audioProperties,
+                        AzureTranscriberSessionRepository sessionRepository) {
         if (azureConfig == null || !azureConfig.enabled()) {
             throw new RuntimeException("Azure configuration is not set"); //TODO DebateTrackerException으로 변경 예정
         }
         this.config = azureConfig;
         this.audioProperties = audioProperties;
+        this.sessionRepository = sessionRepository;
     }
 
     @Override
@@ -50,7 +53,7 @@ public class AzureAdapter implements SttClient {
     @Override
     public void startStreaming(String sessionId, Consumer<SttSegment> onSegment) {
         //TODO 따닥 문제 추후 고려
-        if (sessions.containsKey(sessionId)) {
+        if (sessionRepository.existsBySessionId(sessionId)) {
             log.warn("[{}] 이미 활성 세션이 존재합니다: {}", VENDOR_NAME, sessionId);
             return;
         }
@@ -96,7 +99,7 @@ public class AzureAdapter implements SttClient {
 
             transcriber.sessionStopped.addEventListener((s, e) -> {
                 log.info("[{}] 세션 종료: {}", VENDOR_NAME, sessionId);
-                sessions.remove(sessionId);
+                sessionRepository.deleteBySessionId(sessionId);
             });
 
             transcriber.canceled.addEventListener((s, e) ->
@@ -104,7 +107,7 @@ public class AzureAdapter implements SttClient {
                             VENDOR_NAME, sessionId, e.getReason(), e.getErrorCode(), e.getErrorDetails()));
 
             transcriber.startTranscribingAsync().get(3L, TimeUnit.SECONDS);
-            sessions.put(sessionId, session);
+            sessionRepository.save(session);
             log.info("[{}] 전사 시작 성공, session={}", VENDOR_NAME, sessionId);
 
         } catch (Exception e) {
@@ -115,31 +118,29 @@ public class AzureAdapter implements SttClient {
 
     @Override
     public void sendAudioChunk(String sessionId, byte[] pcmData) {
-        AzureTranscriberSession session = sessions.get(sessionId);
-        if (session == null) {
-            log.debug("[{}] 활성 세션 없음, 오디오 무시: {}", VENDOR_NAME, sessionId);
-            return;
-        }
-        try {
-            session.pushStream().write(pcmData);
-        } catch (Exception e) {
-            log.error("[{}] 오디오 전송 에러: session={}, error={}", VENDOR_NAME, sessionId, e.getMessage(), e);
-        }
+        sessionRepository.findBySessionId(sessionId)
+                .ifPresentOrElse(
+                        session -> {
+                            try {
+                                session.pushStream().write(pcmData);
+                            } catch (Exception e) {
+                                log.error("[{}] 오디오 전송 에러: session={}, error={}", VENDOR_NAME, sessionId, e.getMessage(), e);
+                            }
+                        },
+                        () -> log.debug("[{}] 활성 세션 없음, 오디오 무시: {}", VENDOR_NAME, sessionId)
+                );
     }
 
     @Override
     public void stopStreaming(String sessionId) {
         log.info("[{}] stopStreaming called: {}", VENDOR_NAME, sessionId);
-        AzureTranscriberSession session = sessions.remove(sessionId);
-        if (session == null) {
-            return;
-        }
-        session.close();
+        sessionRepository.deleteBySessionId(sessionId)
+                .ifPresent(AzureTranscriberSession::close);
     }
 
     @Override
     public boolean isConnected(String sessionId) {
-        return sessions.containsKey(sessionId);
+        return sessionRepository.existsBySessionId(sessionId);
     }
 
     private SpeechConfig buildSpeechConfig() {

@@ -11,10 +11,10 @@ import static org.mockito.Mockito.verify;
 
 import com.debatetracker.infra.stt.config.AudioProperties;
 import com.debatetracker.infra.stt.config.AzureConfig;
-import com.debatetracker.infra.stt.domain.azure.AzureTranscriberSession;
+import com.debatetracker.infra.stt.repository.AzureTranscriberSessionRepository;
+import com.debatetracker.infra.stt.repository.InMemoryAzureTranscriberSessionRepository;
+import com.debatetracker.infra.stt.session.AzureTranscriberSession;
 import com.microsoft.cognitiveservices.speech.SpeechConfig;
-import java.lang.reflect.Field;
-import java.util.concurrent.ConcurrentHashMap;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -31,12 +31,19 @@ class AzureAdapterTest {
     );
     private static final AudioProperties AUDIO_PROPERTIES = new AudioProperties(16000, 1, "LINEAR16", 200);
 
+    private AzureTranscriberSessionRepository sessionRepository;
+
+    private AzureAdapter createAdapter() {
+        sessionRepository = new InMemoryAzureTranscriberSessionRepository();
+        return new AzureAdapter(VALID_CONFIG, AUDIO_PROPERTIES, sessionRepository);
+    }
+
     @Nested
     class Initialization {
 
         @Test
         void config이_null이면_예외를_던진다() {
-            assertThatThrownBy(() -> new AzureAdapter(null, AUDIO_PROPERTIES))
+            assertThatThrownBy(() -> new AzureAdapter(null, AUDIO_PROPERTIES, new InMemoryAzureTranscriberSessionRepository()))
                     .isInstanceOf(RuntimeException.class);
         }
 
@@ -51,7 +58,7 @@ class AzureAdapterTest {
                     500
             );
 
-            assertThatThrownBy(() -> new AzureAdapter(disabledConfig, AUDIO_PROPERTIES))
+            assertThatThrownBy(() -> new AzureAdapter(disabledConfig, AUDIO_PROPERTIES, new InMemoryAzureTranscriberSessionRepository()))
                     .isInstanceOf(RuntimeException.class);
         }
     }
@@ -61,8 +68,8 @@ class AzureAdapterTest {
 
         @Test
         void 중복_세션ID로_시작하면_무시된다() {
-            AzureAdapter adapter = new AzureAdapter(VALID_CONFIG, AUDIO_PROPERTIES);
-            injectMockSession(adapter, SESSION_ID);
+            AzureAdapter adapter = createAdapter();
+            injectMockSession(SESSION_ID);
 
             adapter.startStreaming(SESSION_ID, segment -> {
             });
@@ -76,7 +83,7 @@ class AzureAdapterTest {
             speechConfigStatic.when(() -> SpeechConfig.fromSubscription(anyString(), anyString()))
                     .thenThrow(new RuntimeException("connection error"));
 
-            AzureAdapter adapter = new AzureAdapter(VALID_CONFIG, AUDIO_PROPERTIES);
+            AzureAdapter adapter = createAdapter();
 
             assertThatThrownBy(() -> adapter.startStreaming(SESSION_ID, segment -> {
             }))
@@ -90,8 +97,8 @@ class AzureAdapterTest {
 
         @Test
         void 스트리밍을_중지하면_세션이_제거된다() {
-            AzureAdapter adapter = new AzureAdapter(VALID_CONFIG, AUDIO_PROPERTIES);
-            AzureTranscriberSession mockSession = injectMockSession(adapter, SESSION_ID);
+            AzureAdapter adapter = createAdapter();
+            AzureTranscriberSession mockSession = injectMockSession(SESSION_ID);
 
             adapter.stopStreaming(SESSION_ID);
 
@@ -103,7 +110,7 @@ class AzureAdapterTest {
 
         @Test
         void 존재하지_않는_세션_중지는_무시된다() {
-            AzureAdapter adapter = new AzureAdapter(VALID_CONFIG, AUDIO_PROPERTIES);
+            AzureAdapter adapter = createAdapter();
 
             assertThatCode(() -> adapter.stopStreaming("nonexistent"))
                     .doesNotThrowAnyException();
@@ -115,15 +122,15 @@ class AzureAdapterTest {
 
         @Test
         void 활성_세션은_true를_반환한다() {
-            AzureAdapter adapter = new AzureAdapter(VALID_CONFIG, AUDIO_PROPERTIES);
-            injectMockSession(adapter, SESSION_ID);
+            AzureAdapter adapter = createAdapter();
+            injectMockSession(SESSION_ID);
 
             assertThat(adapter.isConnected(SESSION_ID)).isTrue();
         }
 
         @Test
         void 비활성_세션은_false를_반환한다() {
-            AzureAdapter adapter = new AzureAdapter(VALID_CONFIG, AUDIO_PROPERTIES);
+            AzureAdapter adapter = createAdapter();
 
             assertThat(adapter.isConnected(SESSION_ID)).isFalse();
         }
@@ -134,11 +141,11 @@ class AzureAdapterTest {
 
         @Test
         void 다중_세션이_독립적으로_관리된다() {
-            AzureAdapter adapter = new AzureAdapter(VALID_CONFIG, AUDIO_PROPERTIES);
+            AzureAdapter adapter = createAdapter();
             String sessionA = "session-a";
             String sessionB = "session-b";
-            injectMockSession(adapter, sessionA);
-            injectMockSession(adapter, sessionB);
+            injectMockSession(sessionA);
+            injectMockSession(sessionB);
 
             adapter.stopStreaming(sessionA);
 
@@ -150,20 +157,10 @@ class AzureAdapterTest {
     }
 
     // --- 헬퍼 메서드 ---
-    @SuppressWarnings("unchecked")
-    private ConcurrentHashMap<String, AzureTranscriberSession> getSessions(AzureAdapter adapter) {
-        try {
-            Field sessionsField = AzureAdapter.class.getDeclaredField("sessions");
-            sessionsField.setAccessible(true);
-            return (ConcurrentHashMap<String, AzureTranscriberSession>) sessionsField.get(adapter);
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    private AzureTranscriberSession injectMockSession(AzureAdapter adapter, String sessionId) {
+    private AzureTranscriberSession injectMockSession(String sessionId) {
         AzureTranscriberSession mockSession = mock(AzureTranscriberSession.class);
-        getSessions(adapter).put(sessionId, mockSession);
+        org.mockito.Mockito.when(mockSession.sessionId()).thenReturn(sessionId);
+        sessionRepository.save(mockSession);
         return mockSession;
     }
 }

@@ -4,10 +4,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.DynamicTest.dynamicTest;
 
+import com.debatetracker.infra.stt.client.dto.SttSegment;
 import com.debatetracker.infra.stt.config.AudioProperties;
 import com.debatetracker.infra.stt.config.AzureConfig;
 import com.debatetracker.infra.stt.config.SttAutoConfiguration;
-import com.debatetracker.infra.stt.client.dto.SttSegment;
+import com.debatetracker.infra.stt.repository.InMemoryAzureTranscriberSessionRepository;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -39,7 +40,7 @@ class AzureAdapterIntegrationTest {
     @TestFactory
     Stream<DynamicTest> 스트리밍_전사_시나리오() {
         String sessionId = "integration-test";
-        AzureAdapter adapter = new AzureAdapter(azureConfig, audioProperties);
+        AzureAdapter adapter = new AzureAdapter(azureConfig, audioProperties, new InMemoryAzureTranscriberSessionRepository());
         List<SttSegment> results = new ArrayList<>();
         CountDownLatch latch = new CountDownLatch(1);
 
