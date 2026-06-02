@@ -4,7 +4,7 @@ import com.debatetracker.infra.stt.client.SttClient;
 import com.debatetracker.infra.stt.config.AudioProperties;
 import com.debatetracker.infra.stt.config.AzureConfig;
 import com.debatetracker.infra.stt.client.dto.SttSegment;
-import com.debatetracker.infra.stt.adapter.azure.dto.TranscriberSession;
+import com.debatetracker.infra.stt.domain.azure.AzureTranscriberSession;
 import com.microsoft.cognitiveservices.speech.OutputFormat;
 import com.microsoft.cognitiveservices.speech.ProfanityOption;
 import com.microsoft.cognitiveservices.speech.PropertyId;
@@ -32,7 +32,7 @@ public class AzureAdapter implements SttClient {
 
     private final AzureConfig config;
     private final AudioProperties audioProperties;
-    private final ConcurrentHashMap<String, TranscriberSession> sessions = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, AzureTranscriberSession> sessions = new ConcurrentHashMap<>();
 
     public AzureAdapter(AzureConfig azureConfig, AudioProperties audioProperties) {
         if (azureConfig == null || !azureConfig.enabled()) {
@@ -64,7 +64,7 @@ public class AzureAdapter implements SttClient {
             PushAudioInputStream pushStream = AudioInputStream.createPushStream(format);
             AudioConfig audioConfig = AudioConfig.fromStreamInput(pushStream);
             ConversationTranscriber transcriber = new ConversationTranscriber(speechConfig, audioConfig);
-            TranscriberSession session = new TranscriberSession(
+            AzureTranscriberSession session = new AzureTranscriberSession(
                     sessionId,
                     transcriber,
                     pushStream,
@@ -115,7 +115,7 @@ public class AzureAdapter implements SttClient {
 
     @Override
     public void sendAudioChunk(String sessionId, byte[] pcmData) {
-        TranscriberSession session = sessions.get(sessionId);
+        AzureTranscriberSession session = sessions.get(sessionId);
         if (session == null) {
             log.debug("[{}] 활성 세션 없음, 오디오 무시: {}", VENDOR_NAME, sessionId);
             return;
@@ -130,7 +130,7 @@ public class AzureAdapter implements SttClient {
     @Override
     public void stopStreaming(String sessionId) {
         log.info("[{}] stopStreaming called: {}", VENDOR_NAME, sessionId);
-        TranscriberSession session = sessions.remove(sessionId);
+        AzureTranscriberSession session = sessions.remove(sessionId);
         if (session == null) {
             return;
         }

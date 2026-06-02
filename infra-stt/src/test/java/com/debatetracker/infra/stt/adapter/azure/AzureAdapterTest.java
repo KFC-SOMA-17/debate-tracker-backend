@@ -11,7 +11,7 @@ import static org.mockito.Mockito.verify;
 
 import com.debatetracker.infra.stt.config.AudioProperties;
 import com.debatetracker.infra.stt.config.AzureConfig;
-import com.debatetracker.infra.stt.adapter.azure.dto.TranscriberSession;
+import com.debatetracker.infra.stt.domain.azure.AzureTranscriberSession;
 import com.microsoft.cognitiveservices.speech.SpeechConfig;
 import java.lang.reflect.Field;
 import java.util.concurrent.ConcurrentHashMap;
@@ -91,7 +91,7 @@ class AzureAdapterTest {
         @Test
         void 스트리밍을_중지하면_세션이_제거된다() {
             AzureAdapter adapter = new AzureAdapter(VALID_CONFIG, AUDIO_PROPERTIES);
-            TranscriberSession mockSession = injectMockSession(adapter, SESSION_ID);
+            AzureTranscriberSession mockSession = injectMockSession(adapter, SESSION_ID);
 
             adapter.stopStreaming(SESSION_ID);
 
@@ -151,18 +151,18 @@ class AzureAdapterTest {
 
     // --- 헬퍼 메서드 ---
     @SuppressWarnings("unchecked")
-    private ConcurrentHashMap<String, TranscriberSession> getSessions(AzureAdapter adapter) {
+    private ConcurrentHashMap<String, AzureTranscriberSession> getSessions(AzureAdapter adapter) {
         try {
             Field sessionsField = AzureAdapter.class.getDeclaredField("sessions");
             sessionsField.setAccessible(true);
-            return (ConcurrentHashMap<String, TranscriberSession>) sessionsField.get(adapter);
+            return (ConcurrentHashMap<String, AzureTranscriberSession>) sessionsField.get(adapter);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
     }
 
-    private TranscriberSession injectMockSession(AzureAdapter adapter, String sessionId) {
-        TranscriberSession mockSession = mock(TranscriberSession.class);
+    private AzureTranscriberSession injectMockSession(AzureAdapter adapter, String sessionId) {
+        AzureTranscriberSession mockSession = mock(AzureTranscriberSession.class);
         getSessions(adapter).put(sessionId, mockSession);
         return mockSession;
     }
