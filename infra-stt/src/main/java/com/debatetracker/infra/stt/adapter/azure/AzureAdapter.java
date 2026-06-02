@@ -4,8 +4,8 @@ import com.debatetracker.infra.stt.client.SttClient;
 import com.debatetracker.infra.stt.client.dto.SttSegment;
 import com.debatetracker.infra.stt.config.AudioProperties;
 import com.debatetracker.infra.stt.config.AzureConfig;
-import com.debatetracker.infra.stt.repository.AzureTranscriberSessionRepository;
-import com.debatetracker.infra.stt.session.AzureTranscriberSession;
+import com.debatetracker.infra.stt.repository.AzureSessionRepository;
+import com.debatetracker.infra.stt.session.AzureSession;
 import com.microsoft.cognitiveservices.speech.OutputFormat;
 import com.microsoft.cognitiveservices.speech.ProfanityOption;
 import com.microsoft.cognitiveservices.speech.PropertyId;
@@ -32,11 +32,11 @@ public class AzureAdapter implements SttClient {
 
     private final AzureConfig config;
     private final AudioProperties audioProperties;
-    private final AzureTranscriberSessionRepository sessionRepository;
+    private final AzureSessionRepository sessionRepository;
 
     public AzureAdapter(AzureConfig azureConfig,
                         AudioProperties audioProperties,
-                        AzureTranscriberSessionRepository sessionRepository) {
+                        AzureSessionRepository sessionRepository) {
         if (azureConfig == null || !azureConfig.enabled()) {
             throw new RuntimeException("Azure configuration is not set"); //TODO DebateTrackerException으로 변경 예정
         }
@@ -67,7 +67,7 @@ public class AzureAdapter implements SttClient {
             PushAudioInputStream pushStream = AudioInputStream.createPushStream(format);
             AudioConfig audioConfig = AudioConfig.fromStreamInput(pushStream);
             ConversationTranscriber transcriber = new ConversationTranscriber(speechConfig, audioConfig);
-            AzureTranscriberSession session = new AzureTranscriberSession(
+            AzureSession session = new AzureSession(
                     sessionId,
                     transcriber,
                     pushStream,
@@ -135,7 +135,7 @@ public class AzureAdapter implements SttClient {
     public void stopStreaming(String sessionId) {
         log.info("[{}] stopStreaming called: {}", VENDOR_NAME, sessionId);
         sessionRepository.deleteBySessionId(sessionId)
-                .ifPresent(AzureTranscriberSession::close);
+                .ifPresent(AzureSession::close);
     }
 
     @Override

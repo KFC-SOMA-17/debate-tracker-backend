@@ -11,9 +11,9 @@ import static org.mockito.Mockito.verify;
 
 import com.debatetracker.infra.stt.config.AudioProperties;
 import com.debatetracker.infra.stt.config.AzureConfig;
-import com.debatetracker.infra.stt.repository.AzureTranscriberSessionRepository;
-import com.debatetracker.infra.stt.repository.InMemoryAzureTranscriberSessionRepository;
-import com.debatetracker.infra.stt.session.AzureTranscriberSession;
+import com.debatetracker.infra.stt.repository.AzureSessionRepository;
+import com.debatetracker.infra.stt.repository.InMemoryAzureSessionRepository;
+import com.debatetracker.infra.stt.session.AzureSession;
 import com.microsoft.cognitiveservices.speech.SpeechConfig;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -31,10 +31,10 @@ class AzureAdapterTest {
     );
     private static final AudioProperties AUDIO_PROPERTIES = new AudioProperties(16000, 1, "LINEAR16", 200);
 
-    private AzureTranscriberSessionRepository sessionRepository;
+    private AzureSessionRepository sessionRepository;
 
     private AzureAdapter createAdapter() {
-        sessionRepository = new InMemoryAzureTranscriberSessionRepository();
+        sessionRepository = new InMemoryAzureSessionRepository();
         return new AzureAdapter(VALID_CONFIG, AUDIO_PROPERTIES, sessionRepository);
     }
 
@@ -43,7 +43,7 @@ class AzureAdapterTest {
 
         @Test
         void config이_null이면_예외를_던진다() {
-            assertThatThrownBy(() -> new AzureAdapter(null, AUDIO_PROPERTIES, new InMemoryAzureTranscriberSessionRepository()))
+            assertThatThrownBy(() -> new AzureAdapter(null, AUDIO_PROPERTIES, new InMemoryAzureSessionRepository()))
                     .isInstanceOf(RuntimeException.class);
         }
 
@@ -58,7 +58,7 @@ class AzureAdapterTest {
                     500
             );
 
-            assertThatThrownBy(() -> new AzureAdapter(disabledConfig, AUDIO_PROPERTIES, new InMemoryAzureTranscriberSessionRepository()))
+            assertThatThrownBy(() -> new AzureAdapter(disabledConfig, AUDIO_PROPERTIES, new InMemoryAzureSessionRepository()))
                     .isInstanceOf(RuntimeException.class);
         }
     }
@@ -98,7 +98,7 @@ class AzureAdapterTest {
         @Test
         void 스트리밍을_중지하면_세션이_제거된다() {
             AzureAdapter adapter = createAdapter();
-            AzureTranscriberSession mockSession = injectMockSession(SESSION_ID);
+            AzureSession mockSession = injectMockSession(SESSION_ID);
 
             adapter.stopStreaming(SESSION_ID);
 
@@ -157,8 +157,8 @@ class AzureAdapterTest {
     }
 
     // --- 헬퍼 메서드 ---
-    private AzureTranscriberSession injectMockSession(String sessionId) {
-        AzureTranscriberSession mockSession = mock(AzureTranscriberSession.class);
+    private AzureSession injectMockSession(String sessionId) {
+        AzureSession mockSession = mock(AzureSession.class);
         org.mockito.Mockito.when(mockSession.sessionId()).thenReturn(sessionId);
         sessionRepository.save(mockSession);
         return mockSession;

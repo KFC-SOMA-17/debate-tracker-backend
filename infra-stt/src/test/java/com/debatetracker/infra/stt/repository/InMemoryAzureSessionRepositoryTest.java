@@ -5,19 +5,19 @@ import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import com.debatetracker.infra.stt.session.AzureTranscriberSession;
+import com.debatetracker.infra.stt.session.AzureSession;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
-class InMemoryAzureTranscriberSessionRepositoryTest {
+class InMemoryAzureSessionRepositoryTest {
 
-    private InMemoryAzureTranscriberSessionRepository repository;
+    private InMemoryAzureSessionRepository repository;
 
     @BeforeEach
     void setUp() {
-        repository = new InMemoryAzureTranscriberSessionRepository();
+        repository = new InMemoryAzureSessionRepository();
     }
 
     @Nested
@@ -25,7 +25,7 @@ class InMemoryAzureTranscriberSessionRepositoryTest {
 
         @Test
         void 세션을_저장하면_조회할_수_있다() {
-            AzureTranscriberSession session = createMockSession("session-1");
+            AzureSession session = createMockSession("session-1");
 
             repository.save(session);
 
@@ -34,8 +34,8 @@ class InMemoryAzureTranscriberSessionRepositoryTest {
 
         @Test
         void 같은_sessionId로_저장하면_덮어쓴다() {
-            AzureTranscriberSession first = createMockSession("session-1");
-            AzureTranscriberSession second = createMockSession("session-1");
+            AzureSession first = createMockSession("session-1");
+            AzureSession second = createMockSession("session-1");
 
             repository.save(first);
             repository.save(second);
@@ -49,10 +49,10 @@ class InMemoryAzureTranscriberSessionRepositoryTest {
 
         @Test
         void 존재하는_세션을_조회하면_Optional에_담겨_반환된다() {
-            AzureTranscriberSession session = createMockSession("session-1");
+            AzureSession session = createMockSession("session-1");
             repository.save(session);
 
-            Optional<AzureTranscriberSession> result = repository.findBySessionId("session-1");
+            Optional<AzureSession> result = repository.findBySessionId("session-1");
 
             assertAll(
                     () -> assertThat(result).isPresent(),
@@ -62,7 +62,7 @@ class InMemoryAzureTranscriberSessionRepositoryTest {
 
         @Test
         void 존재하지_않는_세션을_조회하면_빈_Optional을_반환한다() {
-            Optional<AzureTranscriberSession> result = repository.findBySessionId("nonexistent");
+            Optional<AzureSession> result = repository.findBySessionId("nonexistent");
 
             assertThat(result).isEmpty();
         }
@@ -97,10 +97,10 @@ class InMemoryAzureTranscriberSessionRepositoryTest {
 
         @Test
         void 세션을_삭제하면_삭제된_세션이_Optional에_담겨_반환된다() {
-            AzureTranscriberSession session = createMockSession("session-1");
+            AzureSession session = createMockSession("session-1");
             repository.save(session);
 
-            Optional<AzureTranscriberSession> deleted = repository.deleteBySessionId("session-1");
+            Optional<AzureSession> deleted = repository.deleteBySessionId("session-1");
 
             assertAll(
                     () -> assertThat(deleted).isPresent(),
@@ -110,7 +110,7 @@ class InMemoryAzureTranscriberSessionRepositoryTest {
 
         @Test
         void 세션을_삭제하면_더_이상_조회되지_않는다() {
-            AzureTranscriberSession session = createMockSession("session-1");
+            AzureSession session = createMockSession("session-1");
             repository.save(session);
 
             repository.deleteBySessionId("session-1");
@@ -120,7 +120,7 @@ class InMemoryAzureTranscriberSessionRepositoryTest {
 
         @Test
         void 존재하지_않는_세션을_삭제하면_빈_Optional을_반환한다() {
-            Optional<AzureTranscriberSession> deleted = repository.deleteBySessionId("nonexistent");
+            Optional<AzureSession> deleted = repository.deleteBySessionId("nonexistent");
 
             assertThat(deleted).isEmpty();
         }
@@ -131,8 +131,8 @@ class InMemoryAzureTranscriberSessionRepositoryTest {
 
         @Test
         void 여러_세션이_독립적으로_관리된다() {
-            AzureTranscriberSession sessionA = createMockSession("session-a");
-            AzureTranscriberSession sessionB = createMockSession("session-b");
+            AzureSession sessionA = createMockSession("session-a");
+            AzureSession sessionB = createMockSession("session-b");
             repository.save(sessionA);
             repository.save(sessionB);
 
@@ -145,8 +145,8 @@ class InMemoryAzureTranscriberSessionRepositoryTest {
         }
     }
 
-    private AzureTranscriberSession createMockSession(String sessionId) {
-        AzureTranscriberSession session = mock(AzureTranscriberSession.class);
+    private AzureSession createMockSession(String sessionId) {
+        AzureSession session = mock(AzureSession.class);
         when(session.sessionId()).thenReturn(sessionId);
         return session;
     }

@@ -7,7 +7,7 @@ import com.microsoft.cognitiveservices.speech.audio.PushAudioInputStream;
 import com.microsoft.cognitiveservices.speech.transcription.ConversationTranscriber;
 import java.util.function.Consumer;
 
-public record AzureTranscriberSession(
+public record AzureSession(
         String sessionId,
         ConversationTranscriber transcriber,
         PushAudioInputStream pushStream,

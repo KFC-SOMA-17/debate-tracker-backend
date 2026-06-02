@@ -8,7 +8,7 @@ import com.debatetracker.infra.stt.client.dto.SttSegment;
 import com.debatetracker.infra.stt.config.AudioProperties;
 import com.debatetracker.infra.stt.config.AzureConfig;
 import com.debatetracker.infra.stt.config.SttAutoConfiguration;
-import com.debatetracker.infra.stt.repository.InMemoryAzureTranscriberSessionRepository;
+import com.debatetracker.infra.stt.repository.InMemoryAzureSessionRepository;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -40,7 +40,7 @@ class AzureAdapterIntegrationTest {
     @TestFactory
     Stream<DynamicTest> 스트리밍_전사_시나리오() {
         String sessionId = "integration-test";
-        AzureAdapter adapter = new AzureAdapter(azureConfig, audioProperties, new InMemoryAzureTranscriberSessionRepository());
+        AzureAdapter adapter = new AzureAdapter(azureConfig, audioProperties, new InMemoryAzureSessionRepository());
         List<SttSegment> results = new ArrayList<>();
         CountDownLatch latch = new CountDownLatch(1);
 
