@@ -18,6 +18,7 @@ import com.microsoft.cognitiveservices.speech.transcription.ConversationTranscri
 import com.microsoft.cognitiveservices.speech.transcription.ConversationTranscriptionResult;
 import java.math.BigDecimal;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import lombok.extern.slf4j.Slf4j;
 
@@ -102,7 +103,7 @@ public class AzureAdapter implements SttClient {
                     log.error("[{}] 인식 취소: session={}, reason={}, errorCode={}, errorDetails={}",
                             VENDOR_NAME, sessionId, e.getReason(), e.getErrorCode(), e.getErrorDetails()));
 
-            transcriber.startTranscribingAsync().get();
+            transcriber.startTranscribingAsync().get(3L, TimeUnit.SECONDS);
             sessions.put(sessionId, session);
             log.info("[{}] 전사 시작 성공, session={}", VENDOR_NAME, sessionId);
 
