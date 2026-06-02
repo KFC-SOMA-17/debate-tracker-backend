@@ -17,6 +17,8 @@ import com.microsoft.cognitiveservices.speech.audio.AudioInputStream;
 import com.microsoft.cognitiveservices.speech.audio.AudioStreamFormat;
 import com.microsoft.cognitiveservices.speech.audio.PushAudioInputStream;
 import com.microsoft.cognitiveservices.speech.transcription.ConversationTranscriber;
+import com.microsoft.cognitiveservices.speech.transcription.ConversationTranscriptionCanceledEventArgs;
+import com.microsoft.cognitiveservices.speech.transcription.ConversationTranscriptionEventArgs;
 import com.microsoft.cognitiveservices.speech.transcription.ConversationTranscriptionResult;
 import java.math.BigDecimal;
 import java.util.concurrent.TimeUnit;
@@ -79,35 +81,10 @@ public class AzureAdapter implements SttClient {
                     speechConfig
             );
 
-            transcriber.transcribed.addEventListener((s, e) -> {
-                ConversationTranscriptionResult result = e.getResult();
-                if (result.getReason() == ResultReason.RecognizedSpeech
-                        && result.getText() != null
-                        && !result.getText().isEmpty()
-                ) {
-                    long offsetTicks = result.getOffset().longValue();
-                    long durationTicks = result.getDuration().longValue();
-                    SttSegment sttSegment = new SttSegment(
-                            BigDecimal.valueOf(offsetTicks / 10_000_000.0),
-                            BigDecimal.valueOf(((offsetTicks + durationTicks) / 10_000_000.0)),
-                            result.getSpeakerId(),
-                            result.getText()
-                    );
-                    eventPublisher.publishEvent(new TranscribeEvent(sessionId, sttSegment));
-                }
-            });
-
-            transcriber.sessionStarted.addEventListener((s, e) ->
-                    log.info("[{}] 세션 시작: {}", VENDOR_NAME, sessionId));
-
-            transcriber.sessionStopped.addEventListener((s, e) -> {
-                log.info("[{}] 세션 종료: {}", VENDOR_NAME, sessionId);
-                sessionRepository.deleteBySessionId(sessionId);
-            });
-
-            transcriber.canceled.addEventListener((s, e) ->
-                    log.error("[{}] 인식 취소: session={}, reason={}, errorCode={}, errorDetails={}",
-                            VENDOR_NAME, sessionId, e.getReason(), e.getErrorCode(), e.getErrorDetails()));
+            transcriber.transcribed.addEventListener((s, e) -> onTranscribed(sessionId, e));
+            transcriber.sessionStarted.addEventListener((s, e) -> onSessionStarted(sessionId));
+            transcriber.sessionStopped.addEventListener((s, e) -> onSessionStopped(sessionId));
+            transcriber.canceled.addEventListener((s, e) -> onCanceled(sessionId, e));
 
             transcriber.startTranscribingAsync()
                     .get(3L, TimeUnit.SECONDS);
@@ -145,6 +122,38 @@ public class AzureAdapter implements SttClient {
     @Override
     public boolean isConnected(String sessionId) {
         return sessionRepository.existsBySessionId(sessionId);
+    }
+
+    private void onTranscribed(String sessionId, ConversationTranscriptionEventArgs e) {
+        ConversationTranscriptionResult result = e.getResult();
+        if (result.getReason() == ResultReason.RecognizedSpeech
+                && result.getText() != null
+                && !result.getText().isEmpty()
+        ) {
+            long offsetTicks = result.getOffset().longValue();
+            long durationTicks = result.getDuration().longValue();
+            SttSegment sttSegment = new SttSegment(
+                    BigDecimal.valueOf(offsetTicks / 10_000_000.0),
+                    BigDecimal.valueOf(((offsetTicks + durationTicks) / 10_000_000.0)),
+                    result.getSpeakerId(),
+                    result.getText()
+            );
+            eventPublisher.publishEvent(new TranscribeEvent(sessionId, sttSegment));
+        }
+    }
+
+    private void onSessionStarted(String sessionId) {
+        log.info("[{}] 세션 시작: {}", VENDOR_NAME, sessionId);
+    }
+
+    private void onSessionStopped(String sessionId) {
+        log.info("[{}] 세션 종료: {}", VENDOR_NAME, sessionId);
+        sessionRepository.deleteBySessionId(sessionId);
+    }
+
+    private void onCanceled(String sessionId, ConversationTranscriptionCanceledEventArgs e) {
+        log.error("[{}] 인식 취소: session={}, reason={}, errorCode={}, errorDetails={}",
+                VENDOR_NAME, sessionId, e.getReason(), e.getErrorCode(), e.getErrorDetails());
     }
 
     private SpeechConfig buildSpeechConfig() {
