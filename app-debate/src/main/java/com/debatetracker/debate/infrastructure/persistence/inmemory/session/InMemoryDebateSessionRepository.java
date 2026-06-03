@@ -1,5 +1,7 @@
-package com.debatetracker.debate.ws.session;
+package com.debatetracker.debate.infrastructure.persistence.inmemory.session;
 
+import com.debatetracker.debate.domain.session.DebateSession;
+import com.debatetracker.debate.domain.session.DebateSessionRepository;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import org.springframework.stereotype.Component;

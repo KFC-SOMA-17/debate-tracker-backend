@@ -1,10 +1,13 @@
-package com.debatetracker.debate.ws.session;
+package com.debatetracker.debate.infrastructure.persistence;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.debatetracker.debate.domain.session.DebateSession;
+import com.debatetracker.debate.infrastructure.persistence.DebateSessionDomainRepository;
+import com.debatetracker.debate.infrastructure.persistence.inmemory.session.InMemoryDebateSessionRepository;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

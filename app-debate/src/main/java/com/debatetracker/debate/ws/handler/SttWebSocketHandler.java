@@ -1,9 +1,10 @@
-package com.debatetracker.debate.ws;
+package com.debatetracker.debate.ws.handler;
 
+import com.debatetracker.debate.domain.session.DebateSession;
+import com.debatetracker.debate.domain.session.DebateSessionRepository;
+import com.debatetracker.debate.ws.sender.WebSocketMessageSender;
 import com.debatetracker.debate.ws.message.ControlMessage;
 import com.debatetracker.debate.ws.message.WebSocketMessage;
-import com.debatetracker.debate.ws.session.DebateSession;
-import com.debatetracker.debate.ws.session.DebateSessionRepository;
 import com.debatetracker.infra.stt.client.SttClient;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -30,7 +31,7 @@ public class SttWebSocketHandler extends AbstractWebSocketHandler {
 
     private final SttClient sttClient;
     private final DebateSessionRepository sessionRepository;
-    private final DebateMessageSender messageSender;
+    private final WebSocketMessageSender messageSender;
     private final ObjectMapper objectMapper;
 
     @Override

@@ -1,7 +1,7 @@
-package com.debatetracker.debate.ws;
+package com.debatetracker.debate.ws.sender;
 
 import com.debatetracker.debate.ws.message.WebSocketMessage;
-import com.debatetracker.debate.ws.session.DebateSession;
+import com.debatetracker.debate.domain.session.DebateSession;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -15,7 +15,7 @@ import org.springframework.web.socket.TextMessage;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class DebateMessageSender {
+public class WebSocketMessageSender {
 
     private final ObjectMapper objectMapper;
 

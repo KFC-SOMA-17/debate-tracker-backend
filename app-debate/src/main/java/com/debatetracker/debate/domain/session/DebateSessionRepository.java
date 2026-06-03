@@ -1,4 +1,4 @@
-package com.debatetracker.debate.ws.session;
+package com.debatetracker.debate.domain.session;
 
 import java.util.Optional;
 

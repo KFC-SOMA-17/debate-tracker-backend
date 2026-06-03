@@ -1,4 +1,4 @@
-package com.debatetracker.debate.ws;
+package com.debatetracker.debate.event;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertAll;
@@ -8,12 +8,14 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.debatetracker.debate.event.TranscribeEventListener;
 import com.debatetracker.debate.ws.id.SimpleSegmentIdGenerator;
 import com.debatetracker.debate.ws.message.MessageType;
 import com.debatetracker.debate.ws.message.TranscriptionSegment;
 import com.debatetracker.debate.ws.message.WebSocketMessage;
-import com.debatetracker.debate.ws.session.DebateSession;
-import com.debatetracker.debate.ws.session.DebateSessionRepository;
+import com.debatetracker.debate.domain.session.DebateSession;
+import com.debatetracker.debate.domain.session.DebateSessionRepository;
+import com.debatetracker.debate.ws.sender.WebSocketMessageSender;
 import com.debatetracker.infra.stt.client.dto.SttSegment;
 import com.debatetracker.infra.stt.client.event.TranscribeEvent;
 import java.math.BigDecimal;
@@ -26,13 +28,13 @@ import org.springframework.web.socket.WebSocketSession;
 class TranscribeEventListenerTest {
 
     private DebateSessionRepository sessionRepository;
-    private DebateMessageSender messageSender;
+    private WebSocketMessageSender messageSender;
     private TranscribeEventListener listener;
 
     @BeforeEach
     void setUp() {
         sessionRepository = mock(DebateSessionRepository.class);
-        messageSender = mock(DebateMessageSender.class);
+        messageSender = mock(WebSocketMessageSender.class);
         listener = new TranscribeEventListener(sessionRepository, messageSender, new SimpleSegmentIdGenerator());
     }
 

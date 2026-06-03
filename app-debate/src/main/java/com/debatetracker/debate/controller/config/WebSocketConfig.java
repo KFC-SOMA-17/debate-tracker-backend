@@ -1,6 +1,6 @@
-package com.debatetracker.debate.ws;
+package com.debatetracker.debate.controller.config;
 
-import com.debatetracker.debate.controller.config.CorsProperties;
+import com.debatetracker.debate.ws.handler.SttWebSocketHandler;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;

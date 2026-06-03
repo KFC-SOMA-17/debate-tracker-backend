@@ -7,6 +7,8 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public enum ErrorCode {
 
+    NOT_FOUND_DEBATE_ID(400, "토론 아이디가 존재하지 않습니다"),
+
     FIELD_ERROR(400, "요청 값이 올바르지 않습니다."),
     URL_PARAMETER_ERROR(400, "요청 파라미터가 올바르지 않습니다."),
     METHOD_ARGUMENT_TYPE_MISMATCH(400, "요청 값의 타입이 올바르지 않습니다."),

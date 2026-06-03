@@ -1,4 +1,4 @@
-package com.debatetracker.debate.ws;
+package com.debatetracker.debate.ws.handler;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -10,8 +10,9 @@ import static org.mockito.Mockito.when;
 
 import com.debatetracker.debate.ws.message.MessageType;
 import com.debatetracker.debate.ws.message.WebSocketMessage;
-import com.debatetracker.debate.ws.session.DebateSession;
-import com.debatetracker.debate.ws.session.DebateSessionRepository;
+import com.debatetracker.debate.domain.session.DebateSession;
+import com.debatetracker.debate.domain.session.DebateSessionRepository;
+import com.debatetracker.debate.ws.sender.WebSocketMessageSender;
 import com.debatetracker.infra.stt.client.SttClient;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.HashMap;
@@ -29,7 +30,7 @@ class SttWebSocketHandlerTest {
 
     private SttClient sttClient;
     private DebateSessionRepository sessionRepository;
-    private DebateMessageSender messageSender;
+    private WebSocketMessageSender messageSender;
     private SttWebSocketHandler handler;
 
     private WebSocketSession connection;
@@ -39,7 +40,7 @@ class SttWebSocketHandlerTest {
     void setUp() {
         sttClient = mock(SttClient.class);
         sessionRepository = mock(DebateSessionRepository.class);
-        messageSender = mock(DebateMessageSender.class);
+        messageSender = mock(WebSocketMessageSender.class);
         handler = new SttWebSocketHandler(sttClient, sessionRepository, messageSender, new ObjectMapper());
 
         connection = mock(WebSocketSession.class);

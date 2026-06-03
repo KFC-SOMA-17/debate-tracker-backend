@@ -1,10 +1,11 @@
-package com.debatetracker.debate.ws;
+package com.debatetracker.debate.event;
 
+import com.debatetracker.debate.ws.sender.WebSocketMessageSender;
 import com.debatetracker.debate.ws.id.SegmentIdGenerator;
 import com.debatetracker.debate.ws.message.TranscriptionSegment;
 import com.debatetracker.debate.ws.message.WebSocketMessage;
-import com.debatetracker.debate.ws.session.DebateSession;
-import com.debatetracker.debate.ws.session.DebateSessionRepository;
+import com.debatetracker.debate.domain.session.DebateSession;
+import com.debatetracker.debate.domain.session.DebateSessionRepository;
 import com.debatetracker.infra.stt.client.dto.SttSegment;
 import com.debatetracker.infra.stt.client.event.TranscribeEvent;
 import lombok.RequiredArgsConstructor;
@@ -21,7 +22,7 @@ import org.springframework.stereotype.Component;
 public class TranscribeEventListener {
 
     private final DebateSessionRepository sessionRepository;
-    private final DebateMessageSender messageSender;
+    private final WebSocketMessageSender messageSender;
     private final SegmentIdGenerator segmentIdGenerator;
 
     @EventListener

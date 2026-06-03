@@ -1,5 +1,8 @@
-package com.debatetracker.debate.ws.session;
+package com.debatetracker.debate.infrastructure.persistence;
 
+import com.debatetracker.debate.domain.session.DebateSession;
+import com.debatetracker.debate.domain.session.DebateSessionRepository;
+import com.debatetracker.debate.infrastructure.persistence.inmemory.session.InMemoryDebateSessionRepository;
 import java.util.Optional;
 import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
