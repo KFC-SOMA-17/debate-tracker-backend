@@ -30,6 +30,4 @@ public interface SttClient {
      * @param sessionId 세션 식별자
      */
     boolean isConnected(String sessionId);
-
-    String getVendorName();
 }

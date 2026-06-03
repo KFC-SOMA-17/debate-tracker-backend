@@ -52,11 +52,6 @@ public class AzureAdapter implements SttClient {
     }
 
     @Override
-    public String getVendorName() {
-        return VENDOR_NAME;
-    }
-
-    @Override
     public void startStreaming(String sessionId) {
         //TODO 따닥 문제 추후 고려
         if (sessionRepository.existsBySessionId(sessionId)) {
