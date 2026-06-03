@@ -38,6 +38,7 @@ public abstract class BaseControllerTest {
                 .build();
     }
 
+
     protected final RequestSpecification given() {
         return RestAssured.given(spec);
     }
