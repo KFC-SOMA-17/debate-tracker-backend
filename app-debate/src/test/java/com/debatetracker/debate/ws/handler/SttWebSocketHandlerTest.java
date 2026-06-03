@@ -82,7 +82,9 @@ class SttWebSocketHandlerTest {
 
     @Test
     void STOP_제어메시지를_받으면_전사를_종료하고_DEBATE_END를_전송하며_세션을_삭제한다() throws Exception {
+        attributes.put("debateId", "1");
         DebateSession session = new DebateSession("1", connection);
+        when(sessionRepository.existsByDebateId("1")).thenReturn(true);
         when(sessionRepository.deleteByDebateId("1")).thenReturn(Optional.of(session));
 
         handler.handleTextMessage(connection, new TextMessage("{\"type\":\"STOP\",\"sessionId\":\"1\"}"));

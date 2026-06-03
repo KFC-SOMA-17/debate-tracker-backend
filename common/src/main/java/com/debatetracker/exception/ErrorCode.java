@@ -26,4 +26,8 @@ public enum ErrorCode {
 
     private final int statusCode;
     private final String message;
+
+    public boolean is5XxError() {
+        return statusCode >= 500;
+    }
 }

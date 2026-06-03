@@ -1,4 +1,4 @@
-package com.debatetracker.debate.ws.exception;
+package com.debatetracker.debate.exception;
 
 import com.debatetracker.debate.domain.session.DebateSession;
 import com.debatetracker.debate.ws.message.ErrorMessage;
@@ -40,7 +40,7 @@ public class WebSocketExceptionHandler {
     }
 
     private void logBySeverity(ErrorCode errorCode, Throwable throwable) {
-        if (errorCode.getStatusCode() >= 500) {
+        if (errorCode.is5XxError()) {
             log.error("WebSocket server error: code={}", errorCode, throwable);
             return;
         }

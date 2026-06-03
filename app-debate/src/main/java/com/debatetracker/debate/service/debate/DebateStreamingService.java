@@ -24,28 +24,30 @@ public class DebateStreamingService {
 
     public WebSocketMessage handleControlMessage(ControlMessage message, WebSocketSession session) {
         if(message.isStart()) {
-            return startDebate(session, message.sessionId());
+            startDebate(session, message.sessionId());
+            return new DebateStartMessage(Long.parseLong(message.sessionId()));
         }
-        return stopDebate(session.getId());
+        stopDebateIfActive(session);
+        return new DebateEndMessage(Long.parseLong(message.sessionId()));
     }
 
-    private WebSocketMessage startDebate(WebSocketSession session, String sessionId) {
+    public void stopDebateIfActive(WebSocketSession session) {
+        Object debateId = session.getAttributes().get(DebateSession.ATTR_DEBATE_ID);
+        if (debateId == null || !sessionRepository.existsByDebateId(debateId.toString())) {
+            return;
+        }
+        sttClient.stopStreaming(debateId.toString());
+        sessionRepository.deleteByDebateId(debateId.toString());
+        log.info("연결 종료로 토론 정리: debateId={}", debateId);
+    }
+
+    private void startDebate(WebSocketSession session, String sessionId) {
         session.getAttributes().put(DebateSession.ATTR_DEBATE_ID, sessionId);
         sessionRepository.save(new DebateSession(sessionId, session));
         sttClient.startStreaming(sessionId);
         log.info("토론 시작: debateId={}", sessionId);
-        return new DebateStartMessage(Long.parseLong(sessionId));
     }
 
-    public WebSocketMessage stopDebate(String debateId) {
-        if(debateId == null || !sessionRepository.existsByDebateId(debateId)) {
-            throw new DebateTrackerException(ErrorCode.NOT_FOUND_DEBATE_ID);
-        }
-        sttClient.stopStreaming(debateId);
-        sessionRepository.deleteByDebateId(debateId);
-        log.info("토론 종료: debateId={}", debateId);
-        return new DebateEndMessage(Long.parseLong(debateId));
-    }
 
     public void sendAudioChunk(String sessionId, byte [] payload) {
         sttClient.sendAudioChunk(String.valueOf(sessionId), payload);

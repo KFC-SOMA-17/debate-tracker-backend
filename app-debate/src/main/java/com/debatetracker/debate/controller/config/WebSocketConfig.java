@@ -1,7 +1,7 @@
 package com.debatetracker.debate.controller.config;
 
-import com.debatetracker.debate.ws.exception.ExceptionHandlingWebSocketHandler;
-import com.debatetracker.debate.ws.exception.WebSocketExceptionHandler;
+import com.debatetracker.debate.exception.ExceptionHandlingWebSocketHandler;
+import com.debatetracker.debate.exception.WebSocketExceptionHandler;
 import com.debatetracker.debate.ws.handler.SttWebSocketHandler;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;

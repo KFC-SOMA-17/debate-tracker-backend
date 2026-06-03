@@ -1,14 +1,10 @@
 package com.debatetracker.debate.ws.handler;
 
 import com.debatetracker.debate.domain.session.DebateSession;
-import com.debatetracker.debate.domain.session.DebateSessionRepository;
 import com.debatetracker.debate.service.debate.DebateStreamingService;
 import com.debatetracker.debate.ws.message.WebSocketMessage;
 import com.debatetracker.debate.ws.sender.WebSocketMessageSender;
 import com.debatetracker.debate.ws.message.ControlMessage;
-import com.debatetracker.debate.ws.message.DebateEndMessage;
-import com.debatetracker.debate.ws.message.DebateStartMessage;
-import com.debatetracker.infra.stt.client.SttClient;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -48,12 +44,17 @@ public class SttWebSocketHandler extends AbstractWebSocketHandler {
 
     @Override
     protected void handleBinaryMessage(WebSocketSession session, BinaryMessage message) {
-        DebateSession debateSession = new DebateSession(session);
-        debateStreamingService.sendAudioChunk(debateSession.debateId(), message.getPayload().array());
+        Object debateId = session.getAttributes().get(DebateSession.ATTR_DEBATE_ID);
+        if (debateId == null) {
+            log.debug("START 이전 바이너리 수신, 무시: {}", session.getId());
+            return;
+        }
+        debateStreamingService.sendAudioChunk(debateId.toString(), message.getPayload().array());
     }
 
     @Override
     public void afterConnectionClosed(WebSocketSession session, CloseStatus status) {
         log.info("STT WebSocket 종료: {} (status={})", session.getId(), status);
+        debateStreamingService.stopDebateIfActive(session);
     }
 }

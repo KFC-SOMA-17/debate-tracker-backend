@@ -1,4 +1,4 @@
-package com.debatetracker.debate.ws.exception;
+package com.debatetracker.debate.exception;
 
 import org.springframework.web.socket.WebSocketHandler;
 import org.springframework.web.socket.WebSocketMessage;
