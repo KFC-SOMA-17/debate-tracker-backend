@@ -6,6 +6,8 @@ import com.debatetracker.debate.ws.message.ControlMessage;
 import com.debatetracker.debate.ws.message.DebateEndMessage;
 import com.debatetracker.debate.ws.message.DebateStartMessage;
 import com.debatetracker.debate.ws.message.WebSocketMessage;
+import com.debatetracker.exception.DebateTrackerException;
+import com.debatetracker.exception.ErrorCode;
 import com.debatetracker.infra.stt.client.SttClient;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -16,8 +18,6 @@ import org.springframework.web.socket.WebSocketSession;
 @Service
 @RequiredArgsConstructor
 public class DebateStreamingService {
-
-    private static final String ATTR_DEBATE_ID = "debateId";
 
     private final SttClient sttClient;
     private final DebateSessionRepository sessionRepository;
@@ -30,7 +30,7 @@ public class DebateStreamingService {
     }
 
     private WebSocketMessage startDebate(WebSocketSession session, String sessionId) {
-        session.getAttributes().put(ATTR_DEBATE_ID, sessionId);
+        session.getAttributes().put(DebateSession.ATTR_DEBATE_ID, sessionId);
         sessionRepository.save(new DebateSession(sessionId, session));
         sttClient.startStreaming(sessionId);
         log.info("토론 시작: debateId={}", sessionId);
@@ -39,7 +39,7 @@ public class DebateStreamingService {
 
     public WebSocketMessage stopDebate(String debateId) {
         if(debateId == null || !sessionRepository.existsByDebateId(debateId)) {
-            throw new RuntimeException("토론 세션이 존재하지 않습니다");
+            throw new DebateTrackerException(ErrorCode.NOT_FOUND_DEBATE_ID);
         }
         sttClient.stopStreaming(debateId);
         sessionRepository.deleteByDebateId(debateId);

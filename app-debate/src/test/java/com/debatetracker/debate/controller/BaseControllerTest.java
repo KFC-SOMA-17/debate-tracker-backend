@@ -2,6 +2,7 @@ package com.debatetracker.debate.controller;
 
 import com.debatetracker.debate.DatabaseCleaner;
 import com.debatetracker.debate.config.TestcontainersConfiguration;
+import com.debatetracker.infra.stt.client.SttClient;
 import io.restassured.RestAssured;
 import io.restassured.builder.RequestSpecBuilder;
 import io.restassured.filter.Filter;
@@ -14,6 +15,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.context.annotation.Import;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 @Import(TestcontainersConfiguration.class)
 @ExtendWith(DatabaseCleaner.class)
@@ -28,6 +30,9 @@ public abstract class BaseControllerTest {
     @LocalServerPort
     private int port;
 
+    @MockitoBean
+    private SttClient sttClient;
+
     private RequestSpecification spec;
 
     @BeforeEach
@@ -37,6 +42,7 @@ public abstract class BaseControllerTest {
                 .addFilters(SPEC_FILTERS)
                 .build();
     }
+
 
     protected final RequestSpecification given() {
         return RestAssured.given(spec);

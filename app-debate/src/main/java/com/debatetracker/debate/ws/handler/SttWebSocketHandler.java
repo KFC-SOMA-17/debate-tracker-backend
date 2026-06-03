@@ -30,8 +30,6 @@ import org.springframework.web.socket.handler.AbstractWebSocketHandler;
 @ConditionalOnProperty(name = "stt.azure.enabled", havingValue = "true")
 public class SttWebSocketHandler extends AbstractWebSocketHandler {
 
-    private static final String ATTR_DEBATE_ID = "debateId";
-
     private final DebateStreamingService debateStreamingService;
     private final WebSocketMessageSender messageSender;
     private final ObjectMapper objectMapper;
@@ -50,12 +48,8 @@ public class SttWebSocketHandler extends AbstractWebSocketHandler {
 
     @Override
     protected void handleBinaryMessage(WebSocketSession session, BinaryMessage message) {
-        String debateId = String.valueOf(session.getAttributes().get(ATTR_DEBATE_ID));
-        if (debateId == null) {
-            log.debug("START 이전 바이너리 수신, 무시: {}", session.getId());
-            return;
-        }
-        debateStreamingService.sendAudioChunk(debateId, message.getPayload().array());
+        DebateSession debateSession = new DebateSession(session);
+        debateStreamingService.sendAudioChunk(debateSession.debateId(), message.getPayload().array());
     }
 
     @Override

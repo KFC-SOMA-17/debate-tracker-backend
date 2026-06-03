@@ -8,6 +8,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.debatetracker.debate.service.debate.DebateStreamingService;
 import com.debatetracker.debate.ws.message.MessageType;
 import com.debatetracker.debate.ws.message.WebSocketMessage;
 import com.debatetracker.debate.domain.session.DebateSession;
@@ -41,7 +42,8 @@ class SttWebSocketHandlerTest {
         sttClient = mock(SttClient.class);
         sessionRepository = mock(DebateSessionRepository.class);
         messageSender = mock(WebSocketMessageSender.class);
-        handler = new SttWebSocketHandler(sttClient, sessionRepository, messageSender, new ObjectMapper());
+        DebateStreamingService debateStreamingService = new DebateStreamingService(sttClient, sessionRepository);
+        handler = new SttWebSocketHandler(debateStreamingService, messageSender, new ObjectMapper());
 
         connection = mock(WebSocketSession.class);
         attributes = new HashMap<>();

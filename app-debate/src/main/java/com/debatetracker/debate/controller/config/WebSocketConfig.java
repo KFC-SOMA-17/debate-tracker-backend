@@ -1,5 +1,7 @@
 package com.debatetracker.debate.controller.config;
 
+import com.debatetracker.debate.ws.exception.ExceptionHandlingWebSocketHandler;
+import com.debatetracker.debate.ws.exception.WebSocketExceptionHandler;
 import com.debatetracker.debate.ws.handler.SttWebSocketHandler;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -23,12 +25,17 @@ public class WebSocketConfig implements WebSocketConfigurer {
     private static final int MAX_MESSAGE_BUFFER_SIZE = 64 * 1024;
 
     private final SttWebSocketHandler sttWebSocketHandler;
+    private final WebSocketExceptionHandler webSocketExceptionHandler;
     private final CorsProperties corsProperties;
 
     @Override
     public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
-        registry.addHandler(sttWebSocketHandler, "/ws/stt")
+        registry.addHandler(exceptionHandlingHandler(), "/ws/stt")
                 .setAllowedOriginPatterns(corsProperties.getOriginUrls());
+    }
+
+    private ExceptionHandlingWebSocketHandler exceptionHandlingHandler() {
+        return new ExceptionHandlingWebSocketHandler(sttWebSocketHandler, webSocketExceptionHandler);
     }
 
     @Bean

@@ -7,6 +7,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.TextMessage;
+import org.springframework.web.socket.WebSocketSession;
 
 /**
  * WebSocketMessage 를 JSON 텍스트 프레임으로 직렬화해 클라이언트 연결로 전송한다.
@@ -20,9 +21,13 @@ public class WebSocketMessageSender {
     private final ObjectMapper objectMapper;
 
     public void send(DebateSession session, WebSocketMessage message) {
+        send(session.connection(), message);
+    }
+
+    public void send(WebSocketSession connection, WebSocketMessage message) {
         try {
             String payload = objectMapper.writeValueAsString(message);
-            session.connection().sendMessage(new TextMessage(payload));
+            connection.sendMessage(new TextMessage(payload));
         } catch (Exception e) {
             log.error("WebSocket 메시지 전송 실패: debateId={}, type={}", message.debateId(), message.type(), e);
         }

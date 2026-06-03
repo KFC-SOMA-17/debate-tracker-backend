@@ -11,7 +11,7 @@ public record DebateSession(
         WebSocketSession connection
 ) {
 
-    private static final String ATTR_DEBATE_ID = "debateId";
+    public static final String ATTR_DEBATE_ID = "debateId";
 
     public DebateSession(WebSocketSession session) {
         this(

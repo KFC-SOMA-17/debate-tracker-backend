@@ -53,11 +53,11 @@ class TranscribeEventListenerTest {
         assertAll(
                 () -> assertThat(sent.type()).isEqualTo(MessageType.TRANSCRIPTION),
                 () -> assertThat(sent.debateId()).isEqualTo(1L),
-                () -> assertThat(data.id()).isNotNull(),
-                () -> assertThat(data.content()).isEqualTo("안녕하세요"),
-                () -> assertThat(data.speaker()).isEqualTo("Guest_1"),
-                () -> assertThat(data.startAt()).isEqualByComparingTo("1.200"),
-                () -> assertThat(data.endAt()).isEqualByComparingTo("4.800")
+                () -> assertThat(data.getId()).isNotNull(),
+                () -> assertThat(data.getContent()).isEqualTo("안녕하세요"),
+                () -> assertThat(data.getSpeaker()).isEqualTo("Guest_1"),
+                () -> assertThat(data.getStartAt()).isEqualByComparingTo("1.200"),
+                () -> assertThat(data.getEndAt()).isEqualByComparingTo("4.800")
         );
     }
 
@@ -68,6 +68,6 @@ class TranscribeEventListenerTest {
         listener.onTranscribe(new TranscribeEvent("1", new SttSegment(
                 BigDecimal.ZERO, BigDecimal.ONE, "Guest_1", "텍스트")));
 
-        verify(messageSender, never()).send(any(), any());
+        verify(messageSender, never()).send(any(DebateSession.class), any());
     }
 }
