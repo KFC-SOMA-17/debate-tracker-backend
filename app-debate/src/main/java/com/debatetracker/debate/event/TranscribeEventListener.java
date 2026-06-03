@@ -1,5 +1,6 @@
 package com.debatetracker.debate.event;
 
+import com.debatetracker.debate.infrastructure.config.AsyncConfig;
 import com.debatetracker.debate.ws.sender.WebSocketMessageSender;
 import com.debatetracker.debate.ws.id.SegmentIdGenerator;
 import com.debatetracker.debate.ws.message.TranscriptionMessage;
@@ -11,6 +12,7 @@ import com.debatetracker.infra.stt.client.event.TranscribeEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
 /**
@@ -25,6 +27,7 @@ public class TranscribeEventListener {
     private final WebSocketMessageSender messageSender;
     private final SegmentIdGenerator segmentIdGenerator;
 
+    @Async(AsyncConfig.EVENT_LISTENER_EXECUTOR)
     @EventListener
     public void onTranscribe(TranscribeEvent event) {
         String debateId = event.sessionId();
