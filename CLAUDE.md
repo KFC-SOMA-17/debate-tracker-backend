@@ -15,8 +15,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ```
 app-debate ──┐                                  app-report ──┐
              ├──► infra-stt                                  │
-             └──► infra-llm                                  ├──► infra-llm
+             ├──► infra-llm                                  ├──► infra-llm
+             └──► common                                     ├──► common
                                                              │   (Sprint 3+)
+
+infra-stt ──► common
+infra-llm ──► common
 ```
 
 | 모듈 | 종류 | 책임 |
@@ -25,6 +29,7 @@ app-debate ──┐                                  app-report ──┐
 | `app-report` | Bootable Spring Boot (Sprint 3+ 스켈레톤) | 사후 분석 F2, 카드뉴스/세특 F3. 1차에서 **DB read-only** |
 | `infra-stt` | `java-library` | STT 외부 호출 어댑터. **벤더 중립 `SttClient` 인터페이스** + 구현체 |
 | `infra-llm` | `java-library` | LLM 외부 호출 어댑터. **벤더 중립 `LlmClient` 인터페이스** + 구현체. 보정용/쟁점추출용 빈 동시 노출 |
+| `common` | `java-library` | **공통 에러 객체 (`DebateTrackerException`, `ErrorCode`) 만 관리.** 도메인 식별자/VO·비즈니스 로직·벤더 SDK 의존 금지. 자세한 규칙은 [common/CLAUDE.md](common/CLAUDE.md) |
 
 ### 절대 깨면 안 되는 규칙 (§2.4, §6.1)
 
@@ -104,10 +109,10 @@ Gradle wrapper 사용 (Windows PowerShell — `./gradlew` 대신 `.\gradlew`).
 
 ## DB 공유와 마이그레이션 (§2.5)
 
-- 1차에서 두 앱이 **같은 Postgres** 를 본다.
-- **`app-debate` 만 Flyway 실행** — 마이그레이션 owner. `app-report` 는 read-only 접속 (Postgres role + repository 분리 권장).
+- 1차에서 두 앱이 **같은 MySQL** 을 본다.
+- **`app-debate` 만 Flyway 실행** — 마이그레이션 owner. 단 1차에는 Flyway 비활성(`ddl-auto`)으로 시작하고 추후 도입. `app-report` 는 read-only 접속 (MySQL 계정 + repository 분리 권장).
 - 스키마 변경 PR 은 **양쪽 앱 영향 확인 체크박스** 필수. `app-debate` 스키마가 바뀌면 `app-report` 의 read 엔티티/DTO 매핑도 같이 손봐야 한다.
-- 1차 H2 (`runtimeOnly 'com.h2database:h2'`) — Sprint 진행하며 Postgres + Testcontainers 로 전환 예정.
+- 메인 런타임은 **MySQL** (`runtimeOnly 'com.mysql:mysql-connector-j'`, 로컬은 Docker Compose). 테스트도 **MySQL** 로 일원화 — 로컬은 떠 있는 MySQL(`debate_test` DB)/Redis(번호 DB 1) 에 접속(`local-test` 프로파일, 기본값), CI 는 Testcontainers(`ci` 프로파일, `SPRING_PROFILES_ACTIVE=ci`). 테스트 DB 정리는 `DatabaseCleaner`(MySQL `TRUNCATE` 기반). Flyway 도입 전까진 `ddl-auto: create-drop`.
 
 ## 트래픽 분리 / 배포 (§3.2, §3.5)
 
@@ -129,7 +134,7 @@ Gradle wrapper 사용 (Windows PowerShell — `./gradlew` 대신 `.\gradlew`).
 
 - `SttClient` / `LlmClient` 시그니처 (async 타입, partial/final 구분, speaker label 정규화 형태)
 - `infra-*` mock profile 위치 (`infra-*` 자체 vs 별도 `*-test-fixtures` 모듈)
-- `app-report` 의 DB read-only 강제 방식 (Postgres role 분리 시점)
+- `app-report` 의 DB read-only 강제 방식 (MySQL 계정 분리 시점)
 - `common-domain` 도입 트리거 임계값
 - `QAS-CO-02` "벤더 교체 ≤ 5 파일" 기준 (빌드 타임 vs 런타임 무중단)
 
@@ -141,3 +146,4 @@ Gradle wrapper 사용 (Windows PowerShell — `./gradlew` 대신 `.\gradlew`).
 - [app-report/CLAUDE.md](app-report/CLAUDE.md)
 - [infra-stt/CLAUDE.md](infra-stt/CLAUDE.md)
 - [infra-llm/CLAUDE.md](infra-llm/CLAUDE.md)
+- [common/CLAUDE.md](common/CLAUDE.md)

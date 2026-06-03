@@ -3,6 +3,9 @@ plugins {
 }
 
 dependencies {
+	//Common 모듈
+	implementation project(':common')
+
 	// Azure Speech SDK — 안드로이드 패키징이 기본이므로 @jar로 JAR 강제 지정
 	implementation 'com.microsoft.cognitiveservices.speech:client-sdk:1.41.1@jar'
 
