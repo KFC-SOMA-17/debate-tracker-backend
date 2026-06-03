@@ -3,4 +3,6 @@ spring:
     name: app-debate
 
   config:
-    import: classpath:llm-config.yml
+    import:
+      - classpath:stt-config.yaml
+      - classpath:llm-config.yml

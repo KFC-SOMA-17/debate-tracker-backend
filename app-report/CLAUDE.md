@@ -37,7 +37,7 @@ runtimeOnly 'com.h2database:h2'
 `app-debate` 가 발화·정제본·쟁점 트리의 **소유자**다. 이 모듈은:
 
 - **Flyway 마이그레이션 실행 금지.** 스키마 변경 권한 없음.
-- Postgres role 분리 + 코드 repository 분리 양쪽으로 read-only 강제 (구체 방식은 §6.2 미정 — Sprint 3 진입 시 결정).
+- MySQL 계정 분리 + 코드 repository 분리 양쪽으로 read-only 강제 (구체 방식은 §6.2 미정 — Sprint 3 진입 시 결정).
 - 새 데이터를 만들고 싶다면 자체 테이블을 추가하되, `app-debate` 가 소유한 테이블은 read 만.
 - `app-debate` 의 스키마 변경은 이 모듈의 read DTO/매핑에 즉시 영향 → 마이그레이션 PR 에 양쪽 영향 확인 필수.
 
@@ -53,7 +53,7 @@ runtimeOnly 'com.h2database:h2'
 
 ## Sprint 3 진입 시 결정해야 할 것 (§6.2 Open Questions)
 
-- read-only 강제 방식 — Postgres role 분리 + 코드 repository 분리, 어느 단계부터 둘 다 적용할지.
+- read-only 강제 방식 — MySQL 계정 분리 + 코드 repository 분리, 어느 단계부터 둘 다 적용할지.
 - DB 분리 시점·전략 — `app-report` 가 자체 DB 로 가질 데이터의 ETL/CDC/이벤트 경로.
 - 로컬 dev compose — `app-report` 개발 본격 진입 직전.
 - F2/F3 가 `infra-llm` 을 어떻게 소비할지 — `LlmClient` 인터페이스가 F1 만으로 결정되었을 가능성 → 추가 시그니처 필요 여부 확인.

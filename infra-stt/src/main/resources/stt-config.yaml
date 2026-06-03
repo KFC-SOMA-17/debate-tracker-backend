@@ -1,0 +1,13 @@
+stt:
+  azure:
+    enabled: true
+    subscription-key: ${AZURE_STT_KEY:your-key-here}
+    region: koreacentral
+    language: ko-KR
+    profanity: raw
+    silence-timeout-ms: 500
+  audio:
+    sample-rate: 16000
+    channels: 1
+    encoding: LINEAR16
+    chunk-duration-ms: 200
