@@ -8,10 +8,9 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.debatetracker.debate.event.TranscribeEventListener;
 import com.debatetracker.debate.ws.id.SimpleSegmentIdGenerator;
 import com.debatetracker.debate.ws.message.MessageType;
-import com.debatetracker.debate.ws.message.TranscriptionSegment;
+import com.debatetracker.debate.domain.transcript.SpeechSegment;
 import com.debatetracker.debate.ws.message.WebSocketMessage;
 import com.debatetracker.debate.domain.session.DebateSession;
 import com.debatetracker.debate.domain.session.DebateSessionRepository;
@@ -50,7 +49,7 @@ class TranscribeEventListenerTest {
         ArgumentCaptor<WebSocketMessage> captor = ArgumentCaptor.forClass(WebSocketMessage.class);
         verify(messageSender).send(any(DebateSession.class), captor.capture());
         WebSocketMessage sent = captor.getValue();
-        TranscriptionSegment data = (TranscriptionSegment) sent.data();
+        SpeechSegment data = (SpeechSegment) sent.data();
         assertAll(
                 () -> assertThat(sent.type()).isEqualTo(MessageType.TRANSCRIPTION),
                 () -> assertThat(sent.debateId()).isEqualTo(1L),

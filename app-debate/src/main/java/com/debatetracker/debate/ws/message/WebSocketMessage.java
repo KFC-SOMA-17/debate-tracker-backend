@@ -1,20 +1,29 @@
 package com.debatetracker.debate.ws.message;
 
-public record WebSocketMessage(
-        long debateId,
-        MessageType type,
-        Object data
-) {
+import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.AccessLevel;
+import lombok.RequiredArgsConstructor;
 
-    public static WebSocketMessage debateStart(long debateId) {
-        return new WebSocketMessage(debateId, MessageType.DEBATE_START, null);
+/**
+ * 서버 → 클라이언트로 전송하는 모든 메시지의 공통 구조. {debateId, type, data} 로 직렬화된다.
+ * 각 메시지 타입은 구체 하위 클래스로 선언하며, 자신의 정적 팩토리 메서드를 가진다.
+ */
+@RequiredArgsConstructor(access = AccessLevel.PROTECTED)
+public abstract class WebSocketMessage {
+
+    private final long debateId;
+    private final MessageType type;
+
+    @JsonProperty("debateId")
+    public final long debateId() {
+        return debateId;
     }
 
-    public static WebSocketMessage transcription(long debateId, TranscriptionSegment segment) {
-        return new WebSocketMessage(debateId, MessageType.TRANSCRIPTION, segment);
+    @JsonProperty("type")
+    public final MessageType type() {
+        return type;
     }
 
-    public static WebSocketMessage debateEnd(long debateId) {
-        return new WebSocketMessage(debateId, MessageType.DEBATE_END, null);
-    }
+    @JsonProperty("data")
+    public abstract Object data();
 }

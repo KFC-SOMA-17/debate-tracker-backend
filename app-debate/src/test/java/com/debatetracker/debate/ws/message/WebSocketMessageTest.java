@@ -3,6 +3,7 @@ package com.debatetracker.debate.ws.message;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertAll;
 
+import com.debatetracker.debate.domain.transcript.SpeechSegment;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.math.BigDecimal;
 import org.junit.jupiter.api.Test;
@@ -13,7 +14,7 @@ class WebSocketMessageTest {
 
     @Test
     void debateStart_팩토리는_data가_null이다() {
-        WebSocketMessage message = WebSocketMessage.debateStart(1L);
+        WebSocketMessage message = new DebateStartMessage(1L);
 
         assertAll(
                 () -> assertThat(message.type()).isEqualTo(MessageType.DEBATE_START),
@@ -24,10 +25,10 @@ class WebSocketMessageTest {
 
     @Test
     void transcription_팩토리는_세그먼트를_data로_감싼다() {
-        TranscriptionSegment segment = new TranscriptionSegment(
+        SpeechSegment segment = new SpeechSegment(
                 "100", "안녕하세요", "Guest_1", new BigDecimal("1.200"), new BigDecimal("4.800"));
 
-        WebSocketMessage message = WebSocketMessage.transcription(1L, segment);
+        WebSocketMessage message = new TranscriptionMessage(1L, segment);
 
         assertAll(
                 () -> assertThat(message.type()).isEqualTo(MessageType.TRANSCRIPTION),
@@ -37,11 +38,11 @@ class WebSocketMessageTest {
 
     @Test
     void TRANSCRIPTION_메시지는_camelCase_필드와_문자열_id로_직렬화된다() throws Exception {
-        TranscriptionSegment segment = new TranscriptionSegment(
+        SpeechSegment segment = new SpeechSegment(
                 "7202948293847291904", "안녕하세요", "Guest_1",
                 new BigDecimal("1.200"), new BigDecimal("4.800"));
 
-        String json = objectMapper.writeValueAsString(WebSocketMessage.transcription(1L, segment));
+        String json = objectMapper.writeValueAsString(new TranscriptionMessage(1L, segment));
 
         assertAll(
                 () -> assertThat(json).contains("\"debateId\":1"),

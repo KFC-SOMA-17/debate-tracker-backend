@@ -2,8 +2,8 @@ package com.debatetracker.debate.event;
 
 import com.debatetracker.debate.ws.sender.WebSocketMessageSender;
 import com.debatetracker.debate.ws.id.SegmentIdGenerator;
-import com.debatetracker.debate.ws.message.TranscriptionSegment;
-import com.debatetracker.debate.ws.message.WebSocketMessage;
+import com.debatetracker.debate.ws.message.TranscriptionMessage;
+import com.debatetracker.debate.domain.transcript.SpeechSegment;
 import com.debatetracker.debate.domain.session.DebateSession;
 import com.debatetracker.debate.domain.session.DebateSessionRepository;
 import com.debatetracker.infra.stt.client.dto.SttSegment;
@@ -35,13 +35,13 @@ public class TranscribeEventListener {
     }
 
     private void sendTranscription(DebateSession session, String debateId, SttSegment segment) {
-        TranscriptionSegment transcription = new TranscriptionSegment(
+        SpeechSegment transcription = new SpeechSegment(
                 segmentIdGenerator.generate(),
                 segment.content(),
                 segment.speaker(),
                 segment.start(),
                 segment.end()
         );
-        messageSender.send(session, WebSocketMessage.transcription(Long.parseLong(debateId), transcription));
+        messageSender.send(session, new TranscriptionMessage(Long.parseLong(debateId), transcription));
     }
 }

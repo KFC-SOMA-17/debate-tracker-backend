@@ -4,7 +4,8 @@ import com.debatetracker.debate.domain.session.DebateSession;
 import com.debatetracker.debate.domain.session.DebateSessionRepository;
 import com.debatetracker.debate.ws.sender.WebSocketMessageSender;
 import com.debatetracker.debate.ws.message.ControlMessage;
-import com.debatetracker.debate.ws.message.WebSocketMessage;
+import com.debatetracker.debate.ws.message.DebateEndMessage;
+import com.debatetracker.debate.ws.message.DebateStartMessage;
 import com.debatetracker.infra.stt.client.SttClient;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -43,9 +44,8 @@ public class SttWebSocketHandler extends AbstractWebSocketHandler {
     protected void handleTextMessage(WebSocketSession session, TextMessage message) throws Exception {
         ControlMessage control = objectMapper.readValue(message.getPayload(), ControlMessage.class);
         switch (control.type()) {
-            case ControlMessage.TYPE_START -> startDebate(session, control.sessionId());
-            case ControlMessage.TYPE_STOP -> stopDebate(control.sessionId());
-            default -> log.warn("알 수 없는 제어 메시지 타입: {}", control.type());
+            case START -> startDebate(session, control.sessionId());
+            case STOP -> stopDebate(control.sessionId());
         }
     }
 
@@ -72,14 +72,14 @@ public class SttWebSocketHandler extends AbstractWebSocketHandler {
         session.getAttributes().put(ATTR_DEBATE_ID, debateId);
         sessionRepository.save(new DebateSession(debateId, session));
         sttClient.startStreaming(debateId);
-        messageSender.send(new DebateSession(debateId, session), WebSocketMessage.debateStart(Long.parseLong(debateId)));
+        messageSender.send(new DebateSession(debateId, session), new DebateStartMessage(Long.parseLong(debateId)));
         log.info("토론 시작: debateId={}", debateId);
     }
 
     private void stopDebate(String debateId) {
         sttClient.stopStreaming(debateId);
         sessionRepository.deleteByDebateId(debateId)
-                .ifPresent(session -> messageSender.send(session, WebSocketMessage.debateEnd(Long.parseLong(debateId))));
+                .ifPresent(session -> messageSender.send(session, new DebateEndMessage(Long.parseLong(debateId))));
         log.info("토론 종료: debateId={}", debateId);
     }
 }
