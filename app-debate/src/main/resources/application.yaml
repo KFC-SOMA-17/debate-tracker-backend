@@ -2,15 +2,5 @@ spring:
   application:
     name: app-debate
 
-  ai:
-    # provider 선택자. 기본 none → 키 없이도 부팅. refine 기능 활성화: LLM_CHAT_PROVIDER=google-genai + API Key
-    model:
-      chat: ${LLM_CHAT_PROVIDER:none}
-      embedding: none
-    google:
-      genai:
-        api-key: ${GOOGLE_AI_STUDIO_API_KEY:}
-        chat:
-          options:
-            model: gemini-2.5-flash
-            temperature: 0.0
+  config:
+    import: classpath:llm-config.yml

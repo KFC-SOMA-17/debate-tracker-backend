@@ -1,19 +1,22 @@
 package com.debatetracker.infra.llm.client;
 
 import java.util.List;
+import java.util.Optional;
 
-/**
- * 세그먼트 보정 기능의 입력 계약.
- *
- * @param sessionId 메트릭 라벨링용(세션별 슬라이스). 정제 로직에는 관여하지 않는다.
- * @param segments  정제 대상 세그먼트. 전 세그먼트를 동시에 넘겨 단어 경계 문맥을 확보한다.
- */
 public record RefineRequest(
         String sessionId,
-        List<TranscriptSegment> segments
+        String topic,
+        List<TranscriptSegment> contexts,
+        List<TranscriptSegment> targets
 ) {
 
     public RefineRequest {
-        segments = List.copyOf(segments);
+        targets = List.copyOf(targets);
+    }
+
+    public Optional<TranscriptSegment> findTargetSegment(String id) {
+        return targets.stream()
+                .filter(segment -> segment.id().equals(id))
+                .findFirst();
     }
 }
