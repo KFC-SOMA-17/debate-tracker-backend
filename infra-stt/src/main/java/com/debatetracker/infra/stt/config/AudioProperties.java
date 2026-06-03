@@ -1,0 +1,20 @@
+package com.debatetracker.infra.stt.config;
+
+import org.springframework.boot.context.properties.ConfigurationProperties;
+
+@ConfigurationProperties(prefix = "stt.audio")
+public record AudioProperties(
+        int sampleRate,
+        int channels,
+        String encoding,
+        int chunkDurationMs
+) {
+
+    /**
+     * 하나의 오디오 청크 크기(바이트)를 계산한다. LINEAR16 = 16bit = 2bytes per sample
+     */
+    public int chunkSizeBytes() {
+        int bytesPerSample = 2; // 16-bit
+        return sampleRate * bytesPerSample * channels * chunkDurationMs / 1000;
+    }
+}
