@@ -1,5 +1,6 @@
 package com.debatetracker.debate.domain.session;
 
+import java.util.Optional;
 import org.springframework.web.socket.WebSocketSession;
 
 /**
@@ -10,4 +11,14 @@ public record DebateSession(
         WebSocketSession connection
 ) {
 
+    private static final String ATTR_DEBATE_ID = "debateId";
+
+    public DebateSession(WebSocketSession session) {
+        this(
+                Optional.ofNullable(session.getAttributes().get(ATTR_DEBATE_ID))
+                        .orElseThrow(() -> new RuntimeException("토론 id 없음"))
+                        .toString(),
+                session
+        );
+    }
 }

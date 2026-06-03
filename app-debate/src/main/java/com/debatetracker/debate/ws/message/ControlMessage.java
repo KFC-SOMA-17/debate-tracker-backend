@@ -5,4 +5,11 @@ public record ControlMessage(
         String sessionId
 ) {
 
+    public boolean isStart() {
+        return type.isStart();
+    }
+
+    public boolean isStop() {
+        return type.isStop();
+    }
 }

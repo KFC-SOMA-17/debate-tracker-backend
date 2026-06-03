@@ -2,6 +2,8 @@ package com.debatetracker.debate.ws.handler;
 
 import com.debatetracker.debate.domain.session.DebateSession;
 import com.debatetracker.debate.domain.session.DebateSessionRepository;
+import com.debatetracker.debate.service.debate.DebateStreamingService;
+import com.debatetracker.debate.ws.message.WebSocketMessage;
 import com.debatetracker.debate.ws.sender.WebSocketMessageSender;
 import com.debatetracker.debate.ws.message.ControlMessage;
 import com.debatetracker.debate.ws.message.DebateEndMessage;
@@ -30,8 +32,7 @@ public class SttWebSocketHandler extends AbstractWebSocketHandler {
 
     private static final String ATTR_DEBATE_ID = "debateId";
 
-    private final SttClient sttClient;
-    private final DebateSessionRepository sessionRepository;
+    private final DebateStreamingService debateStreamingService;
     private final WebSocketMessageSender messageSender;
     private final ObjectMapper objectMapper;
 
@@ -43,43 +44,22 @@ public class SttWebSocketHandler extends AbstractWebSocketHandler {
     @Override
     protected void handleTextMessage(WebSocketSession session, TextMessage message) throws Exception {
         ControlMessage control = objectMapper.readValue(message.getPayload(), ControlMessage.class);
-        switch (control.type()) {
-            case START -> startDebate(session, control.sessionId());
-            case STOP -> stopDebate(control.sessionId());
-        }
+        WebSocketMessage webSocketMessage = debateStreamingService.handleControlMessage(control, session);
+        messageSender.send(new DebateSession(session),  webSocketMessage);
     }
 
     @Override
     protected void handleBinaryMessage(WebSocketSession session, BinaryMessage message) {
-        String debateId = (String) session.getAttributes().get(ATTR_DEBATE_ID);
+        String debateId = String.valueOf(session.getAttributes().get(ATTR_DEBATE_ID));
         if (debateId == null) {
             log.debug("START 이전 바이너리 수신, 무시: {}", session.getId());
             return;
         }
-        sttClient.sendAudioChunk(debateId, message.getPayload().array());
+        debateStreamingService.sendAudioChunk(debateId, message.getPayload().array());
     }
 
     @Override
     public void afterConnectionClosed(WebSocketSession session, CloseStatus status) {
         log.info("STT WebSocket 종료: {} (status={})", session.getId(), status);
-        String debateId = (String) session.getAttributes().get(ATTR_DEBATE_ID);
-        if (debateId != null && sessionRepository.existsByDebateId(debateId)) {
-            stopDebate(debateId);
-        }
-    }
-
-    private void startDebate(WebSocketSession session, String debateId) {
-        session.getAttributes().put(ATTR_DEBATE_ID, debateId);
-        sessionRepository.save(new DebateSession(debateId, session));
-        sttClient.startStreaming(debateId);
-        messageSender.send(new DebateSession(debateId, session), new DebateStartMessage(Long.parseLong(debateId)));
-        log.info("토론 시작: debateId={}", debateId);
-    }
-
-    private void stopDebate(String debateId) {
-        sttClient.stopStreaming(debateId);
-        sessionRepository.deleteByDebateId(debateId)
-                .ifPresent(session -> messageSender.send(session, new DebateEndMessage(Long.parseLong(debateId))));
-        log.info("토론 종료: debateId={}", debateId);
     }
 }
