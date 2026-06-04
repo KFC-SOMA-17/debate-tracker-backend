@@ -8,6 +8,8 @@ public interface SpeechBoxRepository {
 
     Optional<SpeechBox> findLastByDebateId(long debateId);
 
+    List<SpeechBox> findAllByDebateId(long debateId);
+
     void update(SpeechBox box);
 
     void saveAll(List<SpeechBox> boxes);

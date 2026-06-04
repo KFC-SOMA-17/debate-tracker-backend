@@ -24,6 +24,13 @@ public class SpeechBoxDomainRepository implements SpeechBoxRepository {
     }
 
     @Override
+    public List<SpeechBox> findAllByDebateId(long debateId) {
+        return speechBoxJpaRepository.findByDebateIdOrderByIdAsc(debateId).stream()
+                .map(SpeechBoxEntity::toDomain)
+                .toList();
+    }
+
+    @Override
     public void update(SpeechBox box) {
         speechBoxJpaRepository.save(new SpeechBoxEntity(box));
     }

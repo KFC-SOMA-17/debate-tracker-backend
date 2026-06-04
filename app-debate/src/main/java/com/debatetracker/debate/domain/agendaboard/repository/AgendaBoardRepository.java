@@ -7,4 +7,6 @@ public interface AgendaBoardRepository {
     AgendaBoard findByDebateId(long debateId);
 
     AgendaBoard save(AgendaBoard agendaBoard);
+
+    AgendaBoard upsert(AgendaBoard agendaBoard);
 }
