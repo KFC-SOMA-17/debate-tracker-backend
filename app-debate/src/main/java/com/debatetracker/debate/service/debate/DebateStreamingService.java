@@ -2,12 +2,11 @@ package com.debatetracker.debate.service.debate;
 
 import com.debatetracker.debate.domain.session.DebateSession;
 import com.debatetracker.debate.domain.session.DebateSessionRepository;
+import com.debatetracker.debate.domain.transcript.repository.TranscriptBufferRepository;
 import com.debatetracker.debate.ws.message.ControlMessage;
 import com.debatetracker.debate.ws.message.DebateEndMessage;
 import com.debatetracker.debate.ws.message.DebateStartMessage;
 import com.debatetracker.debate.ws.message.WebSocketMessage;
-import com.debatetracker.exception.DebateTrackerException;
-import com.debatetracker.exception.ErrorCode;
 import com.debatetracker.infra.stt.client.SttClient;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -21,9 +20,10 @@ public class DebateStreamingService {
 
     private final SttClient sttClient;
     private final DebateSessionRepository sessionRepository;
+    private final TranscriptBufferRepository bufferRepository;
 
     public WebSocketMessage handleControlMessage(ControlMessage message, WebSocketSession session) {
-        if(message.isStart()) {
+        if (message.isStart()) {
             startDebate(session, message.sessionId());
             return new DebateStartMessage(Long.parseLong(message.sessionId()));
         }
@@ -38,6 +38,7 @@ public class DebateStreamingService {
         }
         sttClient.stopStreaming(debateId.toString());
         sessionRepository.deleteByDebateId(debateId.toString());
+        bufferRepository.clear(debateId.toString());
         log.info("연결 종료로 토론 정리: debateId={}", debateId);
     }
 
@@ -49,7 +50,7 @@ public class DebateStreamingService {
     }
 
 
-    public void sendAudioChunk(String sessionId, byte [] payload) {
+    public void sendAudioChunk(String sessionId, byte[] payload) {
         sttClient.sendAudioChunk(String.valueOf(sessionId), payload);
     }
 }

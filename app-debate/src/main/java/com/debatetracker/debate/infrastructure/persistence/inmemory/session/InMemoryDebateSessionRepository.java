@@ -2,6 +2,7 @@ package com.debatetracker.debate.infrastructure.persistence.inmemory.session;
 
 import com.debatetracker.debate.domain.session.DebateSession;
 import com.debatetracker.debate.domain.session.DebateSessionRepository;
+import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import org.springframework.stereotype.Component;
@@ -14,6 +15,11 @@ public class InMemoryDebateSessionRepository implements DebateSessionRepository 
     @Override
     public void save(DebateSession session) {
         sessions.put(session.debateId(), session);
+    }
+
+    @Override
+    public List<DebateSession> findAll() {
+        return List.copyOf(sessions.values());
     }
 
     @Override

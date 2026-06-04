@@ -3,6 +3,7 @@ package com.debatetracker.debate.infrastructure.persistence;
 import com.debatetracker.debate.domain.session.DebateSession;
 import com.debatetracker.debate.domain.session.DebateSessionRepository;
 import com.debatetracker.debate.infrastructure.persistence.inmemory.session.InMemoryDebateSessionRepository;
+import java.util.List;
 import java.util.Optional;
 import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
@@ -24,6 +25,11 @@ public class DebateSessionDomainRepository implements DebateSessionRepository {
     @Override
     public void save(DebateSession session) {
         sessionStore.save(session);
+    }
+
+    @Override
+    public List<DebateSession> findAll() {
+        return sessionStore.findAll();
     }
 
     @Override
