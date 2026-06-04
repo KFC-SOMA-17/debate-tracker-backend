@@ -1,3 +1,9 @@
 spring:
   application:
     name: app-report
+
+  # infra-llm 이 끌고 오는 Spring AI 자동설정 비활성(키 없이 부팅). Sprint 3+ F2/F3 진입 시 활성화.
+  ai:
+    model:
+      chat: none
+      embedding: none
