@@ -68,7 +68,7 @@ class TranscribeRefiningServiceTest {
             when(bufferRepository.peekRaw(DEBATE_ID, 3)).thenReturn(batch);
             when(bufferRepository.recentRefined(DEBATE_ID, 5)).thenReturn(List.of());
             List<RefinedSpeechSegment> corrected = List.of(refined("a"), refined("b"), refined("c"));
-            when(corrector.refine(any(), eq(List.of()), eq(batch))).thenReturn(corrected);
+            when(corrector.refine(eq(DEBATE_ID), any(), eq(List.of()), eq(batch))).thenReturn(corrected);
 
             service.refineSession(session);
 
@@ -93,7 +93,7 @@ class TranscribeRefiningServiceTest {
             service.refineSession(session);
 
             assertAll(
-                    () -> verify(corrector, never()).refine(anyString(), anyList(), anyList()),
+                    () -> verify(corrector, never()).refine(anyString(), anyString(), anyList(), anyList()),
                     () -> verify(bufferRepository, never()).trimRaw(anyString(), anyInt()),
                     () -> verify(messageSender, never()).send(any(DebateSession.class), any())
             );
@@ -105,7 +105,7 @@ class TranscribeRefiningServiceTest {
             when(bufferRepository.rawSize(DEBATE_ID)).thenReturn(8L);
             when(bufferRepository.peekRaw(DEBATE_ID, 5)).thenReturn(batch);
             when(bufferRepository.recentRefined(DEBATE_ID, 5)).thenReturn(List.of());
-            when(corrector.refine(any(), anyList(), eq(batch)))
+            when(corrector.refine(eq(DEBATE_ID), any(), anyList(), eq(batch)))
                     .thenReturn(List.of(refined("a"), refined("b"), refined("c"), refined("d"), refined("e")));
 
             service.refineSession(session);
@@ -123,7 +123,7 @@ class TranscribeRefiningServiceTest {
             when(bufferRepository.rawSize(DEBATE_ID)).thenReturn(2L);
             when(bufferRepository.peekRaw(DEBATE_ID, 2)).thenReturn(batch);
             when(bufferRepository.recentRefined(DEBATE_ID, 5)).thenReturn(List.of());
-            when(corrector.refine(any(), anyList(), anyList())).thenReturn(List.of(refined("a"))); // 개수 불일치
+            when(corrector.refine(anyString(), anyString(), anyList(), anyList())).thenReturn(List.of(refined("a"))); // 개수 불일치
 
             assertAll(
                     () -> assertThatCode(() -> service.refineSession(session)).doesNotThrowAnyException(),
@@ -138,7 +138,7 @@ class TranscribeRefiningServiceTest {
             when(bufferRepository.rawSize(DEBATE_ID)).thenReturn(1L);
             when(bufferRepository.peekRaw(DEBATE_ID, 1)).thenReturn(List.of(speech("a")));
             when(bufferRepository.recentRefined(DEBATE_ID, 5)).thenReturn(List.of());
-            when(corrector.refine(any(), anyList(), anyList())).thenThrow(new RuntimeException("보정 오류"));
+            when(corrector.refine(anyString(), anyString(), anyList(), anyList())).thenThrow(new RuntimeException("보정 오류"));
 
             assertAll(
                     () -> assertThatCode(() -> service.refineSession(session)).doesNotThrowAnyException(),
