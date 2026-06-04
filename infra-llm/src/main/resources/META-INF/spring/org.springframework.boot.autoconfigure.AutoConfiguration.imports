@@ -1,1 +1,1 @@
-com.debatetracker.infra.llm
+com.debatetracker.infra.llm.config.LlmAutoConfiguration

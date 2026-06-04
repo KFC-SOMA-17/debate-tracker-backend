@@ -3,6 +3,10 @@ spring:
     name: app-debate
   profiles:
     active: local
+  config:
+    import:
+      - classpath:stt-config.yml
+      - classpath:llm-config.yml
 
   jpa:
     open-in-view: false
@@ -12,3 +16,11 @@ spring:
 
   flyway:
     enabled: false
+
+  ai:
+    chat:
+      client:
+        enabled: true
+
+llm:
+  enabled: true

@@ -6,7 +6,9 @@ import com.debatetracker.infra.llm.client.RefineRequest;
 import com.debatetracker.infra.llm.client.RefineResponse;
 import com.debatetracker.infra.llm.client.TranscriptSegment;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.io.IOException;
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
@@ -21,6 +23,7 @@ import org.springframework.boot.SpringBootConfiguration;
 import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
 import org.springframework.boot.autoconfigure.jackson.JacksonAutoConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.core.io.Resource;
 import org.springframework.test.context.TestPropertySource;
 
 /**
@@ -36,15 +39,15 @@ import org.springframework.test.context.TestPropertySource;
  *   <li>{@code .\gradlew :infra-llm:test --tests "*RefineLlmChatApiTest"} 로 실행한다.</li>
  * </ol>
  *
- * <p>프로덕션 {@code LlmConfiguration} 의 auto-configuration import 파일이 정비되기 전이라 의존하지 않고,
- * Spring AI 의 {@link ChatModel} 만 autoconfig 로 생성한 뒤 프로덕션과 동일한 방식으로
- * {@link RefineLlmSelector} + {@link RefineLlmChat} 를 직접 조립한다. 프롬프트는 실제
- * {@code llm-config.yml} 리소스에서 주입받아 프롬프트 품질까지 함께 검증한다.
+ * <p>프로덕션 {@code LlmAutoConfiguration} 에 의존하지 않고, Spring AI 의 {@link ChatModel} 만 autoconfig 로
+ * 생성한 뒤 프로덕션과 동일한 방식으로 {@link RefineLlmSelector} + {@link RefineLlmChat} 를 직접 조립한다.
+ * 프롬프트는 프로덕션과 동일한 {@code prompts/refine-*.txt} 클래스패스 리소스에서 주입받아
+ * 프롬프트 품질까지 함께 검증한다.
  */
 @Disabled("실 Google GenAI API 호출 비용이 발생하는 수동 통합 테스트 — GOOGLE_API_KEY 설정 후 @Disabled 를 제거해 실행한다")
 @SpringBootTest(classes = RefineLlmChatApiTest.RealApiConfig.class)
 @TestPropertySource(properties = {
-        "spring.config.import=classpath:llm-config.yml",
+        "spring.ai.model.chat=google-genai",
         "spring.ai.google.genai.api-key=${GOOGLE_API_KEY}",
         "spring.ai.google.genai.chat.options.model=gemini-2.5-flash",
         "spring.ai.google.genai.chat.options.temperature=0.0",
@@ -54,17 +57,19 @@ class RefineLlmChatApiTest {
     @Autowired
     private ChatModel chatModel;
 
-    @Value("${llm.refine.system-prompt}")
-    private String systemPrompt;
+    @Value("classpath:prompts/refine-system.txt")
+    private Resource systemPrompt;
 
-    @Value("${llm.refine.user-prompt}")
-    private String userPrompt;
+    @Value("classpath:prompts/refine-user.txt")
+    private Resource userPrompt;
 
     @Test
-    void fetch_realApi_refinesTargetsKeepingSkeleton() {
+    void fetch_realApi_refinesTargetsKeepingSkeleton() throws IOException {
         RefineLlmChat refineLlmChat = new RefineLlmChat(
                 new RefineLlmSelector(ChatClient.create(chatModel)),
-                systemPrompt, userPrompt, new ObjectMapper());
+                systemPrompt.getContentAsString(StandardCharsets.UTF_8),
+                userPrompt.getContentAsString(StandardCharsets.UTF_8),
+                new ObjectMapper());
 
         TranscriptSegment context = new TranscriptSegment(
                 "ctx-1", "찬성 1", new BigDecimal("0.0"), new BigDecimal("4.2"),
