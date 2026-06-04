@@ -65,15 +65,6 @@ public class AgendaBoardDomainRepository implements AgendaBoardRepository {
 
     @Override
     @Transactional
-    public AgendaBoard save(AgendaBoard agendaBoard) {
-        List<Agenda> savedAgendas = agendaBoard.getAgendas().stream()
-                .map(this::saveAgenda)
-                .toList();
-        return new AgendaBoard(agendaBoard.getDebateId(), savedAgendas);
-    }
-
-    @Override
-    @Transactional
     public AgendaBoard upsert(AgendaBoard agendaBoard) {
         List<Agenda> agendasWithId = upsertAgendas(agendaBoard.getAgendas());
         List<Claim> claimsWithId = upsertClaims(stampAgendaId(agendasWithId));
@@ -163,25 +154,5 @@ public class AgendaBoardDomainRepository implements AgendaBoardRepository {
                 .map(EvidenceEntity::toDomain)
                 .toList();
         return claim.toDomain(evidences);
-    }
-
-    private Agenda saveAgenda(Agenda agenda) {
-        AgendaEntity savedAgenda = agendaJpaRepository.save(new AgendaEntity(agenda));
-        List<Claim> savedClaims = agenda.getClaims().stream()
-                .map(this::saveClaim)
-                .toList();
-        return savedAgenda.toDomain(savedClaims);
-    }
-
-    private Claim saveClaim(Claim claim) {
-        ClaimEntity savedClaim = claimJpaRepository.save(new ClaimEntity(claim));
-        List<Evidence> savedEvidences = claim.getEvidences().stream()
-                .map(this::saveEvidence)
-                .toList();
-        return savedClaim.toDomain(savedEvidences);
-    }
-
-    private Evidence saveEvidence(Evidence evidence) {
-        return evidenceJpaRepository.save(new EvidenceEntity(evidence)).toDomain();
     }
 }

@@ -81,49 +81,6 @@ public class AgendaBoardDomainRepositoryTest extends BaseDomainRepositoryTest {
     }
 
     @Nested
-    class Save {
-
-        @Test
-        void id가_null인_도메인을_저장하면_식별자가_부여된다() {
-            long debateId = 500L;
-            AgendaBoard board = new AgendaBoard(debateId, List.of(
-                    new Agenda(null, debateId, "쟁점", null, null, List.of(
-                            new Claim(null, 0L, "주장", Stance.PROS, null, null, List.of(
-                                    new Evidence(null, 0L, "근거", EvidenceType.STATISTICS, null, null)))))));
-
-            AgendaBoard saved = agendaBoardDomainRepository.save(board);
-
-            Agenda savedAgenda = saved.getAgendas().get(0);
-            Claim savedClaim = savedAgenda.getClaims().get(0);
-            Evidence savedEvidence = savedClaim.getEvidences().get(0);
-            assertAll(
-                    () -> assertThat(savedAgenda.getId()).isNotNull(),
-                    () -> assertThat(savedClaim.getId()).isNotNull(),
-                    () -> assertThat(savedEvidence.getId()).isNotNull(),
-                    () -> assertThat(agendaJpaRepository.findByDebateId(debateId)).hasSize(1)
-            );
-        }
-
-        @Test
-        void id가_있는_도메인을_저장하면_갱신된다() {
-            long debateId = 500L;
-            Agenda existing = agendaBoardGenerator.generateAgenda(debateId, "원본 쟁점");
-            AgendaBoard board = new AgendaBoard(debateId, List.of(
-                    new Agenda(existing.getId(), debateId, "수정된 쟁점",
-                            existing.getCreatedAt(), existing.getModifiedAt(), List.of())));
-
-            agendaBoardDomainRepository.save(board);
-
-            List<AgendaEntity> agendas = agendaJpaRepository.findByDebateId(debateId);
-            assertAll(
-                    () -> assertThat(agendas).hasSize(1),
-                    () -> assertThat(agendas.get(0).getId()).isEqualTo(existing.getId()),
-                    () -> assertThat(agendas.get(0).getContent()).isEqualTo("수정된 쟁점")
-            );
-        }
-    }
-
-    @Nested
     class Upsert {
 
         @Test
