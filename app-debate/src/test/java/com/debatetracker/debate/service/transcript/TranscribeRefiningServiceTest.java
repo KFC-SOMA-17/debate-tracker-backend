@@ -149,6 +149,59 @@ class TranscribeRefiningServiceTest {
         }
     }
 
+    @Nested
+    class RefineRemaining {
+
+        @Test
+        void 남은_raw를_전부_한_번에_보정하고_전송한다() {
+            int remaining = 12;
+            List<SpeechSegment> batch = segments(remaining);
+            List<RefinedSpeechSegment> corrected = refinedSegments(remaining);
+            when(bufferRepository.rawSize(DEBATE_ID)).thenReturn((long) remaining);
+            when(bufferRepository.peekRaw(DEBATE_ID, remaining)).thenReturn(batch);
+            when(bufferRepository.recentRefined(DEBATE_ID, 5)).thenReturn(List.of());
+            when(corrector.refine(any(), eq(List.of()), eq(batch))).thenReturn(corrected);
+
+            service.refineRemaining(session);
+
+            ArgumentCaptor<WebSocketMessage> captor = ArgumentCaptor.forClass(WebSocketMessage.class);
+            verify(messageSender).send(any(DebateSession.class), captor.capture());
+            RefinedSegmentsResponse data = (RefinedSegmentsResponse) captor.getValue().data();
+            assertAll(
+                    () -> verify(bufferRepository).peekRaw(DEBATE_ID, remaining),
+                    () -> verify(bufferRepository).trimRaw(DEBATE_ID, remaining),
+                    () -> verify(bufferRepository).appendRefined(DEBATE_ID, corrected),
+                    () -> verify(speechBoxService).persist(DEBATE_ID_VALUE, corrected),
+                    () -> assertThat(data.segments()).hasSize(remaining)
+            );
+        }
+
+        @Test
+        void 남은_raw가_없으면_보정을_호출하지_않고_아무것도_전송하지_않는다() {
+            when(bufferRepository.rawSize(DEBATE_ID)).thenReturn(0L);
+
+            service.refineRemaining(session);
+
+            assertAll(
+                    () -> verify(corrector, never()).refine(anyString(), anyList(), anyList()),
+                    () -> verify(bufferRepository, never()).peekRaw(anyString(), anyInt()),
+                    () -> verify(messageSender, never()).send(any(DebateSession.class), any())
+            );
+        }
+    }
+
+    private List<SpeechSegment> segments(int count) {
+        return java.util.stream.IntStream.range(0, count)
+                .mapToObj(i -> speech(String.valueOf(i)))
+                .toList();
+    }
+
+    private List<RefinedSpeechSegment> refinedSegments(int count) {
+        return java.util.stream.IntStream.range(0, count)
+                .mapToObj(i -> refined(String.valueOf(i)))
+                .toList();
+    }
+
     private SpeechSegment speech(String id) {
         return new SpeechSegment(id, "원본 " + id, "Guest_0", new BigDecimal("1.0"), new BigDecimal("2.0"));
     }

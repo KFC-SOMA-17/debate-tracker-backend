@@ -15,6 +15,7 @@ import com.debatetracker.debate.ws.message.WebSocketMessage;
 import com.debatetracker.debate.domain.session.DebateSession;
 import com.debatetracker.debate.domain.session.DebateSessionRepository;
 import com.debatetracker.debate.domain.transcript.repository.TranscriptBufferRepository;
+import com.debatetracker.debate.service.transcript.TranscribeRefiningService;
 import com.debatetracker.debate.ws.sender.WebSocketMessageSender;
 import com.debatetracker.infra.stt.client.SttClient;
 import java.util.HashMap;
@@ -45,7 +46,8 @@ class SttWebSocketHandlerTest {
         sessionRepository = mock(DebateSessionRepository.class);
         messageSender = mock(WebSocketMessageSender.class);
         DebateStreamingService debateStreamingService = new DebateStreamingService(
-                sttClient, sessionRepository, mock(TranscriptBufferRepository.class));
+                sttClient, sessionRepository, mock(TranscriptBufferRepository.class),
+                mock(TranscribeRefiningService.class));
         handler = new SttWebSocketHandler(debateStreamingService, messageSender);
 
         connection = mock(WebSocketSession.class);

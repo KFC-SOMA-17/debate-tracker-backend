@@ -3,6 +3,7 @@ package com.debatetracker.debate.service.debate;
 import com.debatetracker.debate.domain.session.DebateSession;
 import com.debatetracker.debate.domain.session.DebateSessionRepository;
 import com.debatetracker.debate.domain.transcript.repository.TranscriptBufferRepository;
+import com.debatetracker.debate.service.transcript.TranscribeRefiningService;
 import com.debatetracker.debate.ws.message.ControlMessage;
 import com.debatetracker.debate.ws.message.DebateEndMessage;
 import com.debatetracker.debate.ws.message.DebateStartMessage;
@@ -22,14 +23,27 @@ public class DebateStreamingService {
     private final SttClient sttClient;
     private final DebateSessionRepository sessionRepository;
     private final TranscriptBufferRepository bufferRepository;
+    private final TranscribeRefiningService refiningService;
 
     public WebSocketMessage handleControlMessage(ControlMessage message, WebSocketSession session) {
         if (message.isStart()) {
             startDebate(session, message.sessionId());
             return new DebateStartMessage(Long.parseLong(message.sessionId()));
         }
-        stopDebateIfActive(session);
+        stopDebateWithRemainingRefine(session);
         return new DebateEndMessage(Long.parseLong(message.sessionId()));
+    }
+
+    public void stopDebateWithRemainingRefine(WebSocketSession session) {
+        Object debateId = session.getAttributes().get(DebateSession.ATTR_DEBATE_ID);
+        if (debateId == null || !sessionRepository.existsByDebateId(debateId.toString())) {
+            return;
+        }
+        sttClient.stopStreaming(debateId.toString());
+        sessionRepository.deleteByDebateId(debateId.toString());
+        refiningService.refineRemaining(new DebateSession(session));
+        bufferRepository.clear(debateId.toString());
+        log.info("STOP 으로 토론 정리(남은 raw 보정 후): debateId={}", debateId);
     }
 
     public void stopDebateIfActive(WebSocketSession session) {
