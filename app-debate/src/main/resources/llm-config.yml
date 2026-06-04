@@ -9,3 +9,9 @@ spring:
           options:
             model: gemini-2.5-flash
             temperature: 0.0
+
+llm:
+  refine:
+    model: gemini-2.5-flash
+  extract:
+    model: gemini-2.5-pro
