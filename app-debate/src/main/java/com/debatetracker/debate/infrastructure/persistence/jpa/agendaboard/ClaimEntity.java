@@ -1,8 +1,8 @@
 package com.debatetracker.debate.infrastructure.persistence.jpa.agendaboard;
 
 import com.debatetracker.debate.domain.agendaboard.Claim;
+import com.debatetracker.debate.domain.agendaboard.Evidence;
 import com.debatetracker.debate.domain.agendaboard.Stance;
-
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -12,6 +12,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import java.util.List;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -42,7 +43,7 @@ public class ClaimEntity {
         this.stance = domain.getStance();
     }
 
-    public Claim toDomain() {
-        return new Claim(id, agendaId, content, stance);
+    public Claim toDomain(List<Evidence> evidences) {
+        return new Claim(id, agendaId, content, stance, evidences);
     }
 }

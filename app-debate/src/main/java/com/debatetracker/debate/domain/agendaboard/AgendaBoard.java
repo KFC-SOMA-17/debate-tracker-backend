@@ -6,10 +6,8 @@ import lombok.RequiredArgsConstructor;
 
 @Getter
 @RequiredArgsConstructor
-public class Agenda {
+public class AgendaBoard {
 
-    private final Long id;
-    private final long debateId;
-    private final String content;
-    private final List<Claim> claims;
+    private final Long debateId;
+    private final List<Agenda> agendas;
 }
