@@ -5,7 +5,7 @@ import com.debatetracker.debate.service.debate.DebateStreamingService;
 import com.debatetracker.debate.ws.message.WebSocketMessage;
 import com.debatetracker.debate.ws.sender.WebSocketMessageSender;
 import com.debatetracker.debate.ws.message.ControlMessage;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.debatetracker.serdes.SerDesUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -28,7 +28,6 @@ public class SttWebSocketHandler extends AbstractWebSocketHandler {
 
     private final DebateStreamingService debateStreamingService;
     private final WebSocketMessageSender messageSender;
-    private final ObjectMapper objectMapper;
 
     @Override
     public void afterConnectionEstablished(WebSocketSession session) {
@@ -36,8 +35,8 @@ public class SttWebSocketHandler extends AbstractWebSocketHandler {
     }
 
     @Override
-    protected void handleTextMessage(WebSocketSession session, TextMessage message) throws Exception {
-        ControlMessage control = objectMapper.readValue(message.getPayload(), ControlMessage.class);
+    protected void handleTextMessage(WebSocketSession session, TextMessage message) {
+        ControlMessage control = SerDesUtils.deserialize(message.getPayload(), ControlMessage.class);
         WebSocketMessage webSocketMessage = debateStreamingService.handleControlMessage(control, session);
         messageSender.send(new DebateSession(session),  webSocketMessage);
     }

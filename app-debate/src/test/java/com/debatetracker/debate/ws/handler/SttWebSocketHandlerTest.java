@@ -13,9 +13,9 @@ import com.debatetracker.debate.ws.message.MessageType;
 import com.debatetracker.debate.ws.message.WebSocketMessage;
 import com.debatetracker.debate.domain.session.DebateSession;
 import com.debatetracker.debate.domain.session.DebateSessionRepository;
+import com.debatetracker.debate.domain.transcript.repository.TranscriptBufferRepository;
 import com.debatetracker.debate.ws.sender.WebSocketMessageSender;
 import com.debatetracker.infra.stt.client.SttClient;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -42,8 +42,9 @@ class SttWebSocketHandlerTest {
         sttClient = mock(SttClient.class);
         sessionRepository = mock(DebateSessionRepository.class);
         messageSender = mock(WebSocketMessageSender.class);
-        DebateStreamingService debateStreamingService = new DebateStreamingService(sttClient, sessionRepository);
-        handler = new SttWebSocketHandler(debateStreamingService, messageSender, new ObjectMapper());
+        DebateStreamingService debateStreamingService = new DebateStreamingService(
+                sttClient, sessionRepository, mock(TranscriptBufferRepository.class));
+        handler = new SttWebSocketHandler(debateStreamingService, messageSender);
 
         connection = mock(WebSocketSession.class);
         attributes = new HashMap<>();

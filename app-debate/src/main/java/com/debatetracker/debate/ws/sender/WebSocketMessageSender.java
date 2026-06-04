@@ -2,8 +2,7 @@ package com.debatetracker.debate.ws.sender;
 
 import com.debatetracker.debate.ws.message.WebSocketMessage;
 import com.debatetracker.debate.domain.session.DebateSession;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import lombok.RequiredArgsConstructor;
+import com.debatetracker.serdes.SerDesUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.TextMessage;
@@ -15,10 +14,7 @@ import org.springframework.web.socket.WebSocketSession;
  */
 @Slf4j
 @Component
-@RequiredArgsConstructor
 public class WebSocketMessageSender {
-
-    private final ObjectMapper objectMapper;
 
     public void send(DebateSession session, WebSocketMessage message) {
         send(session.connection(), message);
@@ -26,7 +22,7 @@ public class WebSocketMessageSender {
 
     public void send(WebSocketSession connection, WebSocketMessage message) {
         try {
-            String payload = objectMapper.writeValueAsString(message);
+            String payload = SerDesUtils.serialize(message);
             connection.sendMessage(new TextMessage(payload));
         } catch (Exception e) {
             log.error("WebSocket 메시지 전송 실패: debateId={}, type={}", message.debateId(), message.type(), e);
