@@ -1,5 +1,0 @@
-spring:
-  application:
-    name: app-debate
-  config:
-    import: classpath:stt-config.yaml

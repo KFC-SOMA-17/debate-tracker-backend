@@ -21,6 +21,12 @@ public enum ErrorCode {
 
     CORS_ORIGIN_EMPTY(500, "CORS Origin 은 적어도 한 개 있어야 합니다"),
     CORS_ORIGIN_STRING_BLANK(500, "CORS Origin 에 빈 값이 들어올 수 없습니다"),
+
+    // infra-llm
+    LLM_REQUEST_SERIALIZATION_FAILED(500, "LLM 요청 직렬화에 실패했습니다."),
+    LLM_RESPONSE_PARSING_FAILED(500, "LLM 응답 파싱에 실패했습니다."),
+    REFINE_RESPONSE_SEGMENT_SIZE_MISMATCH(500, "정제 응답의 세그먼트 개수가 요청과 일치하지 않습니다."),
+    REFINE_RESPONSE_SEGMENT_ID_MISMATCH(500, "정제 응답의 세그먼트 ID 가 요청과 일치하지 않습니다."),
     INTERNAL_SERVER_ERROR(500, "서버 오류가 발생했습니다. 관리자에게 문의하세요."),
     ;
 

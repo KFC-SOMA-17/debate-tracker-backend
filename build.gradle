@@ -1,43 +1,46 @@
 plugins {
-	id 'org.springframework.boot' version '3.5.14' apply false
-	id 'io.spring.dependency-management' version '1.1.7' apply false
+    id 'org.springframework.boot' version '3.5.14' apply false
+    id 'io.spring.dependency-management' version '1.1.7' apply false
 }
 
 allprojects {
-	group = 'com.debatetracker'
-	version = '0.0.1-SNAPSHOT'
+    group = 'com.debatetracker'
+    version = '0.0.1-SNAPSHOT'
 
-	repositories {
-		mavenCentral()
-	}
+    repositories {
+        mavenCentral()
+    }
 }
 
 subprojects {
-	apply plugin: 'java'
-	apply plugin: 'io.spring.dependency-management'
+    apply plugin: 'java'
+    apply plugin: 'io.spring.dependency-management'
 
-	java {
-		toolchain {
-			languageVersion = JavaLanguageVersion.of(21)
-		}
-	}
+    java {
+        toolchain {
+            languageVersion = JavaLanguageVersion.of(21)
+        }
+    }
 
-	dependencyManagement {
-		imports {
-			mavenBom 'org.springframework.boot:spring-boot-dependencies:3.5.14'
-		}
-	}
+    dependencyManagement {
+        imports {
+            mavenBom 'org.springframework.boot:spring-boot-dependencies:3.5.14'
+            mavenBom 'org.springframework.ai:spring-ai-bom:1.1.1'
+        }
+    }
 
-	dependencies {
-		compileOnly 'org.projectlombok:lombok'
-		annotationProcessor 'org.projectlombok:lombok'
-		testCompileOnly 'org.projectlombok:lombok'
-		testAnnotationProcessor 'org.projectlombok:lombok'
-		testImplementation 'org.springframework.boot:spring-boot-starter-test'
-		testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
-	}
+    dependencies {
+        implementation 'org.springframework.boot:spring-boot-starter'
+        compileOnly 'org.projectlombok:lombok'
+        annotationProcessor 'org.projectlombok:lombok'
 
-	tasks.named('test') {
-		useJUnitPlatform()
-	}
+        testCompileOnly 'org.projectlombok:lombok'
+        testAnnotationProcessor 'org.projectlombok:lombok'
+        testImplementation 'org.springframework.boot:spring-boot-starter-test'
+        testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    }
+
+    tasks.named('test') {
+        useJUnitPlatform()
+    }
 }

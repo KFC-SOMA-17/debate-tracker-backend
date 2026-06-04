@@ -17,5 +17,12 @@ spring:
   flyway:
     enabled: false
 
+  ai:
+    model:
+      chat: none
+
 cors:
   origin-urls: ["http://localhost:3000", "http://localhost:5173"]
+
+llm:
+  enabled: false

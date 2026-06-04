@@ -4,4 +4,7 @@ plugins {
 
 dependencies {
 	implementation project(':common')
+
+	implementation 'org.springframework.ai:spring-ai-starter-model-google-genai'
+	implementation 'com.fasterxml.jackson.core:jackson-databind'
 }
