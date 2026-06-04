@@ -2,7 +2,7 @@ package com.debatetracker.debate.infrastructure.persistence.jpa.agendaboard;
 
 import com.debatetracker.debate.domain.agendaboard.Evidence;
 import com.debatetracker.debate.domain.agendaboard.EvidenceType;
-
+import com.debatetracker.debate.infrastructure.persistence.jpa.AuditingEntity;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -20,7 +20,7 @@ import lombok.NoArgsConstructor;
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class EvidenceEntity {
+public class EvidenceEntity extends AuditingEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -43,6 +43,6 @@ public class EvidenceEntity {
     }
 
     public Evidence toDomain() {
-        return new Evidence(id, claimId, content, type);
+        return new Evidence(id, claimId, content, type, getCreatedAt(), getModifiedAt());
     }
 }

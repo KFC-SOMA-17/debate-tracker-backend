@@ -3,6 +3,7 @@ package com.debatetracker.debate.infrastructure.persistence.jpa.agendaboard;
 import com.debatetracker.debate.domain.agendaboard.Claim;
 import com.debatetracker.debate.domain.agendaboard.Evidence;
 import com.debatetracker.debate.domain.agendaboard.Stance;
+import com.debatetracker.debate.infrastructure.persistence.jpa.AuditingEntity;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -21,7 +22,7 @@ import lombok.NoArgsConstructor;
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class ClaimEntity {
+public class ClaimEntity extends AuditingEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -44,6 +45,6 @@ public class ClaimEntity {
     }
 
     public Claim toDomain(List<Evidence> evidences) {
-        return new Claim(id, agendaId, content, stance, evidences);
+        return new Claim(id, agendaId, content, stance, getCreatedAt(), getModifiedAt(), evidences);
     }
 }
