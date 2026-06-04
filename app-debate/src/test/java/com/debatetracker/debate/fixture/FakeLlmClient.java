@@ -1,5 +1,7 @@
 package com.debatetracker.debate.fixture;
 
+import com.debatetracker.infra.llm.client.ExtractAgendaRequest;
+import com.debatetracker.infra.llm.client.ExtractAgendaResponse;
 import com.debatetracker.infra.llm.client.LlmClient;
 import com.debatetracker.infra.llm.client.RefineRequest;
 import com.debatetracker.infra.llm.client.RefineResponse;
@@ -13,5 +15,10 @@ public class FakeLlmClient implements LlmClient {
     @Override
     public RefineResponse refine(RefineRequest request) {
         return new RefineResponse(request.targets());
+    }
+
+    @Override
+    public ExtractAgendaResponse extract(ExtractAgendaRequest request) {
+        return new ExtractAgendaResponse(request.beforeAgendas());
     }
 }
