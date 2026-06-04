@@ -23,6 +23,7 @@ public enum ErrorCode {
     CORS_ORIGIN_STRING_BLANK(500, "CORS Origin 에 빈 값이 들어올 수 없습니다"),
     SERIALIZATION_ERROR(500, "직렬화에 실패했습니다."),
     DESERIALIZATION_ERROR(500, "역직렬화에 실패했습니다."),
+    REFINE_RESULT_MISMATCH(500, "보정 결과가 요청과 일치하지 않습니다."),
     INTERNAL_SERVER_ERROR(500, "서버 오류가 발생했습니다. 관리자에게 문의하세요."),
     ;
 
