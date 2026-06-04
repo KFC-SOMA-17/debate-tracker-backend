@@ -30,10 +30,10 @@ public class SpeechBoxService {
         List<SpeechBox> boxes = speechBoxResolver.resolve(debateId, segments);
         Optional<SpeechBox> lastBox = speechBoxRepository.findLastByDebateId(debateId);
 
-        if (continuesLastSpeaker(lastBox, boxes.get(0))) {
+        if (continuesLastSpeaker(lastBox, boxes.getFirst())) {
             return appendToLastBox(lastBox.get(), boxes);
         }
-        saveNewBoxes(boxes);
+        speechBoxRepository.saveAll(boxes);
         return boxes;
     }
 
@@ -45,17 +45,11 @@ public class SpeechBoxService {
         SpeechBox merged = lastBox.append(boxes.get(0));
         speechBoxRepository.update(merged);
         List<SpeechBox> newBoxes = boxes.subList(1, boxes.size());
-        saveNewBoxes(newBoxes);
+        speechBoxRepository.saveAll(boxes);
 
         List<SpeechBox> persisted = new ArrayList<>();
         persisted.add(merged);
         persisted.addAll(newBoxes);
         return persisted;
-    }
-
-    private void saveNewBoxes(List<SpeechBox> boxes) {
-        if (!boxes.isEmpty()) {
-            speechBoxRepository.saveAll(boxes);
-        }
     }
 }

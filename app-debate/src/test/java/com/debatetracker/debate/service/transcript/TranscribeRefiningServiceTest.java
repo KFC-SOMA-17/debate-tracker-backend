@@ -1,7 +1,7 @@
 package com.debatetracker.debate.service.transcript;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -23,8 +23,6 @@ import com.debatetracker.debate.ws.message.MessageType;
 import com.debatetracker.debate.ws.message.RefinedSegmentsResponse;
 import com.debatetracker.debate.ws.message.WebSocketMessage;
 import com.debatetracker.debate.ws.sender.WebSocketMessageSender;
-import com.debatetracker.exception.DebateTrackerException;
-import com.debatetracker.exception.ErrorCode;
 import java.math.BigDecimal;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
@@ -116,7 +114,7 @@ class TranscribeRefiningServiceTest {
         }
 
         @Test
-        void 보정_결과가_요청과_불일치하면_REFINE_RESULT_MISMATCH로_예외를_던지고_버퍼를_변경하지_않는다() {
+        void 보정_결과가_요청과_불일치하면_예외를_삼키고_버퍼를_변경하지_않는다() {
             List<SpeechSegment> batch = List.of(speech("a"), speech("b"));
             when(bufferRepository.rawSize(DEBATE_ID)).thenReturn(2L);
             when(bufferRepository.peekRaw(DEBATE_ID, 2)).thenReturn(batch);
@@ -124,9 +122,22 @@ class TranscribeRefiningServiceTest {
             when(corrector.refine(any(), anyList(), anyList())).thenReturn(List.of(refined("a"))); // 개수 불일치
 
             assertAll(
-                    () -> assertThatThrownBy(() -> service.refineSession(session))
-                            .isInstanceOf(DebateTrackerException.class)
-                            .extracting("errorCode").isEqualTo(ErrorCode.REFINE_RESULT_MISMATCH),
+                    () -> assertThatCode(() -> service.refineSession(session)).doesNotThrowAnyException(),
+                    () -> verify(bufferRepository, never()).trimRaw(anyString(), anyInt()),
+                    () -> verify(bufferRepository, never()).appendRefined(anyString(), anyList()),
+                    () -> verify(messageSender, never()).send(any(DebateSession.class), any())
+            );
+        }
+
+        @Test
+        void 보정_호출이_실패하면_예외를_삼키고_raw를_유지한다() {
+            when(bufferRepository.rawSize(DEBATE_ID)).thenReturn(1L);
+            when(bufferRepository.peekRaw(DEBATE_ID, 1)).thenReturn(List.of(speech("a")));
+            when(bufferRepository.recentRefined(DEBATE_ID, 5)).thenReturn(List.of());
+            when(corrector.refine(any(), anyList(), anyList())).thenThrow(new RuntimeException("보정 오류"));
+
+            assertAll(
+                    () -> assertThatCode(() -> service.refineSession(session)).doesNotThrowAnyException(),
                     () -> verify(bufferRepository, never()).trimRaw(anyString(), anyInt()),
                     () -> verify(bufferRepository, never()).appendRefined(anyString(), anyList()),
                     () -> verify(messageSender, never()).send(any(DebateSession.class), any())

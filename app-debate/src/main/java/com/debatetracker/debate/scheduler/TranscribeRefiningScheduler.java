@@ -11,8 +11,7 @@ import org.springframework.stereotype.Component;
  * 전사 보정 트리거. 30초마다 활성 토론을 돌며 세션별 보정을 호출한다.
  *
  * <p>보정 로직 자체는 {@link TranscribeRefiningService} 가 가지며, 여기서는 주기/순회만 책임진다.
- * 세션별 호출은 다른 빈(서비스)의 public 메서드를 거치므로 {@code @Retryable} AOP 프록시가 정상 동작한다
- * (self-invocation 회피).
+ * 세션별 보정이 실패해도 서비스가 예외를 삼키고 로그만 남기므로, 한 세션의 실패가 순회를 멈추지 않는다.
  */
 @Slf4j
 @Component

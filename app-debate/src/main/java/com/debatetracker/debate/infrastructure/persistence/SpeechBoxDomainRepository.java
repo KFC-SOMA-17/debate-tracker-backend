@@ -33,6 +33,9 @@ public class SpeechBoxDomainRepository implements SpeechBoxRepository {
 
     @Override
     public void saveAll(List<SpeechBox> boxes) {
+        if (boxes.isEmpty()) {
+            return;
+        }
         speechBoxJdbcRepository.batchInsert(boxes);
     }
 }
