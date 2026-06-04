@@ -1,6 +1,7 @@
 package com.debatetracker.infra.llm.chat.refine;
 
 import com.debatetracker.infra.llm.client.TranscriptSegment;
+import java.util.Collections;
 import java.util.List;
 
 public record RefineLlmChatRequest(List<RefineLlmChatSegment> segments) {
@@ -10,5 +11,9 @@ public record RefineLlmChatRequest(List<RefineLlmChatSegment> segments) {
                 .map(RefineLlmChatSegment::new)
                 .toList();
         return new RefineLlmChatRequest(segments);
+    }
+
+    public static RefineLlmChatRequest empty() {
+        return new RefineLlmChatRequest(Collections.emptyList());
     }
 }

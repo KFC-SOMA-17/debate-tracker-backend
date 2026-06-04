@@ -2,6 +2,7 @@ package com.debatetracker.infra.llm.chat.refine;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
@@ -28,10 +29,10 @@ class RefineLlmChatTest {
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Nested
-    class PromptBuilding {
+    class ProcessSystemPrompt {
 
         @Test
-        void processSystemPrompt_replacesResponseFormatToken() {
+        void 응답_형식_토큰을_응답_스키마로_치환한다() {
             RefineLlmChat chat = newChat(mock(ChatClient.class, RETURNS_DEEP_STUBS));
 
             String prompt = chat.processSystemPrompt(request(List.of(segment("1", "A", "원본"))));
@@ -41,9 +42,13 @@ class RefineLlmChatTest {
                     .contains("segments")
                     .contains("id", "speaker", "text");
         }
+    }
+
+    @Nested
+    class ProcessUserPrompt {
 
         @Test
-        void processUserPrompt_replacesContextAndTargetTokens() {
+        void 맥락과_대상_토큰을_치환한다() {
             RefineLlmChat chat = newChat(mock(ChatClient.class, RETURNS_DEEP_STUBS));
             RefineRequest request = request(
                     List.of(segment("ctx-1", "A", "맥락발화")),
@@ -58,7 +63,7 @@ class RefineLlmChatTest {
         }
 
         @Test
-        void processUserPrompt_excludesTimestamps() {
+        void 타임스탬프는_프롬프트에_포함하지_않는다() {
             RefineLlmChat chat = newChat(mock(ChatClient.class, RETURNS_DEEP_STUBS));
             TranscriptSegment target = new TranscriptSegment(
                     "1", "A", new BigDecimal("1.680"), new BigDecimal("3.540"), "발화");
@@ -69,7 +74,7 @@ class RefineLlmChatTest {
         }
 
         @Test
-        void processUserPrompt_nullContexts_serializedAsEmpty() {
+        void 맥락이_null이면_빈_배열로_직렬화한다() {
             RefineLlmChat chat = newChat(mock(ChatClient.class, RETURNS_DEEP_STUBS));
             RefineRequest request = new RefineRequest("s1", "주제", null, List.of(segment("1", "A", "발화")));
 
@@ -80,10 +85,10 @@ class RefineLlmChatTest {
     }
 
     @Nested
-    class ResponseParsing {
+    class Fetch {
 
         @Test
-        void fetch_validResponse_appliesText() {
+        void 정상_응답이면_정제된_텍스트를_적용한다() {
             RefineLlmChat chat = chatReturning("""
                     {"segments":[
                       {"id":"1","speaker":"A","text":"정제1"},
@@ -94,14 +99,16 @@ class RefineLlmChatTest {
 
             RefineResponse response = chat.fetch(request);
 
-            assertThat(response.segments()).hasSize(2);
-            assertThat(response.segments().get(0).id()).isEqualTo("1");
-            assertThat(response.segments().get(0).text()).isEqualTo("정제1");
-            assertThat(response.segments().get(1).text()).isEqualTo("정제2");
+            assertAll(
+                    () -> assertThat(response.segments()).hasSize(2),
+                    () -> assertThat(response.segments().get(0).id()).isEqualTo("1"),
+                    () -> assertThat(response.segments().get(0).text()).isEqualTo("정제1"),
+                    () -> assertThat(response.segments().get(1).text()).isEqualTo("정제2")
+            );
         }
 
         @Test
-        void fetch_preservesSkeleton() {
+        void 타임스탬프_골격을_보존한다() {
             RefineLlmChat chat = chatReturning(
                     "{\"segments\":[{\"id\":\"1\",\"speaker\":\"C\",\"text\":\"정제됨\"}]}");
             TranscriptSegment original = new TranscriptSegment(
@@ -109,15 +116,17 @@ class RefineLlmChatTest {
 
             TranscriptSegment refined = chat.fetch(request(List.of(original))).segments().getFirst();
 
-            assertThat(refined.id()).isEqualTo("1");
-            assertThat(refined.start()).isEqualByComparingTo(original.start());
-            assertThat(refined.end()).isEqualByComparingTo(original.end());
-            assertThat(refined.text()).isEqualTo("정제됨");
-            assertThat(refined.speaker()).isEqualTo("C");
+            assertAll(
+                    () -> assertThat(refined.id()).isEqualTo("1"),
+                    () -> assertThat(refined.start()).isEqualByComparingTo(original.start()),
+                    () -> assertThat(refined.end()).isEqualByComparingTo(original.end()),
+                    () -> assertThat(refined.text()).isEqualTo("정제됨"),
+                    () -> assertThat(refined.speaker()).isEqualTo("C")
+            );
         }
 
         @Test
-        void fetch_codeFencedJson_parses() {
+        void 코드_펜스로_감싼_JSON을_파싱한다() {
             RefineLlmChat chat = chatReturning("""
                     ```json
                     {"segments":[{"id":"1","speaker":"A","text":"정제"}]}
@@ -128,13 +137,9 @@ class RefineLlmChatTest {
 
             assertThat(response.segments().getFirst().text()).isEqualTo("정제");
         }
-    }
-
-    @Nested
-    class Invariants {
 
         @Test
-        void fetch_sizeMismatch_throws() {
+        void 응답_세그먼트_개수가_다르면_예외를_던진다() {
             RefineLlmChat chat = chatReturning(
                     "{\"segments\":[{\"id\":\"1\",\"speaker\":\"A\",\"text\":\"정제\"}]}");
             RefineRequest request = request(List.of(segment("1", "A", "원본1"), segment("2", "A", "원본2")));
@@ -142,11 +147,11 @@ class RefineLlmChatTest {
             assertThatThrownBy(() -> chat.fetch(request))
                     .isInstanceOf(DebateTrackerException.class)
                     .extracting(ex -> ((DebateTrackerException) ex).getErrorCode())
-                    .isEqualTo(ErrorCode.INTERNAL_SERVER_ERROR);
+                    .isEqualTo(ErrorCode.REFINE_RESPONSE_SEGMENT_SIZE_MISMATCH);
         }
 
         @Test
-        void fetch_reorderedIds_throws() {
+        void 응답_세그먼트_순서가_뒤바뀌면_예외를_던진다() {
             RefineLlmChat chat = chatReturning("""
                     {"segments":[
                       {"id":"2","speaker":"A","text":"정제2"},
@@ -156,11 +161,13 @@ class RefineLlmChatTest {
             RefineRequest request = request(List.of(segment("1", "A", "원본1"), segment("2", "A", "원본2")));
 
             assertThatThrownBy(() -> chat.fetch(request))
-                    .isInstanceOf(DebateTrackerException.class);
+                    .isInstanceOf(DebateTrackerException.class)
+                    .extracting(ex -> ((DebateTrackerException) ex).getErrorCode())
+                    .isEqualTo(ErrorCode.REFINE_RESPONSE_SEGMENT_ID_MISMATCH);
         }
 
         @Test
-        void fetch_unknownId_throws() {
+        void 존재하지_않는_id가_응답되면_예외를_던진다() {
             RefineLlmChat chat = chatReturning(
                     "{\"segments\":[{\"id\":\"99\",\"speaker\":\"A\",\"text\":\"정제\"}]}");
             RefineRequest request = request(List.of(segment("1", "A", "원본")));
@@ -168,17 +175,17 @@ class RefineLlmChatTest {
             assertThatThrownBy(() -> chat.fetch(request))
                     .isInstanceOf(DebateTrackerException.class)
                     .extracting(ex -> ((DebateTrackerException) ex).getErrorCode())
-                    .isEqualTo(ErrorCode.INTERNAL_SERVER_ERROR);
+                    .isEqualTo(ErrorCode.REFINE_RESPONSE_SEGMENT_ID_MISMATCH);
         }
 
         @Test
-        void fetch_malformedJson_throws() {
+        void JSON이_아닌_응답이면_예외를_던진다() {
             RefineLlmChat chat = chatReturning("이건 JSON 이 아니다");
 
             assertThatThrownBy(() -> chat.fetch(request(List.of(segment("1", "A", "원본")))))
                     .isInstanceOf(DebateTrackerException.class)
                     .extracting(ex -> ((DebateTrackerException) ex).getErrorCode())
-                    .isEqualTo(ErrorCode.INTERNAL_SERVER_ERROR);
+                    .isEqualTo(ErrorCode.LLM_RESPONSE_PARSING_FAILED);
         }
     }
 
