@@ -42,3 +42,6 @@ out/
 
 # Claude Code local-only instructions
 CLAUDE.local.md
+
+### Local STT test harness (untracked) ###
+/local-harness/
