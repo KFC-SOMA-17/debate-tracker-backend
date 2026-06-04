@@ -21,6 +21,9 @@ public enum ErrorCode {
 
     CORS_ORIGIN_EMPTY(500, "CORS Origin 은 적어도 한 개 있어야 합니다"),
     CORS_ORIGIN_STRING_BLANK(500, "CORS Origin 에 빈 값이 들어올 수 없습니다"),
+    SERIALIZATION_ERROR(500, "직렬화에 실패했습니다."),
+    DESERIALIZATION_ERROR(500, "역직렬화에 실패했습니다."),
+    REFINE_RESULT_MISMATCH(500, "보정 결과가 요청과 일치하지 않습니다."),
 
     // infra-llm
     LLM_REQUEST_SERIALIZATION_FAILED(500, "LLM 요청 직렬화에 실패했습니다."),

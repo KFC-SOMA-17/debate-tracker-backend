@@ -39,3 +39,6 @@ out/
 
 ### AI ###
 .omc
+
+# Claude Code local-only instructions
+CLAUDE.local.md

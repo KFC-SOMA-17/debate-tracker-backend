@@ -10,6 +10,7 @@ import com.debatetracker.debate.infrastructure.persistence.DebateSessionDomainRe
 import com.debatetracker.debate.infrastructure.persistence.inmemory.session.InMemoryDebateSessionRepository;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.web.socket.WebSocketSession;
 
@@ -24,35 +25,55 @@ class DebateSessionDomainRepositoryTest {
         adapter = new DebateSessionDomainRepository(sessionStore);
     }
 
-    @Test
-    void save는_저장소에_위임한다() {
-        DebateSession session = new DebateSession("1", mock(WebSocketSession.class));
+    @Nested
+    class Save {
 
-        adapter.save(session);
+        @Test
+        void save는_저장소에_위임한다() {
+            String debateId = "1";
+            DebateSession session = new DebateSession(debateId, mock(WebSocketSession.class));
 
-        verify(sessionStore).save(session);
+            adapter.save(session);
+
+            verify(sessionStore).save(session);
+        }
     }
 
-    @Test
-    void findByDebateId는_저장소_결과를_그대로_반환한다() {
-        DebateSession session = new DebateSession("1", mock(WebSocketSession.class));
-        when(sessionStore.findByDebateId("1")).thenReturn(Optional.of(session));
+    @Nested
+    class FindByDebateId {
 
-        assertThat(adapter.findByDebateId("1")).get().isSameAs(session);
+        @Test
+        void findByDebateId는_저장소_결과를_그대로_반환한다() {
+            String debateId = "1";
+            DebateSession session = new DebateSession(debateId, mock(WebSocketSession.class));
+            when(sessionStore.findByDebateId(debateId)).thenReturn(Optional.of(session));
+
+            assertThat(adapter.findByDebateId(debateId)).get().isSameAs(session);
+        }
     }
 
-    @Test
-    void existsByDebateId는_저장소_결과를_그대로_반환한다() {
-        when(sessionStore.existsByDebateId("1")).thenReturn(true);
+    @Nested
+    class ExistsByDebateId {
 
-        assertThat(adapter.existsByDebateId("1")).isTrue();
+        @Test
+        void existsByDebateId는_저장소_결과를_그대로_반환한다() {
+            String debateId = "1";
+            when(sessionStore.existsByDebateId(debateId)).thenReturn(true);
+
+            assertThat(adapter.existsByDebateId(debateId)).isTrue();
+        }
     }
 
-    @Test
-    void deleteByDebateId는_저장소_결과를_그대로_반환한다() {
-        DebateSession session = new DebateSession("1", mock(WebSocketSession.class));
-        when(sessionStore.deleteByDebateId("1")).thenReturn(Optional.of(session));
+    @Nested
+    class DeleteByDebateId {
 
-        assertThat(adapter.deleteByDebateId("1")).get().isSameAs(session);
+        @Test
+        void deleteByDebateId는_저장소_결과를_그대로_반환한다() {
+            String debateId = "1";
+            DebateSession session = new DebateSession(debateId, mock(WebSocketSession.class));
+            when(sessionStore.deleteByDebateId(debateId)).thenReturn(Optional.of(session));
+
+            assertThat(adapter.deleteByDebateId(debateId)).get().isSameAs(session);
+        }
     }
 }

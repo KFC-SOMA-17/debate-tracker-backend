@@ -10,11 +10,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.WebSocketSession;
 
-/**
- * WebSocket 메시지 처리 중 발생한 예외를 ErrorCode 로 매핑해 ErrorMessage 로 클라이언트에 전송한다.
- * HTTP 의 GlobalExceptionHandler(RestControllerAdvice)에 대응하는 WebSocket 측 중앙 예외 처리기.
- * RestControllerAdvice 는 DispatcherServlet 요청에만 적용되어 WebSocket 핸들러 예외는 잡지 못한다.
- */
 @Slf4j
 @Component
 @RequiredArgsConstructor

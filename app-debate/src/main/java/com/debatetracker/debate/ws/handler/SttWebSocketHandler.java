@@ -5,7 +5,7 @@ import com.debatetracker.debate.service.debate.DebateStreamingService;
 import com.debatetracker.debate.ws.message.WebSocketMessage;
 import com.debatetracker.debate.ws.sender.WebSocketMessageSender;
 import com.debatetracker.debate.ws.message.ControlMessage;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.debatetracker.serdes.JsonUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -16,10 +16,6 @@ import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.AbstractWebSocketHandler;
 
-/**
- * /ws/stt 핸들러. 브라우저가 보내는 START/STOP 제어(Text)와 PCM 오디오(Binary)를 처리한다.
- * 실제 STT 호출은 infra-stt 의 SttClient 에 위임하고, 전사 결과는 TranscribeEventListener 가 전송한다.
- */
 @Slf4j
 @Component
 @RequiredArgsConstructor
@@ -28,7 +24,6 @@ public class SttWebSocketHandler extends AbstractWebSocketHandler {
 
     private final DebateStreamingService debateStreamingService;
     private final WebSocketMessageSender messageSender;
-    private final ObjectMapper objectMapper;
 
     @Override
     public void afterConnectionEstablished(WebSocketSession session) {
@@ -36,8 +31,8 @@ public class SttWebSocketHandler extends AbstractWebSocketHandler {
     }
 
     @Override
-    protected void handleTextMessage(WebSocketSession session, TextMessage message) throws Exception {
-        ControlMessage control = objectMapper.readValue(message.getPayload(), ControlMessage.class);
+    protected void handleTextMessage(WebSocketSession session, TextMessage message) {
+        ControlMessage control = JsonUtils.deserialize(message.getPayload(), ControlMessage.class);
         WebSocketMessage webSocketMessage = debateStreamingService.handleControlMessage(control, session);
         messageSender.send(new DebateSession(session),  webSocketMessage);
     }

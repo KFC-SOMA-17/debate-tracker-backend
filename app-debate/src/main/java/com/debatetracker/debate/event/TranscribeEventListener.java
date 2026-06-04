@@ -5,6 +5,7 @@ import com.debatetracker.debate.ws.sender.WebSocketMessageSender;
 import com.debatetracker.debate.ws.id.SegmentIdGenerator;
 import com.debatetracker.debate.ws.message.TranscriptionMessage;
 import com.debatetracker.debate.domain.transcript.SpeechSegment;
+import com.debatetracker.debate.domain.transcript.repository.TranscriptBufferRepository;
 import com.debatetracker.debate.domain.session.DebateSession;
 import com.debatetracker.debate.domain.session.DebateSessionRepository;
 import com.debatetracker.infra.stt.client.dto.SttSegment;
@@ -26,6 +27,7 @@ public class TranscribeEventListener {
     private final DebateSessionRepository sessionRepository;
     private final WebSocketMessageSender messageSender;
     private final SegmentIdGenerator segmentIdGenerator;
+    private final TranscriptBufferRepository bufferRepository;
 
     @Async(AsyncConfig.EVENT_LISTENER_EXECUTOR)
     @EventListener
@@ -45,6 +47,8 @@ public class TranscribeEventListener {
                 segment.start(),
                 segment.end()
         );
-        messageSender.send(session, new TranscriptionMessage(Long.parseLong(debateId), transcription));
+        //3가지 작업(버퍼 업데이트 + SpeechBox 업데이트 + 메시지 발송) 병렬화 및 성공여부 추적 사이클 보기
+        bufferRepository.appendRaw(debateId, transcription); //버퍼 변경
+        messageSender.send(session, new TranscriptionMessage(Long.parseLong(debateId), transcription)); //메시지 발송
     }
 }
