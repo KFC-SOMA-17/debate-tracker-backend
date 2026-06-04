@@ -6,7 +6,9 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.debatetracker.debate.domain.session.DebateSession;
 import com.debatetracker.debate.domain.session.DebateSessionRepository;
+import com.debatetracker.debate.domain.transcript.repository.TranscriptBufferRepository;
 import com.debatetracker.debate.service.BaseServiceTest;
 import com.debatetracker.debate.ws.message.ControlMessage;
 import com.debatetracker.debate.ws.message.ControlMessageType;
@@ -14,6 +16,7 @@ import com.debatetracker.debate.ws.message.MessageType;
 import com.debatetracker.debate.ws.message.WebSocketMessage;
 import com.debatetracker.infra.stt.client.SttClient;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -34,6 +37,9 @@ class DebateStreamingServiceTest extends BaseServiceTest {
     @MockitoBean
     private SttClient sttClient;
 
+    @MockitoBean
+    private TranscriptBufferRepository bufferRepository;
+
     private WebSocketSession session;
     private Map<String, Object> attributes;
 
@@ -49,31 +55,38 @@ class DebateStreamingServiceTest extends BaseServiceTest {
 
         @Test
         void START를_받으면_전사를_시작하고_세션을_저장하며_DEBATE_START를_반환한다() {
-            WebSocketMessage actual = debateStreamingService.handleControlMessage(
-                    new ControlMessage(ControlMessageType.START, "1"), session);
+            String debateId = "1";
+            long debateIdValue = 1L;
 
-            verify(sttClient).startStreaming("1");
+            WebSocketMessage actual = debateStreamingService.handleControlMessage(
+                    new ControlMessage(ControlMessageType.START, debateId), session);
+
             assertAll(
+                    () -> verify(sttClient).startStreaming(debateId),
                     () -> assertThat(actual.type()).isEqualTo(MessageType.DEBATE_START),
-                    () -> assertThat(actual.debateId()).isEqualTo(1L),
-                    () -> assertThat(attributes).containsEntry("debateId", "1"),
-                    () -> assertThat(sessionRepository.existsByDebateId("1")).isTrue()
+                    () -> assertThat(actual.debateId()).isEqualTo(debateIdValue),
+                    () -> assertThat(attributes).containsEntry("debateId", debateId),
+                    () -> assertThat(sessionRepository.existsByDebateId(debateId)).isTrue()
             );
         }
 
         @Test
         void STOP을_받으면_전사를_종료하고_세션을_삭제하며_DEBATE_END를_반환한다() {
+            String debateId = "2";
+            long debateIdValue = 2L;
+
             debateStreamingService.handleControlMessage(
-                    new ControlMessage(ControlMessageType.START, "2"), session);
+                    new ControlMessage(ControlMessageType.START, debateId), session);
 
             WebSocketMessage actual = debateStreamingService.handleControlMessage(
-                    new ControlMessage(ControlMessageType.STOP, "2"), session);
+                    new ControlMessage(ControlMessageType.STOP, debateId), session);
 
-            verify(sttClient).stopStreaming("2");
             assertAll(
+                    () -> verify(sttClient).stopStreaming(debateId),
+                    () -> verify(bufferRepository).clear(debateId),
                     () -> assertThat(actual.type()).isEqualTo(MessageType.DEBATE_END),
-                    () -> assertThat(actual.debateId()).isEqualTo(2L),
-                    () -> assertThat(sessionRepository.existsByDebateId("2")).isFalse()
+                    () -> assertThat(actual.debateId()).isEqualTo(debateIdValue),
+                    () -> assertThat(sessionRepository.existsByDebateId(debateId)).isFalse()
             );
         }
     }
@@ -83,11 +96,12 @@ class DebateStreamingServiceTest extends BaseServiceTest {
 
         @Test
         void 활성_세션이_없으면_전사를_종료하지_않는다() {
-            attributes.put("debateId", "404");
+            String debateId = "404";
+            attributes.put("debateId", debateId);
 
             debateStreamingService.stopDebateIfActive(session);
 
-            verify(sttClient, never()).stopStreaming("404");
+            verify(sttClient, never()).stopStreaming(debateId);
         }
 
         @Test
@@ -103,11 +117,44 @@ class DebateStreamingServiceTest extends BaseServiceTest {
 
         @Test
         void 오디오_청크를_받으면_해당_debateId로_STT에_전달한다() {
+            String debateId = "1";
             byte[] pcm = {1, 2, 3, 4};
 
-            debateStreamingService.sendAudioChunk("1", pcm);
+            debateStreamingService.sendAudioChunk(debateId, pcm);
 
-            verify(sttClient).sendAudioChunk("1", pcm);
+            verify(sttClient).sendAudioChunk(debateId, pcm);
+        }
+    }
+
+    @Nested
+    class FindActiveSessions {
+
+        @Test
+        void 시작된_세션들을_활성_세션으로_반환한다() {
+            String firstDebateId = "1";
+            String secondDebateId = "2";
+            startDebate(firstDebateId);
+            startDebate(secondDebateId);
+
+            List<DebateSession> active = debateStreamingService.findActiveSessions();
+
+            assertThat(active)
+                    .extracting(DebateSession::debateId)
+                    .containsExactlyInAnyOrder(firstDebateId, secondDebateId);
+        }
+
+        @Test
+        void 시작된_세션이_없으면_빈_목록을_반환한다() {
+            List<DebateSession> active = debateStreamingService.findActiveSessions();
+
+            assertThat(active).isEmpty();
+        }
+
+        private void startDebate(String debateId) {
+            WebSocketSession connection = Mockito.mock(WebSocketSession.class);
+            when(connection.getAttributes()).thenReturn(new HashMap<>());
+            debateStreamingService.handleControlMessage(
+                    new ControlMessage(ControlMessageType.START, debateId), connection);
         }
     }
 }

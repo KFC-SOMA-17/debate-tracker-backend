@@ -15,6 +15,7 @@ import com.debatetracker.exception.ErrorCode;
 import java.util.HashMap;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.web.socket.WebSocketSession;
@@ -37,37 +38,46 @@ class WebSocketExceptionHandlerTest {
         when(session.getAttributes()).thenReturn(attributes);
     }
 
-    @Test
-    void DebateTrackerException은_해당_ErrorCode로_ERROR메시지를_전송한다() {
-        attributes.put("debateId", "1");
+    @Nested
+    class Handle {
 
-        exceptionHandler.handle(session, new DebateTrackerException(ErrorCode.NOT_FOUND_DEBATE_ID));
+        @Test
+        void DebateTrackerException은_해당_ErrorCode로_ERROR메시지를_전송한다() {
+            String debateId = "1";
+            long debateIdValue = 1L;
+            attributes.put("debateId", debateId);
 
-        ErrorMessage sent = captureSentMessage();
-        assertAll(
-                () -> assertThat(sent.type()).isEqualTo(MessageType.ERROR),
-                () -> assertThat(sent.debateId()).isEqualTo(1L),
-                () -> assertThat(sent.data().code()).isEqualTo(ErrorCode.NOT_FOUND_DEBATE_ID)
-        );
-    }
+            exceptionHandler.handle(session, new DebateTrackerException(ErrorCode.NOT_FOUND_DEBATE_ID));
 
-    @Test
-    void 일반_예외는_INTERNAL_SERVER_ERROR로_매핑한다() {
-        attributes.put("debateId", "1");
+            ErrorMessage sent = captureSentMessage();
+            assertAll(
+                    () -> assertThat(sent.type()).isEqualTo(MessageType.ERROR),
+                    () -> assertThat(sent.debateId()).isEqualTo(debateIdValue),
+                    () -> assertThat(sent.data().code()).isEqualTo(ErrorCode.NOT_FOUND_DEBATE_ID)
+            );
+        }
 
-        exceptionHandler.handle(session, new RuntimeException("boom"));
+        @Test
+        void 일반_예외는_INTERNAL_SERVER_ERROR로_매핑한다() {
+            String debateId = "1";
+            attributes.put("debateId", debateId);
 
-        ErrorResponse error = captureSentMessage().data();
-        assertThat(error.code()).isEqualTo(ErrorCode.INTERNAL_SERVER_ERROR);
-    }
+            exceptionHandler.handle(session, new RuntimeException("boom"));
 
-    @Test
-    void session_attribute의_debateId로_ERROR메시지를_전송한다() {
-        attributes.put("debateId", "42");
+            ErrorResponse error = captureSentMessage().data();
+            assertThat(error.code()).isEqualTo(ErrorCode.INTERNAL_SERVER_ERROR);
+        }
 
-        exceptionHandler.handle(session, new RuntimeException("boom"));
+        @Test
+        void session_attribute의_debateId로_ERROR메시지를_전송한다() {
+            String debateId = "42";
+            long debateIdValue = 42L;
+            attributes.put("debateId", debateId);
 
-        assertThat(captureSentMessage().debateId()).isEqualTo(42L);
+            exceptionHandler.handle(session, new RuntimeException("boom"));
+
+            assertThat(captureSentMessage().debateId()).isEqualTo(debateIdValue);
+        }
     }
 
     private ErrorMessage captureSentMessage() {

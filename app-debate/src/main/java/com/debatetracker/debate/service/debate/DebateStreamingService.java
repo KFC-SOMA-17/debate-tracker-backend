@@ -8,6 +8,7 @@ import com.debatetracker.debate.ws.message.DebateEndMessage;
 import com.debatetracker.debate.ws.message.DebateStartMessage;
 import com.debatetracker.debate.ws.message.WebSocketMessage;
 import com.debatetracker.infra.stt.client.SttClient;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -52,5 +53,9 @@ public class DebateStreamingService {
 
     public void sendAudioChunk(String sessionId, byte[] payload) {
         sttClient.sendAudioChunk(String.valueOf(sessionId), payload);
+    }
+
+    public List<DebateSession> findActiveSessions() {
+        return sessionRepository.findAll();
     }
 }

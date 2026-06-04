@@ -17,8 +17,8 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Disabled;
-import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.DynamicTest;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.TestFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -40,48 +40,51 @@ class AzureAdapterIntegrationTest {
     @Autowired
     private TranscribeEventCollector eventCollector;
 
-    @DisplayName("스트리밍을 시작하고 음성을 전사한 뒤 종료할 수 있다")
-    @TestFactory
-    Stream<DynamicTest> 스트리밍_전사_시나리오() {
-        String sessionId = "integration-test";
+    @Nested
+    class Streaming {
 
-        return Stream.of(
-                dynamicTest("스트리밍을 시작한다", () -> {
-                    adapter.startStreaming(sessionId);
+        @TestFactory
+        Stream<DynamicTest> 스트리밍을_시작하고_음성을_전사한_뒤_종료할_수_있다() {
+            String sessionId = "integration-test";
 
-                    assertThat(adapter.isConnected(sessionId)).isTrue();
-                }),
-                dynamicTest("음성 청크를 전송하여 전사한다", () -> {
-                    byte[] audioData = Files.readAllBytes(
-                            Path.of("src/test/resources/test-audio.pcm"));
-                    int chunkSize = audioProperties.chunkSizeBytes();
+            return Stream.of(
+                    dynamicTest("스트리밍을 시작한다", () -> {
+                        adapter.startStreaming(sessionId);
 
-                    for (int i = 0; i < audioData.length; i += chunkSize) {
-                        byte[] chunk = Arrays.copyOfRange(
-                                audioData, i, Math.min(i + chunkSize, audioData.length));
-                        adapter.sendAudioChunk(sessionId, chunk);
-                        Thread.sleep(audioProperties.chunkDurationMs());
-                    }
+                        assertThat(adapter.isConnected(sessionId)).isTrue();
+                    }),
+                    dynamicTest("음성 청크를 전송하여 전사한다", () -> {
+                        byte[] audioData = Files.readAllBytes(
+                                Path.of("src/test/resources/test-audio.pcm"));
+                        int chunkSize = audioProperties.chunkSizeBytes();
 
-                    eventCollector.latch.await(5, TimeUnit.SECONDS);
+                        for (int i = 0; i < audioData.length; i += chunkSize) {
+                            byte[] chunk = Arrays.copyOfRange(
+                                    audioData, i, Math.min(i + chunkSize, audioData.length));
+                            adapter.sendAudioChunk(sessionId, chunk);
+                            Thread.sleep(audioProperties.chunkDurationMs());
+                        }
 
-                    List<SttSegment> results = eventCollector.segments;
-                    assertThat(results).isNotEmpty();
-                    results.forEach(segment ->
-                            assertAll(
-                                    () -> assertThat(segment.content()).isNotBlank(),
-                                    () -> assertThat(segment.speaker()).isNotNull(),
-                                    () -> assertThat(segment.start()).isNotNull(),
-                                    () -> assertThat(segment.end()).isGreaterThan(segment.start())
-                            )
-                    );
-                }),
-                dynamicTest("스트리밍을 종료한다", () -> {
-                    adapter.stopStreaming(sessionId);
+                        eventCollector.latch.await(5, TimeUnit.SECONDS);
 
-                    assertThat(adapter.isConnected(sessionId)).isFalse();
-                })
-        );
+                        List<SttSegment> results = eventCollector.segments;
+                        assertThat(results).isNotEmpty();
+                        results.forEach(segment ->
+                                assertAll(
+                                        () -> assertThat(segment.content()).isNotBlank(),
+                                        () -> assertThat(segment.speaker()).isNotNull(),
+                                        () -> assertThat(segment.start()).isNotNull(),
+                                        () -> assertThat(segment.end()).isGreaterThan(segment.start())
+                                )
+                        );
+                    }),
+                    dynamicTest("스트리밍을 종료한다", () -> {
+                        adapter.stopStreaming(sessionId);
+
+                        assertThat(adapter.isConnected(sessionId)).isFalse();
+                    })
+            );
+        }
     }
 
     @Component

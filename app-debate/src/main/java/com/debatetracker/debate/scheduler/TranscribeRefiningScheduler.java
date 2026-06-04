@@ -1,6 +1,6 @@
 package com.debatetracker.debate.scheduler;
 
-import com.debatetracker.debate.domain.session.DebateSessionRepository;
+import com.debatetracker.debate.service.debate.DebateStreamingService;
 import com.debatetracker.debate.service.transcript.TranscribeRefiningService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -21,13 +21,12 @@ public class TranscribeRefiningScheduler {
 
     private static final long REFINE_INTERVAL_MS = 30_000L;
 
-    //TODO 추상화 위계 논의 -> repository와 service 라는 두 추상화를 한번에?
-    private final DebateSessionRepository sessionRepository;
+    private final DebateStreamingService streamingService;
     private final TranscribeRefiningService refiningService;
 
     @Scheduled(fixedRate = REFINE_INTERVAL_MS)
     public void refineActiveSessions() {
-        sessionRepository.findAll()
+        streamingService.findActiveSessions()
                 .forEach(refiningService::refineSession);
     }
 }
