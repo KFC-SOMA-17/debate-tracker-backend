@@ -56,7 +56,7 @@ class SpringAiLlmClientTest {
         void 요청을_ExtractLlmChat에_위임한다() {
             SpringAiLlmClient client = new SpringAiLlmClient(refineLlmChat, extractLlmChat);
             ExtractAgendaRequest request = new ExtractAgendaRequest("s1", List.of(segment("1")), List.of());
-            ExtractAgendaResponse expected = new ExtractAgendaResponse(List.of(new ExtractAgenda("쟁점", List.of())));
+            ExtractAgendaResponse expected = new ExtractAgendaResponse(List.of(new ExtractAgenda(null, "쟁점", List.of())));
             given(extractLlmChat.fetch(request)).willReturn(expected);
 
             ExtractAgendaResponse result = client.extract(request);

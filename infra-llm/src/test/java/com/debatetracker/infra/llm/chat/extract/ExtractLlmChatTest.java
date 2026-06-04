@@ -59,14 +59,15 @@ class ExtractLlmChatTest {
             ExtractAgendaRequest request = new ExtractAgendaRequest(
                     "s1",
                     List.of(segment("ctx-1", "A", "맥락발화")),
-                    List.of(new ExtractAgenda("이전쟁점", List.of())));
+                    List.of(new ExtractAgenda("agenda-1", "이전쟁점", List.of())));
 
             String prompt = chat.processUserPrompt(request);
 
             assertAll(
                     () -> assertThat(prompt).doesNotContain("<CONTEXTS>", "<BEFORE_AGENDAS>"),
                     () -> assertThat(prompt).contains("맥락발화"),
-                    () -> assertThat(prompt).contains("이전쟁점")
+                    () -> assertThat(prompt).contains("이전쟁점"),
+                    () -> assertThat(prompt).contains("agenda-1")
             );
         }
 
@@ -106,6 +107,33 @@ class ExtractLlmChatTest {
                             .isEqualTo(ExtractStance.PROS),
                     () -> assertThat(response.agendas().getFirst().claims().getFirst().evidences().getFirst().content())
                             .isEqualTo("근거1")
+            );
+        }
+
+        @Test
+        void 유지된_항목의_id는_보존하고_신규_항목의_id는_null로_파싱한다() {
+            ExtractLlmChat chat = chatReturning("""
+                    {"agendas":[
+                      {"id":"a1","content":"유지된쟁점","claims":[
+                        {"id":"c1","stance":"PROS","content":"유지된주장","evidences":[
+                          {"id":"e1","type":"STATISTICS","content":"근거"}]}
+                      ]},
+                      {"id":null,"content":"새쟁점","claims":[
+                        {"stance":"CONS","content":"새주장","evidences":[]}
+                      ]}
+                    ]}
+                    """);
+
+            ExtractAgendaResponse response = chat.fetch(request(List.of(segment("1", "A", "발화"))));
+
+            ExtractAgenda kept = response.agendas().getFirst();
+            ExtractAgenda added = response.agendas().get(1);
+            assertAll(
+                    () -> assertThat(kept.id()).isEqualTo("a1"),
+                    () -> assertThat(kept.claims().getFirst().id()).isEqualTo("c1"),
+                    () -> assertThat(kept.claims().getFirst().evidences().getFirst().id()).isEqualTo("e1"),
+                    () -> assertThat(added.id()).isNull(),
+                    () -> assertThat(added.claims().getFirst().id()).isNull()
             );
         }
 

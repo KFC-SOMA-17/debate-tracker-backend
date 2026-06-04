@@ -23,11 +23,11 @@ import lombok.extern.slf4j.Slf4j;
 public class ExtractLlmChat extends LlmChat<ExtractAgendaRequest, ExtractAgendaResponse> {
 
     private static final ExtractAgendaResponse RESPONSE_EXAMPLE = new ExtractAgendaResponse(List.of(
-            new ExtractAgenda("한 문장으로 진술된 쟁점 예시", List.of(
-                    new ExtractClaim(ExtractStance.PROS, "찬성 측 핵심 주장 예시", List.of(
-                            new ExtractedEvidence(ExtractEvidenceType.STATISTICS, "근거 예시"))),
-                    new ExtractClaim(ExtractStance.CONS, "반대 측 핵심 주장 예시", List.of(
-                            new ExtractedEvidence(ExtractEvidenceType.EXAMPLE, "근거 예시")))))));
+            new ExtractAgenda(null, "한 문장으로 진술된 쟁점 예시", List.of(
+                    new ExtractClaim(null, ExtractStance.PROS, "찬성 측 핵심 주장 예시", List.of(
+                            new ExtractedEvidence(null, ExtractEvidenceType.STATISTICS, "근거 예시"))),
+                    new ExtractClaim(null, ExtractStance.CONS, "반대 측 핵심 주장 예시", List.of(
+                            new ExtractedEvidence(null, ExtractEvidenceType.EXAMPLE, "근거 예시")))))));
 
     private final ObjectMapper objectMapper;
 
