@@ -41,6 +41,7 @@ class TranscribeRefiningServiceTest {
     private UtteranceCorrector corrector;
     private WebSocketMessageSender messageSender;
     private DebateRepository debateRepository;
+    private SpeechBoxService speechBoxService;
     private TranscribeRefiningService service;
     private DebateSession session;
 
@@ -50,7 +51,9 @@ class TranscribeRefiningServiceTest {
         corrector = mock(UtteranceCorrector.class);
         messageSender = mock(WebSocketMessageSender.class);
         debateRepository = mock(DebateRepository.class);
-        service = new TranscribeRefiningService(bufferRepository, corrector, messageSender, debateRepository);
+        speechBoxService = mock(SpeechBoxService.class);
+        service = new TranscribeRefiningService(
+                bufferRepository, corrector, messageSender, debateRepository, speechBoxService);
         session = new DebateSession(DEBATE_ID, mock(WebSocketSession.class));
         when(debateRepository.findById(DEBATE_ID_VALUE)).thenReturn(new Debate(DEBATE_ID_VALUE, TOPIC));
     }
@@ -76,6 +79,7 @@ class TranscribeRefiningServiceTest {
             assertAll(
                     () -> verify(bufferRepository).trimRaw(DEBATE_ID, 3),
                     () -> verify(bufferRepository).appendRefined(DEBATE_ID, corrected),
+                    () -> verify(speechBoxService).persist(DEBATE_ID_VALUE, corrected),
                     () -> assertThat(sent.type()).isEqualTo(MessageType.REFINED_TRANSCRIPTION),
                     () -> assertThat(sent.debateId()).isEqualTo(DEBATE_ID_VALUE),
                     () -> assertThat(data.segments()).hasSize(3)

@@ -11,6 +11,7 @@ import com.debatetracker.exception.DebateTrackerException;
 import com.debatetracker.exception.ErrorCode;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -38,6 +39,7 @@ public class TranscribeRefiningService {
     private final UtteranceCorrector corrector;
     private final WebSocketMessageSender messageSender;
     private final DebateRepository debateRepository;
+    private final SpeechBoxService speechBoxService; //TODO 추상화 의존성 무너짐 -> Facade 고려
 
     public void refineSession(DebateSession session) {
         String debateId = session.debateId();
@@ -45,6 +47,8 @@ public class TranscribeRefiningService {
         if (count == 0) {
             return;
         }
+        // 보정 이후 후속 3작업(buffer 갱신·SpeechBox 영속화·WebSocket 전송)을 한 사이클당 eventId 로 묶어 추적한다.
+        String eventId = UUID.randomUUID().toString();
         try {
             List<SpeechSegment> batch = bufferRepository.peekRaw(debateId, count);
             List<RefinedSpeechSegment> context = bufferRepository.recentRefined(debateId, CONTEXT_SIZE);
@@ -52,12 +56,26 @@ public class TranscribeRefiningService {
             List<RefinedSpeechSegment> corrected = corrector.refine(resolveTopic(debateId), context, batch);
             validate(corrected, batch);
 
+            long debateIdValue = Long.parseLong(debateId);
+
             bufferRepository.trimRaw(debateId, count);
             bufferRepository.appendRefined(debateId, corrected);
-            messageSender.send(session, new RefinedTranscriptionMessage(Long.parseLong(debateId), corrected));
-            log.debug("전사 보정 완료: debateId={}, {}건", debateId, corrected.size());
+            log.info("[refineEvent={}] buffer 갱신 완료: debateId={}, raw -{}건, refined +{}건",
+                    eventId, debateId, count, corrected.size());
+
+            // TODO: SpeechBox 영속화(DB)와 WebSocket broadcast 는 서로 독립적이므로 병렬화 고려.
+            //  - persist 는 DB I/O 라 broadcast 를 블로킹하지 않도록 @Async 로 분리(또는 둘을 CompletableFuture 로 병렬 실행).
+            //  - 단 persist 와 appendRefined 의 순서/정합성(같은 corrected 기준)과 실패 시 재시도 정책을 함께 설계해야 함.
+            //  - 병렬화 시에도 같은 eventId 를 각 작업 로그에 넘겨 사이클 단위 추적을 유지할 것.
+            speechBoxService.persist(debateIdValue, corrected);
+            log.info("[refineEvent={}] SpeechBox 영속화 완료: debateId={}, {}건", eventId, debateId, corrected.size());
+
+            messageSender.send(session, new RefinedTranscriptionMessage(debateIdValue, corrected));
+            log.info("[refineEvent={}] WebSocket 전송 완료: debateId={}, {}건", eventId, debateId, corrected.size());
+
+            log.debug("[refineEvent={}] 전사 보정 사이클 완료: debateId={}, {}건", eventId, debateId, corrected.size());
         } catch (Exception e) {
-            log.error("전사 보정 실패 — raw 를 유지하고 다음 틱에 재시도: debateId={}", debateId, e);
+            log.error("[refineEvent={}] 전사 보정 실패 — raw 를 유지하고 다음 틱에 재시도: debateId={}", eventId, debateId, e);
         }
     }
 

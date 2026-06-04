@@ -45,7 +45,7 @@ public class SpeechBoxService {
         SpeechBox merged = lastBox.append(boxes.get(0));
         speechBoxRepository.update(merged);
         List<SpeechBox> newBoxes = boxes.subList(1, boxes.size());
-        speechBoxRepository.saveAll(boxes);
+        speechBoxRepository.saveAll(newBoxes);
 
         List<SpeechBox> persisted = new ArrayList<>();
         persisted.add(merged);
