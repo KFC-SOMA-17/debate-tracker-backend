@@ -39,9 +39,9 @@ public class DebateStreamingService {
         if (debateId == null || !sessionRepository.existsByDebateId(debateId.toString())) {
             return;
         }
-        refiningService.refineRemaining(new DebateSession(session));
         sttClient.stopStreaming(debateId.toString());
         sessionRepository.deleteByDebateId(debateId.toString());
+        refiningService.refineRemaining(new DebateSession(session));
         bufferRepository.clear(debateId.toString());
         log.info("STOP 으로 토론 정리(남은 raw 보정 후): debateId={}", debateId);
     }
