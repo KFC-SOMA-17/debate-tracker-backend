@@ -6,5 +6,5 @@ import java.util.List;
 
 public interface UtteranceCorrector {
 
-    List<RefinedSpeechSegment> refine(String topic, List<RefinedSpeechSegment> context, List<SpeechSegment> batch);
+    List<RefinedSpeechSegment> refine(String debateId, String topic, List<RefinedSpeechSegment> context, List<SpeechSegment> batch);
 }

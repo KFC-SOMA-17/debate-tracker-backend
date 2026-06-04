@@ -43,7 +43,7 @@ public class TranscribeRefiningService {
             List<SpeechSegment> batch = bufferRepository.peekRaw(debateId, count);
             List<RefinedSpeechSegment> context = bufferRepository.recentRefined(debateId, CONTEXT_SIZE);
 
-            List<RefinedSpeechSegment> corrected = corrector.refine(resolveTopic(debateId), context, batch);
+            List<RefinedSpeechSegment> corrected = corrector.refine(debateId, resolveTopic(debateId), context, batch);
             validate(corrected, batch);
 
             long debateIdValue = Long.parseLong(debateId);
