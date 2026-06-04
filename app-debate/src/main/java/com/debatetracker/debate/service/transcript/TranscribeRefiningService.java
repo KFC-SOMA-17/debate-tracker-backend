@@ -17,16 +17,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
-/**
- * 한 토론 세션의 raw 전사 버퍼를 LLM 으로 보정한다. 트리거 주기(스케줄링)는
- * {@code scheduler.TranscribeRefiningScheduler} 가 담당하고, 본 서비스는 세션 1개의 보정 로직만 가진다.
- *
- * <p>raw 앞쪽 최대 {@link #MAX_BATCH} 개와 최근 refined {@link #CONTEXT_SIZE} 개를 함께 보정 요청하고,
- * 성공하면 처리한 raw 를 제거하고 교정본을 refined 에 축적해 REFINED_TRANSCRIPTION 으로 전송한다.
- *
- * <p>보정 호출이 실패하면 예외를 전파하지 않고 로그만 남긴 뒤, 처리한 raw 를 그대로 둔 채 종료한다.
- * 따라서 다음 스케줄 틱에서 동일 raw 가 다시 보정 대상이 된다.
- */
 @Slf4j
 @Service
 @RequiredArgsConstructor

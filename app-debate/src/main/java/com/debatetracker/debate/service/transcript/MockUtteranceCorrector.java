@@ -8,12 +8,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
-/**
- * UtteranceCorrector 의 mock 구현. 실제 LLM 호출 없이 batch 의 id/start/end 골격을 보존한 채
- * content 만 가볍게 정규화(앞뒤 공백 제거)해 RefinedSpeechSegment 로 변환한다.
- *
- * <p>TODO: infra-llm 의 LlmClient.refine() 위임 구현으로 교체한다. (현재 LlmClient 는 feat/#27 에만 존재)
- */
+// TODO: infra-llm 의 LlmClient.refine() 위임 구현으로 교체한다. (현재 LlmClient 는 feat/#27 에만 존재)
 @Slf4j
 @Component
 @ConditionalOnProperty(name = "llm.mode", havingValue = "mock", matchIfMissing = true)

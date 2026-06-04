@@ -8,9 +8,6 @@ import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
-/**
- * TranscriptBufferRepository 포트의 어댑터. Redis 저장 구현에 위임한다. (DebateDomainRepository 가 JPA repo 를 감싸는 것과 동일한 자리.)
- */
 @Component
 @RequiredArgsConstructor
 public class TranscriptBufferDomainRepository implements TranscriptBufferRepository {

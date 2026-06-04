@@ -4,7 +4,7 @@ import com.debatetracker.debate.domain.transcript.RefinedSpeechSegment;
 import com.debatetracker.debate.domain.transcript.SpeechSegment;
 import com.debatetracker.debate.infrastructure.persistence.redis.dto.RawSegmentJson;
 import com.debatetracker.debate.infrastructure.persistence.redis.dto.RefinedSegmentJson;
-import com.debatetracker.serdes.SerDesUtils;
+import com.debatetracker.serdes.JsonUtils;
 import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
@@ -32,7 +32,7 @@ public class TranscriptBufferRedisRepository {
 
     public void appendRaw(String debateId, SpeechSegment segment) {
         String rawKey = rawKey(debateId);
-        String serializedRawSegments = SerDesUtils.serialize(new RawSegmentJson(segment));
+        String serializedRawSegments = JsonUtils.serialize(new RawSegmentJson(segment));
         listOps().rightPush(rawKey, serializedRawSegments);
     }
 
@@ -45,7 +45,7 @@ public class TranscriptBufferRedisRepository {
         return Optional.ofNullable(listOps().range(rawKey(debateId), 0, count - 1L))
                 .orElseGet(List::of)
                 .stream()
-                .map(value -> SerDesUtils.deserialize(value, RawSegmentJson.class).toDomain())
+                .map(value -> JsonUtils.deserialize(value, RawSegmentJson.class).toDomain())
                 .toList();
     }
 
@@ -57,7 +57,7 @@ public class TranscriptBufferRedisRepository {
         return Optional.ofNullable(listOps().range(refinedKey(debateId), -n, -1))
                 .orElseGet(List::of)
                 .stream()
-                .map(value -> SerDesUtils.deserialize(value, RefinedSegmentJson.class).toDomain())
+                .map(value -> JsonUtils.deserialize(value, RefinedSegmentJson.class).toDomain())
                 .toList();
     }
 
@@ -66,7 +66,7 @@ public class TranscriptBufferRedisRepository {
             return;
         }
         List<String> values = segments.stream()
-                .map(segment -> SerDesUtils.serialize(new RefinedSegmentJson(segment)))
+                .map(segment -> JsonUtils.serialize(new RefinedSegmentJson(segment)))
                 .toList();
         listOps().rightPushAll(refinedKey(debateId), values);
     }

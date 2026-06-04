@@ -10,9 +10,6 @@ import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
-/**
- * SpeechBox 저장 어댑터. 단건 조회·갱신은 JPA, 신규 다건 적재는 JDBC bulk insert 로 합성한다.
- */
 @Component
 @RequiredArgsConstructor
 public class SpeechBoxDomainRepository implements SpeechBoxRepository {

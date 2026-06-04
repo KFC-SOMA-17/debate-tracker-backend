@@ -8,10 +8,6 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import org.springframework.stereotype.Repository;
 
-/**
- * SpeechBox 신규 행을 NamedParameterJdbcTemplate 으로 한 번에 적재한다(API_DOCS §11 step3 bulk insert).
- * id 는 DB 가 채우는 IDENTITY 이므로 insert 시 지정하지 않고, 생성 id 회수도 하지 않는다.
- */
 @Repository
 @RequiredArgsConstructor
 public class SpeechBoxJdbcRepository {
