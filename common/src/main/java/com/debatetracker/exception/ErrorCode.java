@@ -27,6 +27,7 @@ public enum ErrorCode {
     LLM_RESPONSE_PARSING_FAILED(500, "LLM 응답 파싱에 실패했습니다."),
     REFINE_RESPONSE_SEGMENT_SIZE_MISMATCH(500, "정제 응답의 세그먼트 개수가 요청과 일치하지 않습니다."),
     REFINE_RESPONSE_SEGMENT_ID_MISMATCH(500, "정제 응답의 세그먼트 ID 가 요청과 일치하지 않습니다."),
+    EXTRACT_RESPONSE_INVALID_FORMAT(500, "쟁점 추출 응답 형식이 올바르지 않습니다."),
     INTERNAL_SERVER_ERROR(500, "서버 오류가 발생했습니다. 관리자에게 문의하세요."),
     ;
 

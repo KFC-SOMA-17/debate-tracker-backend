@@ -1,5 +1,6 @@
 package com.debatetracker.infra.llm.adapter;
 
+import com.debatetracker.infra.llm.chat.extract.ExtractLlmChat;
 import com.debatetracker.infra.llm.chat.refine.RefineLlmChat;
 import com.debatetracker.infra.llm.client.ExtractAgendaRequest;
 import com.debatetracker.infra.llm.client.ExtractAgendaResponse;
@@ -16,6 +17,7 @@ import org.springframework.stereotype.Component;
 public class SpringAiLlmClient implements LlmClient {
 
     private final RefineLlmChat refineLlmChat;
+    private final ExtractLlmChat extractLlmChat;
 
     @Override
     public RefineResponse refine(RefineRequest request) {
@@ -24,6 +26,6 @@ public class SpringAiLlmClient implements LlmClient {
 
     @Override
     public ExtractAgendaResponse extract(ExtractAgendaRequest request) {
-        return new ExtractAgendaResponse(request.beforeAgendas()); // TODO 구현
+        return extractLlmChat.fetch(request);
     }
 }
