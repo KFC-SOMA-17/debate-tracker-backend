@@ -22,8 +22,8 @@ import org.springframework.stereotype.Repository;
 @RequiredArgsConstructor
 public class DebateMetaRedisCache {
 
-    private static final String META_KEY_FORMAT = "debate:%s:meta";
-    private static final String TOPIC_FIELD = "topic";
+    public static final String META_KEY_FORMAT = "debate:%s:meta";
+    public static final String TOPIC_FIELD = "topic";
     private static final Duration META_TTL = Duration.ofHours(24);
 
     private final StringRedisTemplate redisTemplate;
