@@ -160,7 +160,7 @@ class TranscribeRefiningServiceTest {
             when(bufferRepository.rawSize(DEBATE_ID)).thenReturn((long) remaining);
             when(bufferRepository.peekRaw(DEBATE_ID, remaining)).thenReturn(batch);
             when(bufferRepository.recentRefined(DEBATE_ID, 5)).thenReturn(List.of());
-            when(corrector.refine(any(), eq(List.of()), eq(batch))).thenReturn(corrected);
+            when(corrector.refine(eq(DEBATE_ID), any(), eq(List.of()), eq(batch))).thenReturn(corrected);
 
             service.refineRemaining(session);
 
@@ -183,7 +183,7 @@ class TranscribeRefiningServiceTest {
             service.refineRemaining(session);
 
             assertAll(
-                    () -> verify(corrector, never()).refine(anyString(), anyList(), anyList()),
+                    () -> verify(corrector, never()).refine(eq(DEBATE_ID), anyString(), anyList(), anyList()),
                     () -> verify(bufferRepository, never()).peekRaw(anyString(), anyInt()),
                     () -> verify(messageSender, never()).send(any(DebateSession.class), any())
             );
