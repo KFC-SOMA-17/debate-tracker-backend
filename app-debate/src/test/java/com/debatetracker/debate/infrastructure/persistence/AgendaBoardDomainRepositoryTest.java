@@ -81,45 +81,92 @@ public class AgendaBoardDomainRepositoryTest extends BaseDomainRepositoryTest {
     }
 
     @Nested
-    class Save {
+    class Upsert {
 
         @Test
-        void id가_null인_도메인을_저장하면_식별자가_부여된다() {
-            long debateId = 500L;
+        void 신규_보드를_upsert하면_트리가_식별자와_부모참조로_저장된다() {
+            long debateId = 700L;
             AgendaBoard board = new AgendaBoard(debateId, List.of(
-                    new Agenda(null, debateId, "쟁점", null, null, List.of(
-                            new Claim(null, 0L, "주장", Stance.PROS, null, null, List.of(
-                                    new Evidence(null, 0L, "근거", EvidenceType.STATISTICS, null, null)))))));
+                    new Agenda(null, debateId, "쟁점1", null, null, List.of(
+                            new Claim(null, 0L, "주장1A", Stance.PROS, null, null, List.of(
+                                    new Evidence(null, 0L, "근거1", EvidenceType.STATISTICS, null, null))),
+                            new Claim(null, 0L, "주장1B", Stance.CONS, null, null, List.of()))),
+                    new Agenda(null, debateId, "쟁점2", null, null, List.of(
+                            new Claim(null, 0L, "주장2A", Stance.PROS, null, null, List.of(
+                                    new Evidence(null, 0L, "근거2", EvidenceType.EXAMPLE, null, null),
+                                    new Evidence(null, 0L, "근거3", EvidenceType.QUOTATION, null, null)))))));
 
-            AgendaBoard saved = agendaBoardDomainRepository.save(board);
+            agendaBoardDomainRepository.upsert(board);
 
-            Agenda savedAgenda = saved.getAgendas().get(0);
-            Claim savedClaim = savedAgenda.getClaims().get(0);
-            Evidence savedEvidence = savedClaim.getEvidences().get(0);
+            AgendaBoard found = agendaBoardDomainRepository.findByDebateId(debateId);
+            Agenda agenda1 = findAgenda(found, "쟁점1");
+            Agenda agenda2 = findAgenda(found, "쟁점2");
             assertAll(
-                    () -> assertThat(savedAgenda.getId()).isNotNull(),
-                    () -> assertThat(savedClaim.getId()).isNotNull(),
-                    () -> assertThat(savedEvidence.getId()).isNotNull(),
-                    () -> assertThat(agendaJpaRepository.findByDebateId(debateId)).hasSize(1)
+                    () -> assertThat(found.getAgendas()).hasSize(2),
+                    () -> assertThat(agenda1.getClaims()).hasSize(2),
+                    () -> assertThat(findClaim(agenda1, Stance.PROS).getEvidences()).hasSize(1),
+                    () -> assertThat(findClaim(agenda1, Stance.CONS).getEvidences()).isEmpty(),
+                    () -> assertThat(agenda2.getClaims()).hasSize(1),
+                    () -> assertThat(agenda2.getClaims().get(0).getEvidences()).hasSize(2)
             );
         }
 
         @Test
-        void id가_있는_도메인을_저장하면_갱신된다() {
-            long debateId = 500L;
+        void 기존_보드를_upsert하면_내용이_갱신되고_식별자가_보존된다() {
+            long debateId = 700L;
             Agenda existing = agendaBoardGenerator.generateAgenda(debateId, "원본 쟁점");
             AgendaBoard board = new AgendaBoard(debateId, List.of(
                     new Agenda(existing.getId(), debateId, "수정된 쟁점",
                             existing.getCreatedAt(), existing.getModifiedAt(), List.of())));
 
-            agendaBoardDomainRepository.save(board);
+            agendaBoardDomainRepository.upsert(board);
 
             List<AgendaEntity> agendas = agendaJpaRepository.findByDebateId(debateId);
             assertAll(
                     () -> assertThat(agendas).hasSize(1),
                     () -> assertThat(agendas.get(0).getId()).isEqualTo(existing.getId()),
-                    () -> assertThat(agendas.get(0).getContent()).isEqualTo("수정된 쟁점")
+                    () -> assertThat(agendas.get(0).getContent()).isEqualTo("수정된 쟁점"),
+                    () -> assertThat(agendas.get(0).getModifiedAt()).isAfterOrEqualTo(existing.getModifiedAt())
             );
         }
+
+        @Test
+        void 신규와_기존이_섞인_트리를_upsert하면_모두_처리된다() {
+            long debateId = 700L;
+            Agenda existing = agendaBoardGenerator.generateAgenda(debateId, "기존 쟁점");
+            AgendaBoard board = new AgendaBoard(debateId, List.of(
+                    new Agenda(existing.getId(), debateId, "기존 쟁점 수정",
+                            existing.getCreatedAt(), existing.getModifiedAt(), List.of(
+                                    new Claim(null, 0L, "기존에 추가된 주장", Stance.PROS, null, null, List.of()))),
+                    new Agenda(null, debateId, "신규 쟁점", null, null, List.of(
+                            new Claim(null, 0L, "신규 주장", Stance.CONS, null, null, List.of())))));
+
+            agendaBoardDomainRepository.upsert(board);
+
+            AgendaBoard found = agendaBoardDomainRepository.findByDebateId(debateId);
+            Agenda updated = findAgenda(found, "기존 쟁점 수정");
+            Agenda created = findAgenda(found, "신규 쟁점");
+            assertAll(
+                    () -> assertThat(found.getAgendas()).hasSize(2),
+                    () -> assertThat(updated.getId()).isEqualTo(existing.getId()),
+                    () -> assertThat(updated.getClaims()).hasSize(1),
+                    () -> assertThat(created.getId()).isNotNull(),
+                    () -> assertThat(created.getClaims()).hasSize(1)
+            );
+        }
+    }
+
+    private Agenda findAgenda(AgendaBoard board, String content) {
+        return board.getAgendas().stream()
+                .filter(agenda -> agenda.getContent().equals(content))
+                .findFirst()
+                .orElseThrow();
+    }
+
+    private Claim findClaim(Agenda agenda, Stance stance) {
+        return agenda.getClaims().stream()
+                .filter(claim -> claim.getStance() == stance)
+                .findFirst()
+                .orElseThrow();
     }
 }
