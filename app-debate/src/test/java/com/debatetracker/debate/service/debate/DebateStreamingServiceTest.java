@@ -2,6 +2,7 @@ package com.debatetracker.debate.service.debate;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertAll;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -10,6 +11,7 @@ import com.debatetracker.debate.domain.session.DebateSession;
 import com.debatetracker.debate.domain.session.DebateSessionRepository;
 import com.debatetracker.debate.domain.transcript.repository.TranscriptBufferRepository;
 import com.debatetracker.debate.service.BaseServiceTest;
+import com.debatetracker.debate.service.transcript.TranscribeRefiningService;
 import com.debatetracker.debate.ws.message.ControlMessage;
 import com.debatetracker.debate.ws.message.ControlMessageType;
 import com.debatetracker.debate.ws.message.MessageType;
@@ -21,6 +23,7 @@ import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.mockito.InOrder;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -39,6 +42,9 @@ class DebateStreamingServiceTest extends BaseServiceTest {
 
     @MockitoBean
     private TranscriptBufferRepository bufferRepository;
+
+    @MockitoBean
+    private TranscribeRefiningService refiningService;
 
     private WebSocketSession session;
     private Map<String, Object> attributes;
@@ -92,6 +98,40 @@ class DebateStreamingServiceTest extends BaseServiceTest {
     }
 
     @Nested
+    class StopDebateWithRemainingRefine {
+
+        @Test
+        void STT_종료_세션_삭제_후_남은_raw를_보정하고_버퍼를_정리한다() {
+            String debateId = "7";
+            debateStreamingService.handleControlMessage(
+                    new ControlMessage(ControlMessageType.START, debateId), session);
+
+            debateStreamingService.stopDebateWithRemainingRefine(session);
+
+            InOrder order = Mockito.inOrder(sttClient, refiningService, bufferRepository);
+            assertAll(
+                    () -> order.verify(sttClient).stopStreaming(debateId),
+                    () -> order.verify(refiningService).refineRemaining(any(DebateSession.class)),
+                    () -> order.verify(bufferRepository).clear(debateId),
+                    () -> assertThat(sessionRepository.existsByDebateId(debateId)).isFalse()
+            );
+        }
+
+        @Test
+        void 활성_세션이_없으면_보정도_정리도_하지_않는다() {
+            String debateId = "404";
+            attributes.put("debateId", debateId);
+
+            debateStreamingService.stopDebateWithRemainingRefine(session);
+
+            assertAll(
+                    () -> verify(sttClient, never()).stopStreaming(debateId),
+                    () -> verify(refiningService, never()).refineRemaining(any(DebateSession.class))
+            );
+        }
+    }
+
+    @Nested
     class StopDebateIfActive {
 
         @Test
@@ -109,6 +149,21 @@ class DebateStreamingServiceTest extends BaseServiceTest {
             debateStreamingService.stopDebateIfActive(session);
 
             verify(sttClient, never()).stopStreaming(Mockito.anyString());
+        }
+
+        @Test
+        void 네트워크_끊김_정리는_남은_raw를_보정하지_않는다() {
+            String debateId = "8";
+            debateStreamingService.handleControlMessage(
+                    new ControlMessage(ControlMessageType.START, debateId), session);
+
+            debateStreamingService.stopDebateIfActive(session);
+
+            assertAll(
+                    () -> verify(sttClient).stopStreaming(debateId),
+                    () -> verify(refiningService, never()).refineRemaining(any(DebateSession.class)),
+                    () -> verify(bufferRepository).clear(debateId)
+            );
         }
     }
 

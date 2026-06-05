@@ -31,19 +31,31 @@ public class TranscribeRefiningService {
     private final DebateRepository debateRepository;
     private final SpeechBoxService speechBoxService; //TODO 추상화 의존성 무너짐 -> Facade 고려
 
+    public void refineRemaining(DebateSession session) {
+        String debateId = session.debateId();
+        int count = (int) bufferRepository.rawSize(debateId);
+        refine(session, count);
+    }
+
     public void refineSession(DebateSession session) {
         String debateId = session.debateId();
         int count = (int) Math.min(bufferRepository.rawSize(debateId), MAX_BATCH);
+        refine(session, count);
+    }
+
+    private void refine(DebateSession session, int count) {
+        String debateId = session.debateId();
         if (count == 0) {
             return;
         }
         // 보정 이후 후속 3작업(buffer 갱신·SpeechBox 영속화·WebSocket 전송)을 한 사이클당 eventId 로 묶어 추적한다.
         String eventId = UUID.randomUUID().toString();
         try {
+            String topic = debateRepository.findById(Long.parseLong(debateId)).getTopic();
             List<SpeechSegment> batch = bufferRepository.peekRaw(debateId, count);
             List<RefinedSpeechSegment> context = bufferRepository.recentRefined(debateId, CONTEXT_SIZE);
 
-            List<RefinedSpeechSegment> corrected = corrector.refine(debateId, resolveTopic(debateId), context, batch);
+            List<RefinedSpeechSegment> corrected = corrector.refine(debateId, topic, context, batch);
             validate(corrected, batch);
 
             long debateIdValue = Long.parseLong(debateId);
@@ -80,9 +92,5 @@ public class TranscribeRefiningService {
             log.error("보정 결과 id 집합 불일치: 요청={}, 응답={}", batchIds, correctedIds);
             throw new DebateTrackerException(ErrorCode.REFINE_RESULT_MISMATCH);
         }
-    }
-
-    private String resolveTopic(String debateId) {
-        return debateRepository.findById(Long.parseLong(debateId)).getTopic();
     }
 }
