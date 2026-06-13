@@ -7,6 +7,7 @@ import com.debatetracker.debate.ws.sender.WebSocketMessageSender;
 import lombok.RequiredArgsConstructor;
 import org.springframework.messaging.handler.annotation.DestinationVariable;
 import org.springframework.messaging.handler.annotation.MessageMapping;
+import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Controller;
 
 @Controller
@@ -26,5 +27,10 @@ public class DebateStompController {
     public void stopDebate(@DestinationVariable String debateId) {
         debateStreamingService.stopDebateWithRemainingRefine(debateId);
         messageSender.broadcast(debateId, new DebateEndMessage(Long.parseLong(debateId)));
+    }
+
+    @MessageMapping("/debate/{debateId}/audio")
+    public void sendAudio(@DestinationVariable String debateId, @Payload byte[] payload) {
+        debateStreamingService.sendAudioChunk(debateId, payload);
     }
 }
