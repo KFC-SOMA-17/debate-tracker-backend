@@ -3,6 +3,7 @@ package com.debatetracker.debate.event;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -60,7 +61,7 @@ class TranscribeEventListenerTest {
             listener.onTranscribe(new TranscribeEvent(debateId, segment));
 
             ArgumentCaptor<WebSocketMessage> captor = ArgumentCaptor.forClass(WebSocketMessage.class);
-            verify(messageSender).send(any(DebateSession.class), captor.capture());
+            verify(messageSender).broadcast(eq(debateId), captor.capture());
             WebSocketMessage sent = captor.getValue();
             SpeechSegment data = (SpeechSegment) sent.data();
             assertAll(
@@ -84,7 +85,7 @@ class TranscribeEventListenerTest {
                     BigDecimal.ZERO, BigDecimal.ONE, "Guest_1", "텍스트")));
 
             assertAll(
-                    () -> verify(messageSender, never()).send(any(DebateSession.class), any()),
+                    () -> verify(messageSender, never()).broadcast(any(), any()),
                     () -> verify(bufferRepository, never()).appendRaw(any(), any())
             );
         }

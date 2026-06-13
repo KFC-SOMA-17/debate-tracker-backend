@@ -6,7 +6,6 @@ import com.debatetracker.debate.ws.id.SegmentIdGenerator;
 import com.debatetracker.debate.ws.message.TranscriptionMessage;
 import com.debatetracker.debate.domain.transcript.SpeechSegment;
 import com.debatetracker.debate.domain.transcript.repository.TranscriptBufferRepository;
-import com.debatetracker.debate.domain.session.DebateSession;
 import com.debatetracker.debate.domain.session.DebateSessionRepository;
 import com.debatetracker.infra.stt.client.dto.SttSegment;
 import com.debatetracker.infra.stt.client.event.TranscribeEvent;
@@ -34,12 +33,12 @@ public class TranscribeEventListener {
     public void onTranscribe(TranscribeEvent event) {
         String debateId = event.sessionId();
         sessionRepository.findByDebateId(debateId).ifPresentOrElse(
-                session -> sendTranscription(session, debateId, event.segment()),
+                session -> sendTranscription(debateId, event.segment()),
                 () -> log.debug("활성 세션 없음, 전사 결과 무시: debateId={}", debateId)
         );
     }
 
-    private void sendTranscription(DebateSession session, String debateId, SttSegment segment) {
+    private void sendTranscription(String debateId, SttSegment segment) {
         SpeechSegment transcription = new SpeechSegment(
                 segmentIdGenerator.generate(),
                 segment.content(),
@@ -49,6 +48,6 @@ public class TranscribeEventListener {
         );
         //3가지 작업(버퍼 업데이트 + SpeechBox 업데이트 + 메시지 발송) 병렬화 및 성공여부 추적 사이클 보기
         bufferRepository.appendRaw(debateId, transcription); //버퍼 변경
-        messageSender.send(session, new TranscriptionMessage(Long.parseLong(debateId), transcription)); //메시지 발송
+        messageSender.broadcast(debateId, new TranscriptionMessage(Long.parseLong(debateId), transcription)); //토픽 broadcast
     }
 }
