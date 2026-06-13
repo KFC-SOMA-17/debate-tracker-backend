@@ -4,10 +4,6 @@ import com.debatetracker.debate.domain.session.DebateSession;
 import com.debatetracker.debate.domain.session.DebateSessionRepository;
 import com.debatetracker.debate.domain.transcript.repository.TranscriptBufferRepository;
 import com.debatetracker.debate.service.transcript.TranscribeRefiningService;
-import com.debatetracker.debate.ws.message.ControlMessage;
-import com.debatetracker.debate.ws.message.DebateEndMessage;
-import com.debatetracker.debate.ws.message.DebateStartMessage;
-import com.debatetracker.debate.ws.message.WebSocketMessage;
 import com.debatetracker.infra.stt.client.SttClient;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -23,15 +19,6 @@ public class DebateStreamingService {
     private final DebateSessionRepository sessionRepository;
     private final TranscriptBufferRepository bufferRepository;
     private final TranscribeRefiningService refiningService;
-
-    public WebSocketMessage handleControlMessage(ControlMessage message) {
-        if (message.isStart()) {
-            startDebate(message.sessionId());
-            return new DebateStartMessage(Long.parseLong(message.sessionId()));
-        }
-        stopDebateWithRemainingRefine(message.sessionId());
-        return new DebateEndMessage(Long.parseLong(message.sessionId()));
-    }
 
     public void stopDebateWithRemainingRefine(String debateId) {
         if (debateId == null || !sessionRepository.existsByDebateId(debateId)) {

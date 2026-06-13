@@ -11,10 +11,6 @@ import com.debatetracker.debate.domain.session.DebateSessionRepository;
 import com.debatetracker.debate.domain.transcript.repository.TranscriptBufferRepository;
 import com.debatetracker.debate.service.BaseServiceTest;
 import com.debatetracker.debate.service.transcript.TranscribeRefiningService;
-import com.debatetracker.debate.ws.message.ControlMessage;
-import com.debatetracker.debate.ws.message.ControlMessageType;
-import com.debatetracker.debate.ws.message.MessageType;
-import com.debatetracker.debate.ws.message.WebSocketMessage;
 import com.debatetracker.infra.stt.client.SttClient;
 import java.util.List;
 import org.junit.jupiter.api.Nested;
@@ -42,46 +38,6 @@ class DebateStreamingServiceTest extends BaseServiceTest {
     private TranscribeRefiningService refiningService;
 
     @Nested
-    class HandleControlMessage {
-
-        @Test
-        void START를_받으면_전사를_시작하고_세션을_저장하며_DEBATE_START를_반환한다() {
-            String debateId = "1";
-            long debateIdValue = 1L;
-
-            WebSocketMessage actual = debateStreamingService.handleControlMessage(
-                    new ControlMessage(ControlMessageType.START, debateId));
-
-            assertAll(
-                    () -> verify(sttClient).startStreaming(debateId),
-                    () -> assertThat(actual.type()).isEqualTo(MessageType.DEBATE_START),
-                    () -> assertThat(actual.debateId()).isEqualTo(debateIdValue),
-                    () -> assertThat(sessionRepository.existsByDebateId(debateId)).isTrue()
-            );
-        }
-
-        @Test
-        void STOP을_받으면_전사를_종료하고_세션을_삭제하며_DEBATE_END를_반환한다() {
-            String debateId = "2";
-            long debateIdValue = 2L;
-
-            debateStreamingService.handleControlMessage(
-                    new ControlMessage(ControlMessageType.START, debateId));
-
-            WebSocketMessage actual = debateStreamingService.handleControlMessage(
-                    new ControlMessage(ControlMessageType.STOP, debateId));
-
-            assertAll(
-                    () -> verify(sttClient).stopStreaming(debateId),
-                    () -> verify(bufferRepository).clear(debateId),
-                    () -> assertThat(actual.type()).isEqualTo(MessageType.DEBATE_END),
-                    () -> assertThat(actual.debateId()).isEqualTo(debateIdValue),
-                    () -> assertThat(sessionRepository.existsByDebateId(debateId)).isFalse()
-            );
-        }
-    }
-
-    @Nested
     class StartDebate {
 
         @Test
@@ -103,8 +59,7 @@ class DebateStreamingServiceTest extends BaseServiceTest {
         @Test
         void STT_종료_세션_삭제_후_남은_raw를_보정하고_버퍼를_정리한다() {
             String debateId = "7";
-            debateStreamingService.handleControlMessage(
-                    new ControlMessage(ControlMessageType.START, debateId));
+            debateStreamingService.startDebate(debateId);
 
             debateStreamingService.stopDebateWithRemainingRefine(debateId);
 
@@ -152,8 +107,7 @@ class DebateStreamingServiceTest extends BaseServiceTest {
         @Test
         void 네트워크_끊김_정리는_남은_raw를_보정하지_않는다() {
             String debateId = "8";
-            debateStreamingService.handleControlMessage(
-                    new ControlMessage(ControlMessageType.START, debateId));
+            debateStreamingService.startDebate(debateId);
 
             debateStreamingService.stopDebateIfActive(debateId);
 
@@ -204,8 +158,7 @@ class DebateStreamingServiceTest extends BaseServiceTest {
         }
 
         private void startDebate(String debateId) {
-            debateStreamingService.handleControlMessage(
-                    new ControlMessage(ControlMessageType.START, debateId));
+            debateStreamingService.startDebate(debateId);
         }
     }
 }
