@@ -18,12 +18,12 @@ public class WebSocketExceptionHandler {
     private final WebSocketMessageSender messageSender;
 
     public void handle(WebSocketSession session, Throwable throwable) {
-        DebateSession debateSession = new DebateSession(session);
+        String debateId = String.valueOf(session.getAttributes().get(DebateSession.ATTR_DEBATE_ID));
         ErrorCode errorCode = toErrorCode(throwable);
         logBySeverity(errorCode, throwable);
         messageSender.send(
-                debateSession.connection(),
-                new ErrorMessage(Long.parseLong(debateSession.debateId()), errorCode)
+                session,
+                new ErrorMessage(Long.parseLong(debateId), errorCode)
         );
     }
 
