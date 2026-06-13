@@ -55,8 +55,8 @@
         "Typecheck passes"
       ],
       "priority": 3,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "DebateSession 을 record DebateSession(String debateId) 로 축소(connection 필드·ATTR_DEBATE_ID·WebSocketSession 생성자 제거). DebateStreamingService.handleControlMessage(ControlMessage)·stopDebateWithRemainingRefine(String)·stopDebateIfActive(String)·startDebate(String) 모두 debateId 기반. ATTR_DEBATE_ID 상수는 raw 전용 SttWebSocketHandler(public static final)로 이동, WebSocketExceptionHandler 가 이를 참조해 attribute 에서 debateId 추출. SttWebSocketHandler 가 handleTextMessage(START 시) attribute 직접 set + send(WebSocketSession,...) 직접 호출. WebSocketMessageSender 의 미사용 send(DebateSession,...) 오버로드 제거. 단위 테스트(DebateStreamingService/SttWebSocketHandler/scheduler×2/repo×2/event/refine/agenda) 새 시그니처로 갱신, :app-debate:test BUILD SUCCESSFUL. 커밋 2개: (1)WebSocketExceptionHandler attribute 추출, (2)DebateSession 축소+lifecycle 전환(prod+test 원자적)."
     },
     {
       "id": "US-004",

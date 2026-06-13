@@ -44,3 +44,21 @@
   - 커밋 seam: 프로덕션 행위 변경은 해당 단위 테스트와 같은 커밋으로 묶어야 중간 커밋도 :app-debate:test 그린 유지(테스트만 뒤로 미루면 중간 커밋이 깨짐).
   - 아직 raw 경로(SttWebSocketHandler·WebSocketExceptionHandler)는 send(...) 오버로드 사용 중 → broadcast 와 공존. US-007 제거 전까지 양 경로 동시 존재.
 ---
+
+## 2026-06-13 14:26 - US-003
+- 세션 lifecycle 을 debateId 키로 전환. DebateSession 에서 WebSocketSession 의존 완전 제거.
+  - DebateSession: `record DebateSession(String debateId)` 로 축소. connection 필드, ATTR_DEBATE_ID 상수, WebSocketSession 생성자, 타입 레벨 Javadoc 모두 제거.
+  - DebateStreamingService: handleControlMessage(ControlMessage)(session 파라미터 제거)·stopDebateWithRemainingRefine(String)·stopDebateIfActive(String)·startDebate(String) 로 시그니처 debateId 기반 정리. WebSocketSession import 제거.
+  - SttWebSocketHandler: ATTR_DEBATE_ID 상수를 직접 보유(public static final). handleTextMessage 에서 control.isStart() 일 때 attribute 를 직접 set 하고(바이너리 핸들러가 읽을 수 있게), handleControlMessage(control) 호출 후 send(WebSocketSession,...) 직접 사용. afterConnectionClosed 는 attribute 에서 debateId 추출(Optional, 삼항 금지) 후 stopDebateIfActive(debateId).
+  - WebSocketExceptionHandler: SttWebSocketHandler.ATTR_DEBATE_ID 참조로 attribute 에서 debateId 추출 + send(session,...) (US-003 직전 별도 커밋으로 attribute 추출로 선전환해 둠).
+  - WebSocketMessageSender: 미사용 send(DebateSession,...) 오버로드 + DebateSession import 제거. broadcast/send(WebSocketSession,...) 유지.
+- Files changed: domain/session/DebateSession.java, service/debate/DebateStreamingService.java, ws/handler/SttWebSocketHandler.java, exception/WebSocketExceptionHandler.java, ws/sender/WebSocketMessageSender.java, (test) DebateStreamingServiceTest·SttWebSocketHandlerTest·TranscribeRefiningSchedulerTest·AgendaAnalyzeSchedulerTest·DebateSessionDomainRepositoryTest·InMemoryDebateSessionRepositoryTest·TranscribeEventListenerTest·TranscribeRefiningServiceTest·AgendaAnalyzeServiceTest
+- 검증: ./gradlew :app-debate:compileJava·compileTestJava 통과, :app-debate:test BUILD SUCCESSFUL(MySQL 13306/Redis 16379 로컬).
+- 커밋 2개: (1) WebSocketExceptionHandler attribute 추출(독립·단독 그린), (2) DebateSession 축소+lifecycle 전환(prod+test 원자적).
+- **Learnings for future iterations:**
+  - DebateSession 의 shape 변경은 모든 소비처(prod+test)에 동시 파급 → 한 커밋으로 원자 처리해야 중간 커밋도 :app-debate:test 그린 유지(US-002 학습 재확인). 단, 의존 없는 선행 리팩터(WebSocketExceptionHandler 의 attribute 추출)는 현행 DebateSession 으로도 컴파일되어 별도 작은 커밋으로 분리 가능.
+  - ATTR_DEBATE_ID 는 WS attribute 키라 순수 도메인 record(DebateSession)에 둘 자리가 아니다 → raw 전용 SttWebSocketHandler 로 이동. SttWebSocketHandler·WebSocketExceptionHandler 둘 다 raw 경로라 US-007 에서 함께 삭제될 때 상수도 같이 사라진다.
+  - 서비스(TranscribeRefiningService·AgendaAnalyzeService)는 여전히 DebateSession 을 받지만 내부에서 session.debateId() 만 사용 → 시그니처 변경 불필요. 스케줄러는 findActiveSessions()(List<DebateSession>) 순회 그대로.
+  - 핸들러 afterConnectionClosed/exceptionHandler 의 debateId 추출은 null 가능 → 삼항 금지 컨벤션에 따라 Optional.ofNullable(...).map(Object::toString).orElse(null) 또는 String.valueOf(...) 사용.
+  - SttWebSocketHandlerTest: send 검증을 send(any(DebateSession.class),...) → send(eq(connection),...) 로 바꿔야 한다(핸들러가 WebSocketSession 오버로드 직접 호출).
+---
