@@ -124,8 +124,8 @@
         "Typecheck passes"
       ],
       "priority": 7,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "raw WebSocket 경로 완전 제거. 삭제: controller/config/WebSocketConfig(/ws/stt endpoint+ServletServerContainerFactoryBean), ws/handler/SttWebSocketHandler, exception/ExceptionHandlingWebSocketHandler, exception/WebSocketExceptionHandler, ws/message/ControlMessage·ControlMessageType, 그리고 raw 전용 테스트 3종(SttWebSocketHandlerTest·ExceptionHandlingWebSocketHandlerTest·WebSocketExceptionHandlerTest). 수정: DebateStreamingService 에서 handleControlMessage(ControlMessage) 제거(type 분기→STOMP destination 분기 DebateStompController 로 대체) + 미사용 import 정리, DebateStreamingServiceTest 의 HandleControlMessage nested 제거하고 START 셋업을 startDebate(debateId) 직접 호출로 전환, WebSocketMessageSender 의 send(WebSocketSession,...) 오버로드+JsonUtils/TextMessage/WebSocketSession import+미사용 @Slf4j 제거(broadcast 만 잔존). 커밋 5개(config / 핸들러+테스트 / 서비스+테스트 / ControlMessage 타입 / sender). :app-debate:test BUILD SUCCESSFUL(@SpringBootTest 컨텍스트 STOMP endpoint 만 노출 상태로 정상 부팅 확인). raw 경로 완전 종료로 양 경로 공존 중간 상태 해소."
     }
   ]
 }

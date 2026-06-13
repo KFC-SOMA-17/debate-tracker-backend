@@ -53,3 +53,10 @@
 - **잠재 위험**: (1) @DestinationVariable 해석이 Spring 마이너 버전 업에서 깨지면 debateId 가 null→Long.parseLong NPE/예외 핸들러 내부 2차 예외(무한루프는 아니나 ERROR 미전달). (2) 예외 핸들러 자체가 던지면(broadcast 실패 등) 클라이언트는 아무 응답도 못 받음. (3) SimpleBroker 단일 인스턴스 가정 — 다중 인스턴스/외부 브로커 전환 시 구독자가 다른 노드면 ERROR 가 도달 안 할 수 있음(이는 broadcast 전반 공통 한계, US 범위 밖). (4) 구독 타이밍: start 직전에 토픽 구독이 끝나야 시작단계 ERROR 를 받는다 — 통합 테스트는 subscribe 후 send 라 OK지만 실 클라이언트는 구독-후-start 순서 보장 필요.
 - **검증/완화**: 단위 테스트로 DebateTrackerException 코드 보존·일반 예외 INTERNAL_SERVER_ERROR 매핑 검증(위험1의 매핑 로직). 통합 테스트로 @DestinationVariable 전파+ERROR 토픽 수신 end-to-end 검증(위험1의 헤더 전파 회귀 가드). logBySeverity 로 5xx/4xx 분리 로깅해 운영 가시성 확보(위험2 의 silent 실패 추적). 위험3/4 는 후속(외부 브로커 도입·클라이언트 구독 순서 컨벤션 docs)으로 위임.
 ---
+
+## US-007 - raw WebSocket 핸들러/설정 제거
+- **고민했던 지점**: 한 번에 큰 삭제 vs 컴파일-세이프한 순차 삭제. 삭제 대상이 서로 참조(WebSocketConfig→핸들러→서비스 메서드→ControlMessage→sender 오버로드)해서, 어느 순서로 잘라야 매 커밋이 단독 컴파일되는지가 핵심. 또 DebateStreamingServiceTest 가 handleControlMessage 를 START 셋업 헬퍼로 쓰고 있어, 메서드 삭제 시 테스트 셋업을 startDebate 직접 호출로 갈아끼울지/별도 헬퍼로 둘지 고민.
+- **트레이드오프**: 소비처(상위)부터 잘라 내려가는 순서를 택해 매 커밋 compileJava 그린을 보장(5커밋). 대안인 단일 대형 커밋은 리뷰/이분 탐색이 어렵고 중간 그린 보장이 안 됨. 핸들러와 그 테스트는 같은 커밋으로 묶어 compileTestJava 도 그린 유지(테스트를 뒤로 미루면 중간 커밋이 깨짐) — 잘게 쪼개되 테스트-구현 원자성은 지키는 절충.
+- **잠재 위험**: (1) ServletServerContainerFactoryBean(servlet 컨테이너 64KB 버퍼)까지 WebSocketConfig 와 함께 제거 → STOMP 대용량(오디오) 메시지가 servlet 레벨 기본 버퍼에 걸릴 가능성. (2) raw 경로 제거로 stt.azure.enabled=true 실환경에서 /ws/stt 로 붙던 기존 클라이언트가 있다면 즉시 단절(롤백 창 없음). (3) DebateStreamingService 가 이제 STOMP 컨트롤러에만 의존 — 컨트롤러 우회 호출 경로가 사라져 서비스 단위 테스트가 유일한 진입 검증.
+- **검증/완화**: (1) STOMP 메시지 한도는 US-001 StompConfig.configureWebSocketTransport.setMessageSizeLimit(64KB)가 별도로 책임 — servlet 버스 빈 제거와 무관하게 STOMP transport 레벨에서 보장됨을 확인(통합 테스트 컨텍스트 정상 기동). (2) raw 경로는 본래 stt.azure.enabled 조건부라 테스트(조건 미설정)·현행 STOMP 클라이언트에 영향 없음 — 양 경로 공존 중간 상태를 이 스토리로 의도적으로 종료. 실 배포 전환은 클라이언트의 STOMP 이전 완료가 선행 조건(문서/PR로 위임). (3) :app-debate:test 전체 그린 + grep 으로 삭제 심볼 잔존 0 확인. @SpringBootTest 컨텍스트가 STOMP endpoint 만으로 정상 부팅됨을 통합 테스트 로드로 검증(별도 bootRun 불요).
+---
