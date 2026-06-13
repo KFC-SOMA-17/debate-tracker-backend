@@ -29,7 +29,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
-import org.springframework.web.socket.WebSocketSession;
 
 class TranscribeRefiningServiceTest {
 
@@ -54,7 +53,7 @@ class TranscribeRefiningServiceTest {
         speechBoxService = mock(SpeechBoxService.class);
         service = new TranscribeRefiningService(
                 bufferRepository, corrector, messageSender, debateRepository, speechBoxService);
-        session = new DebateSession(DEBATE_ID, mock(WebSocketSession.class));
+        session = new DebateSession(DEBATE_ID);
         when(debateRepository.findById(DEBATE_ID_VALUE)).thenReturn(new Debate(DEBATE_ID_VALUE, TOPIC));
     }
 

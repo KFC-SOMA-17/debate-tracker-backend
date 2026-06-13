@@ -12,7 +12,6 @@ import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.springframework.web.socket.WebSocketSession;
 
 class DebateSessionDomainRepositoryTest {
 
@@ -31,7 +30,7 @@ class DebateSessionDomainRepositoryTest {
         @Test
         void save는_저장소에_위임한다() {
             String debateId = "1";
-            DebateSession session = new DebateSession(debateId, mock(WebSocketSession.class));
+            DebateSession session = new DebateSession(debateId);
 
             adapter.save(session);
 
@@ -45,7 +44,7 @@ class DebateSessionDomainRepositoryTest {
         @Test
         void findByDebateId는_저장소_결과를_그대로_반환한다() {
             String debateId = "1";
-            DebateSession session = new DebateSession(debateId, mock(WebSocketSession.class));
+            DebateSession session = new DebateSession(debateId);
             when(sessionStore.findByDebateId(debateId)).thenReturn(Optional.of(session));
 
             assertThat(adapter.findByDebateId(debateId)).get().isSameAs(session);
@@ -70,7 +69,7 @@ class DebateSessionDomainRepositoryTest {
         @Test
         void deleteByDebateId는_저장소_결과를_그대로_반환한다() {
             String debateId = "1";
-            DebateSession session = new DebateSession(debateId, mock(WebSocketSession.class));
+            DebateSession session = new DebateSession(debateId);
             when(sessionStore.deleteByDebateId(debateId)).thenReturn(Optional.of(session));
 
             assertThat(adapter.deleteByDebateId(debateId)).get().isSameAs(session);

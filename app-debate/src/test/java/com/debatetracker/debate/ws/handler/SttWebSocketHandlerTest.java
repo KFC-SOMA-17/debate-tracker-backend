@@ -81,7 +81,7 @@ class SttWebSocketHandlerTest {
             String debateId = "1";
             long debateIdValue = 1L;
             attributes.put("debateId", debateId);
-            DebateSession session = new DebateSession(debateId, connection);
+            DebateSession session = new DebateSession(debateId);
             when(sessionRepository.existsByDebateId(debateId)).thenReturn(true);
             when(sessionRepository.deleteByDebateId(debateId)).thenReturn(Optional.of(session));
 
@@ -129,7 +129,7 @@ class SttWebSocketHandlerTest {
             attributes.put("debateId", debateId);
             when(sessionRepository.existsByDebateId(debateId)).thenReturn(true);
             when(sessionRepository.deleteByDebateId(debateId))
-                    .thenReturn(Optional.of(new DebateSession(debateId, connection)));
+                    .thenReturn(Optional.of(new DebateSession(debateId)));
 
             handler.afterConnectionClosed(connection, CloseStatus.NORMAL);
 
@@ -139,7 +139,7 @@ class SttWebSocketHandlerTest {
 
     private WebSocketMessage captureSentMessage() {
         ArgumentCaptor<WebSocketMessage> captor = ArgumentCaptor.forClass(WebSocketMessage.class);
-        verify(messageSender).send(any(DebateSession.class), captor.capture());
+        verify(messageSender).send(eq(connection), captor.capture());
         return captor.getValue();
     }
 }

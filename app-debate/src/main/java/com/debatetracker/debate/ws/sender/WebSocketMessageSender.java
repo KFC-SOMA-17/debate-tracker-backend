@@ -1,7 +1,6 @@
 package com.debatetracker.debate.ws.sender;
 
 import com.debatetracker.debate.ws.message.WebSocketMessage;
-import com.debatetracker.debate.domain.session.DebateSession;
 import com.debatetracker.serdes.JsonUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -21,10 +20,6 @@ public class WebSocketMessageSender {
 
     public void broadcast(String debateId, WebSocketMessage message) {
         messagingTemplate.convertAndSend(TOPIC_DESTINATION_FORMAT.formatted(debateId), message);
-    }
-
-    public void send(DebateSession session, WebSocketMessage message) {
-        send(session.connection(), message);
     }
 
     public void send(WebSocketSession connection, WebSocketMessage message) {

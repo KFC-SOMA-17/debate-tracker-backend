@@ -1,6 +1,6 @@
 package com.debatetracker.debate.exception;
 
-import com.debatetracker.debate.domain.session.DebateSession;
+import com.debatetracker.debate.ws.handler.SttWebSocketHandler;
 import com.debatetracker.debate.ws.message.ErrorMessage;
 import com.debatetracker.debate.ws.sender.WebSocketMessageSender;
 import com.debatetracker.exception.DebateTrackerException;
@@ -18,7 +18,7 @@ public class WebSocketExceptionHandler {
     private final WebSocketMessageSender messageSender;
 
     public void handle(WebSocketSession session, Throwable throwable) {
-        String debateId = String.valueOf(session.getAttributes().get(DebateSession.ATTR_DEBATE_ID));
+        String debateId = String.valueOf(session.getAttributes().get(SttWebSocketHandler.ATTR_DEBATE_ID));
         ErrorCode errorCode = toErrorCode(throwable);
         logBySeverity(errorCode, throwable);
         messageSender.send(

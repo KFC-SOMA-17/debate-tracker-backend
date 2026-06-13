@@ -14,7 +14,6 @@ import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.springframework.web.socket.WebSocketSession;
 
 class AgendaAnalyzeSchedulerTest {
 
@@ -34,8 +33,8 @@ class AgendaAnalyzeSchedulerTest {
 
         @Test
         void 활성_세션마다_분석을_위임_호출한다() {
-            DebateSession first = new DebateSession("1", mock(WebSocketSession.class));
-            DebateSession second = new DebateSession("2", mock(WebSocketSession.class));
+            DebateSession first = new DebateSession("1");
+            DebateSession second = new DebateSession("2");
             when(streamingService.findActiveSessions()).thenReturn(List.of(first, second));
 
             scheduler.analyzeActiveSessions();

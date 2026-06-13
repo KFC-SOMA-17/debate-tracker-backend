@@ -1,11 +1,11 @@
 package com.debatetracker.debate.ws.handler;
 
-import com.debatetracker.debate.domain.session.DebateSession;
 import com.debatetracker.debate.service.debate.DebateStreamingService;
 import com.debatetracker.debate.ws.message.WebSocketMessage;
 import com.debatetracker.debate.ws.sender.WebSocketMessageSender;
 import com.debatetracker.debate.ws.message.ControlMessage;
 import com.debatetracker.serdes.JsonUtils;
+import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -22,6 +22,8 @@ import org.springframework.web.socket.handler.AbstractWebSocketHandler;
 @ConditionalOnProperty(name = "stt.azure.enabled", havingValue = "true")
 public class SttWebSocketHandler extends AbstractWebSocketHandler {
 
+    public static final String ATTR_DEBATE_ID = "debateId";
+
     private final DebateStreamingService debateStreamingService;
     private final WebSocketMessageSender messageSender;
 
@@ -33,13 +35,16 @@ public class SttWebSocketHandler extends AbstractWebSocketHandler {
     @Override
     protected void handleTextMessage(WebSocketSession session, TextMessage message) {
         ControlMessage control = JsonUtils.deserialize(message.getPayload(), ControlMessage.class);
-        WebSocketMessage webSocketMessage = debateStreamingService.handleControlMessage(control, session);
-        messageSender.send(new DebateSession(session),  webSocketMessage);
+        if (control.isStart()) {
+            session.getAttributes().put(ATTR_DEBATE_ID, control.sessionId());
+        }
+        WebSocketMessage webSocketMessage = debateStreamingService.handleControlMessage(control);
+        messageSender.send(session, webSocketMessage);
     }
 
     @Override
     protected void handleBinaryMessage(WebSocketSession session, BinaryMessage message) {
-        Object debateId = session.getAttributes().get(DebateSession.ATTR_DEBATE_ID);
+        Object debateId = session.getAttributes().get(ATTR_DEBATE_ID);
         if (debateId == null) {
             log.debug("START 이전 바이너리 수신, 무시: {}", session.getId());
             return;
@@ -50,6 +55,9 @@ public class SttWebSocketHandler extends AbstractWebSocketHandler {
     @Override
     public void afterConnectionClosed(WebSocketSession session, CloseStatus status) {
         log.info("STT WebSocket 종료: {} (status={})", session.getId(), status);
-        debateStreamingService.stopDebateIfActive(session);
+        String debateId = Optional.ofNullable(session.getAttributes().get(ATTR_DEBATE_ID))
+                .map(Object::toString)
+                .orElse(null);
+        debateStreamingService.stopDebateIfActive(debateId);
     }
 }

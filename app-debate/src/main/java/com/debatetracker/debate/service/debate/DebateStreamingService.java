@@ -13,7 +13,6 @@ import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import org.springframework.web.socket.WebSocketSession;
 
 @Slf4j
 @Service
@@ -25,43 +24,40 @@ public class DebateStreamingService {
     private final TranscriptBufferRepository bufferRepository;
     private final TranscribeRefiningService refiningService;
 
-    public WebSocketMessage handleControlMessage(ControlMessage message, WebSocketSession session) {
+    public WebSocketMessage handleControlMessage(ControlMessage message) {
         if (message.isStart()) {
-            startDebate(session, message.sessionId());
+            startDebate(message.sessionId());
             return new DebateStartMessage(Long.parseLong(message.sessionId()));
         }
-        stopDebateWithRemainingRefine(session);
+        stopDebateWithRemainingRefine(message.sessionId());
         return new DebateEndMessage(Long.parseLong(message.sessionId()));
     }
 
-    public void stopDebateWithRemainingRefine(WebSocketSession session) {
-        Object debateId = session.getAttributes().get(DebateSession.ATTR_DEBATE_ID);
-        if (debateId == null || !sessionRepository.existsByDebateId(debateId.toString())) {
+    public void stopDebateWithRemainingRefine(String debateId) {
+        if (debateId == null || !sessionRepository.existsByDebateId(debateId)) {
             return;
         }
-        sttClient.stopStreaming(debateId.toString());
-        sessionRepository.deleteByDebateId(debateId.toString());
-        refiningService.refineRemaining(new DebateSession(session));
-        bufferRepository.clear(debateId.toString());
+        sttClient.stopStreaming(debateId);
+        sessionRepository.deleteByDebateId(debateId);
+        refiningService.refineRemaining(new DebateSession(debateId));
+        bufferRepository.clear(debateId);
         log.info("STOP 으로 토론 정리(남은 raw 보정 후): debateId={}", debateId);
     }
 
-    public void stopDebateIfActive(WebSocketSession session) {
-        Object debateId = session.getAttributes().get(DebateSession.ATTR_DEBATE_ID);
-        if (debateId == null || !sessionRepository.existsByDebateId(debateId.toString())) {
+    public void stopDebateIfActive(String debateId) {
+        if (debateId == null || !sessionRepository.existsByDebateId(debateId)) {
             return;
         }
-        sttClient.stopStreaming(debateId.toString());
-        sessionRepository.deleteByDebateId(debateId.toString());
-        bufferRepository.clear(debateId.toString());
+        sttClient.stopStreaming(debateId);
+        sessionRepository.deleteByDebateId(debateId);
+        bufferRepository.clear(debateId);
         log.info("연결 종료로 토론 정리: debateId={}", debateId);
     }
 
-    private void startDebate(WebSocketSession session, String sessionId) {
-        session.getAttributes().put(DebateSession.ATTR_DEBATE_ID, sessionId);
-        sessionRepository.save(new DebateSession(sessionId, session));
-        sttClient.startStreaming(sessionId);
-        log.info("토론 시작: debateId={}", sessionId);
+    private void startDebate(String debateId) {
+        sessionRepository.save(new DebateSession(debateId));
+        sttClient.startStreaming(debateId);
+        log.info("토론 시작: debateId={}", debateId);
     }
 
 

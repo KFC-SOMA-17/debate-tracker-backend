@@ -25,7 +25,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
-import org.springframework.web.socket.WebSocketSession;
 
 class TranscribeEventListenerTest {
 
@@ -54,7 +53,7 @@ class TranscribeEventListenerTest {
             String content = "안녕하세요";
             BigDecimal startAt = new BigDecimal("1.200");
             BigDecimal endAt = new BigDecimal("4.800");
-            DebateSession session = new DebateSession(debateId, mock(WebSocketSession.class));
+            DebateSession session = new DebateSession(debateId);
             when(sessionRepository.findByDebateId(debateId)).thenReturn(Optional.of(session));
             SttSegment segment = new SttSegment(startAt, endAt, speaker, content);
 
