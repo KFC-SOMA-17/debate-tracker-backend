@@ -123,3 +123,16 @@
   - raw 경로가 stt.azure.enabled=true 조건부였어서, 제거해도 기존 테스트(조건 미설정)는 영향 없음 — 양 경로 공존 중간 상태가 이 스토리로 완전 해소(이제 transport 는 STOMP 단일).
   - ControlMessage 의 sessionId 필드명(실제로는 debateId)은 끝까지 raw 페이로드 잔재였고 STOMP destination(@DestinationVariable debateId)으로 대체되며 사라짐 — 페이로드 WebSocketMessage(debateId/type/data) 는 그대로 유지(transport 만 교체) 원칙 충족.
 ---
+
+## 2026-06-13 16:48 - US-008
+- STOMP /ws endpoint에 SockJS fallback 추가. native ws:// 와 SockJS http:// 둘 다 동일 /ws 에서 지원.
+  - StompConfig.registerStompEndpoints: addEndpoint("/ws").setAllowedOrigins(...) (native) + addEndpoint("/ws").setAllowedOrigins(...).withSockJS() (SockJS) 두 번 등록. 둘 다 corsProperties.getOriginUrls().
+- Files changed: controller/config/StompConfig.java, (test) ws/controller/DebateStompSockJsControllerTest.java(신규)
+- 검증: ./gradlew :app-debate:compileJava 통과, :app-debate:test BUILD SUCCESSFUL(native DebateStompControllerTest + 신규 SockJS 테스트 동시 통과, MySQL 13306/Redis 16379 로컬).
+- 커밋 2개: (1) config SockJS 등록, (2) SockJS 통합 테스트.
+- **Learnings for future iterations:**
+  - **동일 경로 이중 등록이 핵심**: addEndpoint("/ws") 를 native 와 .withSockJS() 두 번 호출하면 native /ws 는 정확매칭 WebSocket upgrade 핸들러, SockJS 는 /ws/** (info, {server}/{session}/websocket, xhr 등) 핸들러로 매핑돼 경로 충돌이 없다. 그래서 기존 BaseStompTest(StandardWebSocketClient 가 ws://.../ws 정확매칭 접속)는 그대로 통과하고, SockJsClient 는 /ws/info 핸드셰이크부터 시작.
+  - **SockJsClient 는 http:// URL 로 connect** (ws:// 아님). transport 는 List.of(new WebSocketTransport(new StandardWebSocketClient())). WebSocketStompClient(new SockJsClient(transports)) 로 감싼다.
+  - BaseStompTest 는 native 전용(StandardWebSocketClient 직접)이라 SockJS 테스트는 상속하지 않고 독립 @SpringBootTest 로 자체 SockJS 클라이언트 구성. 컨버터(MappingJackson2+JavaTimeModule)는 동일 패턴 복제. 향후 SockJS 테스트가 늘면 BaseSockJsStompTest 추출 고려.
+  - SockJS 핸드셰이크/연결만 검증하지 말고 실제 /topic broadcast 수신(start→DEBATE_START)까지 단언하면 SockJS transport 위에서 STOMP 프레임이 정상 왕복함을 함께 증명한다.
+---

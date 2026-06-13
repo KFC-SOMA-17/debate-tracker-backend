@@ -126,6 +126,61 @@
       "priority": 7,
       "passes": true,
       "notes": "raw WebSocket 경로 완전 제거. 삭제: controller/config/WebSocketConfig(/ws/stt endpoint+ServletServerContainerFactoryBean), ws/handler/SttWebSocketHandler, exception/ExceptionHandlingWebSocketHandler, exception/WebSocketExceptionHandler, ws/message/ControlMessage·ControlMessageType, 그리고 raw 전용 테스트 3종(SttWebSocketHandlerTest·ExceptionHandlingWebSocketHandlerTest·WebSocketExceptionHandlerTest). 수정: DebateStreamingService 에서 handleControlMessage(ControlMessage) 제거(type 분기→STOMP destination 분기 DebateStompController 로 대체) + 미사용 import 정리, DebateStreamingServiceTest 의 HandleControlMessage nested 제거하고 START 셋업을 startDebate(debateId) 직접 호출로 전환, WebSocketMessageSender 의 send(WebSocketSession,...) 오버로드+JsonUtils/TextMessage/WebSocketSession import+미사용 @Slf4j 제거(broadcast 만 잔존). 커밋 5개(config / 핸들러+테스트 / 서비스+테스트 / ControlMessage 타입 / sender). :app-debate:test BUILD SUCCESSFUL(@SpringBootTest 컨텍스트 STOMP endpoint 만 노출 상태로 정상 부팅 확인). raw 경로 완전 종료로 양 경로 공존 중간 상태 해소."
+    },
+    {
+      "id": "US-008",
+      "title": "STOMP /ws endpoint에 SockJS fallback 추가",
+      "description": "As a 브라우저 클라이언트, 순수 WebSocket이 막힌 환경에서도 SockJS fallback으로 /ws에 연결할 수 있다. STOMP_SPEC 2.1대로 동일 /ws에서 native ws:// 와 SockJS http:// 둘 다 지원한다.",
+      "acceptanceCriteria": [
+        "StompConfig.registerStompEndpoints에서 /ws에 SockJS를 활성화한다(.withSockJS())",
+        "기존 native WebSocket 경로가 유지되도록 /ws를 native 등록과 withSockJS() 등록 둘 다로 구성한다(BaseStompTest의 StandardWebSocketClient 연결이 계속 성공해야 함)",
+        "두 endpoint 등록 모두 CorsProperties.getOriginUrls()로 setAllowedOrigins를 적용한다",
+        "신규 transport(SockJS)를 추가하므로 BaseStompTest 패턴으로 SockJS 연결 통합 테스트를 작성: SockJsClient(WebSocketTransport 등)로 http://localhost:{port}/ws에 connect 후 /topic 구독→메시지 수신(또는 연결 성공)을 future.get(3s)로 단언한다",
+        "기존 STOMP 통합 테스트(DebateStompControllerTest 등 native 경로)가 그대로 통과한다",
+        "테스트는 @Nested + 한글 메서드명 컨벤션을 따른다",
+        "Tests pass",
+        "Typecheck passes"
+      ],
+      "priority": 8,
+      "passes": true,
+      "notes": "StompConfig.registerStompEndpoints에서 /ws를 두 번 등록 — (1) native(setAllowedOrigins만), (2) setAllowedOrigins+.withSockJS(). 둘 다 corsProperties.getOriginUrls() 적용. native /ws 는 정확 매칭 WebSocket upgrade 핸들러, SockJS 는 /ws/** (info·{server}/{session}/websocket) 핸들러라 경로 충돌 없음 → 기존 BaseStompTest(StandardWebSocketClient native) 그대로 통과. 통합 테스트 DebateStompSockJsControllerTest(신규, 독립 @SpringBootTest RANDOM_PORT): SockJsClient(WebSocketTransport+StandardWebSocketClient) 로 http://localhost:{port}/ws connect → /topic/debate/1 구독 → /app/debate/1/start SEND → DEBATE_START future.get(3s) 수신(@Nested SockJsConnect + 한글 메서드명). BaseStompTest 는 native 전용이라 상속 대신 SockJS 클라이언트를 자체 구성(컨버터는 동일 MappingJackson2+JavaTimeModule). 커밋 2개(config / 통합 테스트). :app-debate:test BUILD SUCCESSFUL(native+SockJS 양 경로 동시 통과)."
+    },
+    {
+      "id": "US-009",
+      "title": "테스트의 mock verify를 assertAll 안으로 통합",
+      "description": "As a 개발자, then 단계 검증이 2개 이상인 테스트에서 Mockito verify도 assertThat과 함께 같은 assertAll 람다로 묶여 soft assertion으로 한 번에 전체 차이를 본다. CLAUDE.local.md '검증·단언은 assertAll 로 묶는다 (verify 포함)' 규칙을 코드베이스에 반영한다.",
+      "acceptanceCriteria": [
+        "app-debate 테스트 중 then 단계 검증이 2개 이상인데 verify(...)가 assertAll 밖에 분리된 경우를 찾아 verify를 assertAll(() -> ..., () -> ...) 람다 안으로 넣는다",
+        "이번 STOMP 마이그레이션에서 추가/수정된 테스트(DebateStompControllerTest·WebSocketMessageSenderTest·DebateStreamingServiceTest·TranscribeEventListenerTest·TranscribeRefiningServiceTest·US-008 신규 테스트 등)를 우선 대상으로 한다",
+        "예외 준수: 검증이 1개뿐이면 assertAll로 감싸지 않는다(람다 1개짜리 assertAll 금지)",
+        "예외 준수: ArgumentCaptor capturing verify(captor.capture())는 captor.getValue()보다 먼저 실행돼야 하므로 assertAll 앞에 두고, 추출한 값 단언만 assertAll로 묶는다",
+        "assertThatThrownBy 같은 동작-단언은 첫 람다로 넣고 이어서 verify(...never()) 람다를 둔다",
+        "프로덕션 코드는 변경하지 않는다(테스트 전용 리팩터)",
+        "파일/테스트 단위로 잘게 커밋한다",
+        "신규 WS destination API가 없으므로 STOMP 통합 테스트는 추가하지 않는다",
+        "Tests pass",
+        "Typecheck passes"
+      ],
+      "priority": 9,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-010",
+      "title": "Ralph 런타임 산출물 .gitignore 추가",
+      "description": "As a 유지보수자, Ralph 실행이 남기는 런타임/생성 파일이 git에 추적되지 않도록 .gitignore에 추가한다. 단, Ralph가 의도적으로 커밋하는 산출물(prd.json·progress.txt·migration_thinking.md·CLAUDE.md)은 추적을 유지한다.",
+      "acceptanceCriteria": [
+        ".gitignore에 ralph/ralph-run.log, ralph/.last-branch, ralph/archive/ 패턴을 추가한다",
+        "플러그인 캐시에서 복사된 실행 스크립트 ralph/ralph.sh도 .gitignore에 추가한다",
+        "prd.json·progress.txt·migration_thinking.md·CLAUDE.md는 ignore하지 않는다(Ralph가 커밋하는 산출물)",
+        "git check-ignore로 런타임 파일은 무시되고 커밋 산출물은 추적됨을 확인한다",
+        "이미 인덱스에 추적 중인 무시 대상 파일이 있으면 git rm --cached로 제거한다(없으면 스킵)",
+        "프로덕션/테스트 코드는 변경하지 않으며 신규 WS API가 없으므로 통합 테스트는 추가하지 않는다",
+        "Typecheck passes"
+      ],
+      "priority": 10,
+      "passes": false,
+      "notes": ""
     }
   ]
 }

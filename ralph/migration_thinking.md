@@ -60,3 +60,10 @@
 - **잠재 위험**: (1) ServletServerContainerFactoryBean(servlet 컨테이너 64KB 버퍼)까지 WebSocketConfig 와 함께 제거 → STOMP 대용량(오디오) 메시지가 servlet 레벨 기본 버퍼에 걸릴 가능성. (2) raw 경로 제거로 stt.azure.enabled=true 실환경에서 /ws/stt 로 붙던 기존 클라이언트가 있다면 즉시 단절(롤백 창 없음). (3) DebateStreamingService 가 이제 STOMP 컨트롤러에만 의존 — 컨트롤러 우회 호출 경로가 사라져 서비스 단위 테스트가 유일한 진입 검증.
 - **검증/완화**: (1) STOMP 메시지 한도는 US-001 StompConfig.configureWebSocketTransport.setMessageSizeLimit(64KB)가 별도로 책임 — servlet 버스 빈 제거와 무관하게 STOMP transport 레벨에서 보장됨을 확인(통합 테스트 컨텍스트 정상 기동). (2) raw 경로는 본래 stt.azure.enabled 조건부라 테스트(조건 미설정)·현행 STOMP 클라이언트에 영향 없음 — 양 경로 공존 중간 상태를 이 스토리로 의도적으로 종료. 실 배포 전환은 클라이언트의 STOMP 이전 완료가 선행 조건(문서/PR로 위임). (3) :app-debate:test 전체 그린 + grep 으로 삭제 심볼 잔존 0 확인. @SpringBootTest 컨텍스트가 STOMP endpoint 만으로 정상 부팅됨을 통합 테스트 로드로 검증(별도 bootRun 불요).
 ---
+
+## US-008 - STOMP /ws SockJS fallback 추가
+- **고민했던 지점**: /ws 를 어떻게 native 와 SockJS 둘 다로 노출할지. (A) addEndpoint("/ws").withSockJS() 단일 등록 — 그러면 native ws:// 정확매칭 클라이언트(BaseStompTest)가 깨질 위험. (B) 경로를 /ws(native)·/ws-sockjs(SockJS)로 분리 — STOMP_SPEC 2.1의 "동일 /ws" 요구 위반. (C) addEndpoint("/ws") 를 native·withSockJS 두 번 등록 → 채택. 테스트도 BaseStompTest 를 상속해 SockJS 세션을 추가로 열지(포트 private 노출 필요), 독립 테스트로 SockJS 클라이언트를 자체 구성할지 고민 → 후자(BaseStompTest 변경 회피, native 전용 책임 유지).
+- **트레이드오프**: 이중 등록은 SockJsClient 와 native 클라이언트가 같은 /ws 를 공유(스펙 충족)하지만 SockJS 가 /ws/** 하위 경로(info·xhr 등)를 추가로 점유한다. 독립 테스트 선택으로 BaseStompTest 를 건드리지 않아 native 회귀 위험은 0이 됐지만, 컨버터 셋업(MappingJackson2+JavaTimeModule)이 BaseStompTest 와 중복됐다(향후 SockJS 테스트 증가 시 공통 베이스 추출 부채).
+- **잠재 위험**: (1) native 정확매칭 핸들러와 SockJS /ws/** 핸들러의 매핑 우선순위가 꼬이면 한쪽이 다른쪽을 가릴 수 있음 — Spring 은 정확매칭(/ws)과 패턴(/ws/**)을 분리 처리해 실제론 충돌 없음. (2) SockJS 활성화로 /ws/info 등 추가 HTTP endpoint 가 노출 → CORS(setAllowedOrigins)를 양쪽 등록 모두에 적용해 동일 출처 정책 유지. (3) setAllowedOrigins 에 "*" 가 아닌 명시 origin 만 있어 SockJS 의 origin 검사도 동일 화이트리스트로 동작(와일드카드였다면 SockJS info 요청에서 제약 가능성).
+- **검증/완화**: 신규 SockJS 통합 테스트로 핸드셰이크뿐 아니라 start→DEBATE_START broadcast 왕복까지 단언(SockJS transport 위 STOMP 정상 동작 증명). 동시에 기존 native DebateStompControllerTest 를 같은 실행에서 통과시켜 이중 등록이 native 경로를 깨지 않음을 확인. 전체 :app-debate:test 그린으로 회귀 없음 확정.
+---
