@@ -90,8 +90,8 @@
         "Typecheck passes"
       ],
       "priority": 5,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "DebateStompController에 @MessageMapping(\"/debate/{debateId}/audio\") 추가 — @DestinationVariable debateId + @Payload byte[] payload → debateStreamingService.sendAudioChunk(debateId, payload) 위임, broadcast 없음(void). DebateStreamingService.sendAudioChunk 파라미터를 sessionId→debateId로 정리하고 불필요한 String.valueOf 제거(서비스 단위 테스트 SendAudioChunk nested 기존 유지). 통합 테스트 DebateStompAudioControllerTest(신규, BaseStompTest 상속): @MockitoBean SttClient로 FakeSttClient 대체(다운스트림 전사 이벤트 차단), 오디오 SEND 후 verify(sttClient, timeout(3s)).sendAudioChunk(eq(debateId), any)로 소비 검증 + /topic 구독 future.get(500ms) TimeoutException으로 미-broadcast 검증. 커밋 3개(service cleanup/controller/test). :app-debate:test BUILD SUCCESSFUL."
     },
     {
       "id": "US-006",

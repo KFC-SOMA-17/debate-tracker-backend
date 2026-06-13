@@ -80,3 +80,16 @@
   - 통합 테스트에서 SttClient 는 test fixture FakeSttClient(@Component, HIGHEST_PRECEDENCE)가 주입 — 실 Azure 어댑터는 stt.azure.enabled 미설정으로 비활성. start/stop 위임이 외부 호출 없이 동작.
   - 서비스 메서드를 컨트롤러가 직접 부르므로(분기 메서드 handleControlMessage 우회), public 노출 메서드는 직접 단위 테스트를 추가(handleControlMessage 경유 테스트만으로는 컨트롤러 위임 경로를 못 덮음).
 ---
+
+## 2026-06-13 14:43 - US-005
+- STOMP 바이너리 오디오 컨트롤러 추가. /app/debate/{debateId}/audio 로 PCM16 청크 SEND → STT 소비, broadcast 없음.
+  - DebateStompController: @MessageMapping("/debate/{debateId}/audio") + @DestinationVariable debateId + @Payload byte[] payload → debateStreamingService.sendAudioChunk(debateId, payload). void(미-broadcast).
+  - DebateStreamingService.sendAudioChunk: 파라미터 sessionId→debateId 정리 + 불필요한 String.valueOf(이미 String) 제거. 서비스 단위 테스트(SendAudioChunk nested)는 기존 그대로 통과.
+- Files changed: ws/controller/DebateStompController.java, service/debate/DebateStreamingService.java, (test) ws/controller/DebateStompAudioControllerTest.java(신규)
+- 검증: ./gradlew :app-debate:compileJava·compileTestJava 통과, :app-debate:test BUILD SUCCESSFUL(MySQL 13306/Redis 16379 로컬).
+- 커밋 3개: (1) service sendAudioChunk debateId 정리, (2) controller audio mapping, (3) 통합 테스트.
+- **Learnings for future iterations:**
+  - **BaseStompTest 클라이언트 컨버터는 MappingJackson2 단일** → byte[] 페이로드는 octet-stream 으로 못 보낸다. content-type 을 octet-stream 으로 지정하면 client createMessage 단계에서 MessageConversionException(Jackson 이 byte[]+octet-stream 미지원). 그냥 `send(dest, byte[])` 로 보내면 Jackson 이 base64 JSON 문자열로 직렬화하고, 서버 ByteArrayMessageConverter 가 그 JSON 문자열 raw bytes(`"AQIDBAU="` = [34,65,...])를 그대로 byte[] 파라미터에 넣는다 → **서버가 받는 바이트는 원본 PCM 과 다르다**(테스트 하네스 인코딩 아티팩트). 실 JS 클라이언트는 native binary STOMP 프레임을 보내 ByteArrayMessageConverter 가 원본 그대로 받는다.
+  - 따라서 통합 테스트에서 **바이트 정확 일치(captor)는 검증하지 말 것** — 하네스 아티팩트로 깨진다. 소비 검증은 `verify(sttClient, timeout(3s)).sendAudioChunk(eq(debateId), any(byte[].class))`(destination 의 debateId 추출+위임 경로 확인)로 충분. 바이트 pass-through 정확성은 서비스 단위 테스트(verify(sttClient).sendAudioChunk(debateId, pcm))가 이미 커버.
+  - **FakeSttClient.sendAudioChunk 는 TranscribeEvent 를 publish** → TranscribeEventListener 가 TRANSCRIPTION 을 /topic 으로 broadcast 한다. 그래서 audio 미-broadcast 를 검증하려면 실 Fake 가 아니라 @MockitoBean SttClient(아무것도 안 함)로 대체해야 토픽에 메시지가 안 오는 걸 단언할 수 있다. timeout verify 로 서버 처리 완료를 보장한 뒤 future.get(500ms) TimeoutException 으로 미-broadcast 확인.
+  - Mockito `timeout(ms)` verification mode 가 STOMP 비동기(clientInboundChannel 스레드) 처리 대기에 적합 — Awaitility 불필요.
