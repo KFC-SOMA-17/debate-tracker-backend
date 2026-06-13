@@ -45,3 +45,10 @@ CLAUDE.local.md
 
 ### Local STT test harness (untracked) ###
 /local-harness/
+
+### Ralph runtime artifacts (untracked) ###
+# prd.json·progress.txt·migration_thinking.md·CLAUDE.md 은 Ralph 가 커밋하는 산출물이라 추적 유지
+ralph/ralph-run.log
+ralph/.last-branch
+ralph/archive/
+ralph/ralph.sh
