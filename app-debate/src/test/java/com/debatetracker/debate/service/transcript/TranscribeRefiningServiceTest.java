@@ -73,7 +73,7 @@ class TranscribeRefiningServiceTest {
             service.refineSession(session);
 
             ArgumentCaptor<WebSocketMessage> captor = ArgumentCaptor.forClass(WebSocketMessage.class);
-            verify(messageSender).send(any(DebateSession.class), captor.capture());
+            verify(messageSender).broadcast(eq(DEBATE_ID), captor.capture());
             WebSocketMessage sent = captor.getValue();
             RefinedSegmentsResponse data = (RefinedSegmentsResponse) sent.data();
             assertAll(
@@ -95,7 +95,7 @@ class TranscribeRefiningServiceTest {
             assertAll(
                     () -> verify(corrector, never()).refine(anyString(), anyString(), anyList(), anyList()),
                     () -> verify(bufferRepository, never()).trimRaw(anyString(), anyInt()),
-                    () -> verify(messageSender, never()).send(any(DebateSession.class), any())
+                    () -> verify(messageSender, never()).broadcast(any(), any())
             );
         }
 
@@ -129,7 +129,7 @@ class TranscribeRefiningServiceTest {
                     () -> assertThatCode(() -> service.refineSession(session)).doesNotThrowAnyException(),
                     () -> verify(bufferRepository, never()).trimRaw(anyString(), anyInt()),
                     () -> verify(bufferRepository, never()).appendRefined(anyString(), anyList()),
-                    () -> verify(messageSender, never()).send(any(DebateSession.class), any())
+                    () -> verify(messageSender, never()).broadcast(any(), any())
             );
         }
 
@@ -144,7 +144,7 @@ class TranscribeRefiningServiceTest {
                     () -> assertThatCode(() -> service.refineSession(session)).doesNotThrowAnyException(),
                     () -> verify(bufferRepository, never()).trimRaw(anyString(), anyInt()),
                     () -> verify(bufferRepository, never()).appendRefined(anyString(), anyList()),
-                    () -> verify(messageSender, never()).send(any(DebateSession.class), any())
+                    () -> verify(messageSender, never()).broadcast(any(), any())
             );
         }
     }
@@ -165,7 +165,7 @@ class TranscribeRefiningServiceTest {
             service.refineRemaining(session);
 
             ArgumentCaptor<WebSocketMessage> captor = ArgumentCaptor.forClass(WebSocketMessage.class);
-            verify(messageSender).send(any(DebateSession.class), captor.capture());
+            verify(messageSender).broadcast(eq(DEBATE_ID), captor.capture());
             RefinedSegmentsResponse data = (RefinedSegmentsResponse) captor.getValue().data();
             assertAll(
                     () -> verify(bufferRepository).peekRaw(DEBATE_ID, remaining),
@@ -185,7 +185,7 @@ class TranscribeRefiningServiceTest {
             assertAll(
                     () -> verify(corrector, never()).refine(eq(DEBATE_ID), anyString(), anyList(), anyList()),
                     () -> verify(bufferRepository, never()).peekRaw(anyString(), anyInt()),
-                    () -> verify(messageSender, never()).send(any(DebateSession.class), any())
+                    () -> verify(messageSender, never()).broadcast(any(), any())
             );
         }
     }

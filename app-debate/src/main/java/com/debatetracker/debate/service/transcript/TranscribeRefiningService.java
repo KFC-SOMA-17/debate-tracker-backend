@@ -72,7 +72,7 @@ public class TranscribeRefiningService {
             speechBoxService.persist(debateIdValue, corrected);
             log.info("[refineEvent={}] SpeechBox 영속화 완료: debateId={}, {}건", eventId, debateId, corrected.size());
 
-            messageSender.send(session, new RefinedTranscriptionMessage(debateIdValue, corrected));
+            messageSender.broadcast(debateId, new RefinedTranscriptionMessage(debateIdValue, corrected));
             log.info("[refineEvent={}] WebSocket 전송 완료: debateId={}, {}건", eventId, debateId, corrected.size());
 
             log.debug("[refineEvent={}] 전사 보정 사이클 완료: debateId={}, {}건", eventId, debateId, corrected.size());
