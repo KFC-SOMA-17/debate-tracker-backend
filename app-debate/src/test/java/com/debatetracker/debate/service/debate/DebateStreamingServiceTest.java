@@ -82,6 +82,22 @@ class DebateStreamingServiceTest extends BaseServiceTest {
     }
 
     @Nested
+    class StartDebate {
+
+        @Test
+        void 세션을_저장하고_전사를_시작한다() {
+            String debateId = "1";
+
+            debateStreamingService.startDebate(debateId);
+
+            assertAll(
+                    () -> verify(sttClient).startStreaming(debateId),
+                    () -> assertThat(sessionRepository.existsByDebateId(debateId)).isTrue()
+            );
+        }
+    }
+
+    @Nested
     class StopDebateWithRemainingRefine {
 
         @Test

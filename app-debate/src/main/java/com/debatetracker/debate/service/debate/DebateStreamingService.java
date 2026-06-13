@@ -54,7 +54,7 @@ public class DebateStreamingService {
         log.info("연결 종료로 토론 정리: debateId={}", debateId);
     }
 
-    private void startDebate(String debateId) {
+    public void startDebate(String debateId) {
         sessionRepository.save(new DebateSession(debateId));
         sttClient.startStreaming(debateId);
         log.info("토론 시작: debateId={}", debateId);
