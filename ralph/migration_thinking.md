@@ -32,3 +32,10 @@
   - SimpleBroker 한계(다중 인스턴스 미지원)는 이 스토리 범위 밖 — debateId 키 전환으로 외부 브로커(STOMP relay) 이전 시 자연스럽게 흡수 가능한 형태가 됨.
 - **검증/완화**: 손댄 모든 소비처의 단위 테스트를 새 시그니처로 갱신하고 :app-debate:test 전체 그린 확인. reshape 를 prod+test 원자 커밋으로 묶어 중간 커밋도 테스트 그린 유지. 선행 독립 커밋(exceptionHandler)은 단독 컴파일+해당 테스트 그린으로 검증. 양 경로 공존 위험은 US-007(raw 제거)로 명시 위임.
 ---
+
+## US-004 - STOMP 제어 컨트롤러(start/stop)
+- **고민했던 지점**: 서버→클라 전송을 컨트롤러 반환 + `@SendTo("/topic/debate/{debateId}")` 로 선언적으로 할지, US-002 의 `WebSocketMessageSender.broadcast(debateId, msg)` 를 명시 호출할지. 또 컨트롤러를 ws/controller 에 둘지 controller/debate 에 둘지. start/stop 의 비즈니스 로직을 컨트롤러에 둘지 서비스에 둘지.
+- **트레이드오프**: broadcast 명시 호출을 택함 — @SendTo 도 destination 변수 치환을 지원하지만, US-006 의 ERROR(@MessageExceptionHandler)도 같은 토픽으로 broadcast 해야 하므로 **단일 broadcast 메커니즘**으로 통일하는 편이 경로 일관성·테스트 용이성에서 이득. 선언적 간결함은 약간 포기. 로직은 서비스(startDebate/stopDebateWithRemainingRefine)에 두고 컨트롤러는 위임+메시지 조립만 — 컨트롤러를 얇게 유지(통합 테스트로 커버), 서비스는 단위 테스트로 커버.
+- **잠재 위험**: (1) 마이그레이션 중간 상태로 raw 경로(SttWebSocketHandler.handleControlMessage)와 STOMP 컨트롤러가 **동시에 startDebate/stop 을 호출 가능** — 같은 debateId 로 양쪽이 들어오면 중복 startStreaming/세션 저장. US-007 raw 제거 전까지 양 경로 공존 부채. (2) stop 은 세션 미존재여도 컨트롤러가 항상 DEBATE_END 를 broadcast — 구독자에게 "없던 토론 종료" 가 보일 수 있음(기존 handleControlMessage 와 동일 동작이라 회귀는 아님). (3) SimpleBroker 라 다중 인스턴스 확장 시 broadcast 가 인스턴스 로컬 — 추후 외부 브로커 전환 시 재검토.
+- **검증/완화**: 통합 테스트(BaseStompTest)로 /topic 구독 후 start/stop SEND → DEBATE_START/DEBATE_END 수신을 future.get(3s)로 확인(broadcast 가시성 실증). 서비스 단위 테스트로 startDebate 의 세션 저장·startStreaming 위임 검증. 양 경로 공존/중복 호출 위험은 US-007(raw 제거)로 위임. /ws SockJS 미등록에 맞춰 plain WebSocketStompClient 로 접속해 transport 정합성 확보.
+---

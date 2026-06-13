@@ -73,8 +73,8 @@
         "Typecheck passes"
       ],
       "priority": 4,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "ws/controller/DebateStompController 신설. @MessageMapping(\"/debate/{debateId}/start\")·\"/stop\" + @DestinationVariable. start→DebateStreamingService.startDebate(public 노출)+broadcast(DEBATE_START), stop→stopDebateWithRemainingRefine+broadcast(DEBATE_END). broadcast 는 US-002 의 WebSocketMessageSender.broadcast 재사용(@SendTo 대신, US-006 ERROR 경로와 단일 broadcast 메커니즘). 서비스 단위 테스트: DebateStreamingServiceTest 에 StartDebate nested 추가. 통합 테스트: BaseStompTest(신규, plain WebSocketStompClient/StandardWebSocketClient — /ws 가 SockJS 미등록이라 SockJsClient 대신)·MessageFrameHandler·StompMessageResponse(test DTO). DebateStompControllerTest 가 /topic 구독 후 start/stop SEND→DEBATE_START·DEBATE_END future.get(3s) 단언(@Nested+한글). 커밋 3개(service public+test / controller / 통합테스트인프라). :app-debate:test BUILD SUCCESSFUL."
     },
     {
       "id": "US-005",

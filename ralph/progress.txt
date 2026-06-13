@@ -62,3 +62,21 @@
   - 핸들러 afterConnectionClosed/exceptionHandler 의 debateId 추출은 null 가능 → 삼항 금지 컨벤션에 따라 Optional.ofNullable(...).map(Object::toString).orElse(null) 또는 String.valueOf(...) 사용.
   - SttWebSocketHandlerTest: send 검증을 send(any(DebateSession.class),...) → send(eq(connection),...) 로 바꿔야 한다(핸들러가 WebSocketSession 오버로드 직접 호출).
 ---
+
+## 2026-06-13 14:34 - US-004
+- STOMP 제어 컨트롤러(start/stop) 추가. ControlMessage type 분기를 destination 분기로 전환.
+  - DebateStreamingService.startDebate(String): private → public 노출(컨트롤러가 직접 위임). handleControlMessage 는 raw 경로용으로 그대로 유지(US-007 제거 예정).
+  - ws/controller/DebateStompController(신규): @Controller + @MessageMapping("/debate/{debateId}/start"·"/stop"), @DestinationVariable String debateId.
+    - start: startDebate(debateId) 위임 후 messageSender.broadcast(debateId, new DebateStartMessage(parseLong)).
+    - stop: stopDebateWithRemainingRefine(debateId) 위임 후 broadcast(new DebateEndMessage). 세션 미존재여도 컨트롤러는 항상 DEBATE_END broadcast(기존 handleControlMessage 와 동일 동작).
+  - broadcast 는 @SendTo 대신 US-002 의 WebSocketMessageSender.broadcast 재사용 — /topic/debate/{debateId} 단일 broadcast 메커니즘(US-006 ERROR 경로와 일관).
+- Files changed: service/debate/DebateStreamingService.java, ws/controller/DebateStompController.java(신규), (test) service/debate/DebateStreamingServiceTest.java(StartDebate nested 추가), BaseStompTest.java(신규), MessageFrameHandler.java(신규), ws/StompMessageResponse.java(신규), ws/controller/DebateStompControllerTest.java(신규)
+- 검증: ./gradlew :app-debate:compileJava·compileTestJava 통과, :app-debate:test BUILD SUCCESSFUL(MySQL 13306/Redis 16379 로컬).
+- 커밋 3개: (1) service startDebate public+단위테스트, (2) controller, (3) 통합 테스트 인프라(BaseStompTest 등)+DebateStompControllerTest.
+- **Learnings for future iterations:**
+  - **/ws 는 SockJS 미등록**(StompConfig 가 addEndpoint("/ws") 만, .withSockJS() 없음) → 테스트 클라이언트는 docs 템플릿의 SockJsClient 대신 `new WebSocketStompClient(new StandardWebSocketClient())` + `ws://localhost:{port}/ws` 로 접속해야 한다. US-005/006 STOMP 테스트도 BaseStompTest 를 상속해 그대로 재사용.
+  - BaseStompTest/MessageFrameHandler/StompMessageResponse 를 com.debatetracker.debate(루트)·ws 패키지에 신설 — US-005(audio 미수신 검증), US-006(ERROR 수신) 통합 테스트가 상속/재사용. 응답 역직렬화는 추상 WebSocketMessage 대신 test record StompMessageResponse(long debateId, MessageType type, Object data) 로.
+  - @MessageMapping 핸들러에 @Payload 없이 @DestinationVariable 만 두면 body 무시 → 테스트 SEND 는 `new byte[0]`(MappingJackson2MessageConverter 가 base64 직렬화, 서버 미사용)로 충분.
+  - 통합 테스트에서 SttClient 는 test fixture FakeSttClient(@Component, HIGHEST_PRECEDENCE)가 주입 — 실 Azure 어댑터는 stt.azure.enabled 미설정으로 비활성. start/stop 위임이 외부 호출 없이 동작.
+  - 서비스 메서드를 컨트롤러가 직접 부르므로(분기 메서드 handleControlMessage 우회), public 노출 메서드는 직접 단위 테스트를 추가(handleControlMessage 경유 테스트만으로는 컨트롤러 위임 경로를 못 덮음).
+---
