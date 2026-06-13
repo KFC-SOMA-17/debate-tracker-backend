@@ -1,0 +1,12 @@
+## US-001 - STOMP 메시지 브로커 설정 추가
+- **고민했던 지점**: (1) STOMP endpoint를 기존 raw처럼 @ConditionalOnProperty(stt.azure.enabled)로 묶을지. (2) setAllowedOrigins vs setAllowedOriginPatterns. (3) SockJS withSockJS() 호출 여부.
+- **트레이드오프**:
+  - 조건부 활성 포기 → 항상 활성. raw는 STT 핸들러 빈이 없으면 만들 수 없어 조건부였지만, STOMP는 핸들러 빈 없이 endpoint/broker만 등록하므로 조건이 불필요. 대신 STT 비활성 환경에서도 빈 broker가 뜨는 미세 비용을 감수(무해).
+  - setAllowedOrigins 채택(AC 명시) — 정확한 origin 매칭. 와일드카드 패턴이 필요해지면 후속에서 setAllowedOriginPatterns로 전환.
+  - SockJS는 명시 등록하지 않음 — AC 미요구. 단, 컨벤션 BaseStompTest는 SockJsClient로 접속하므로 US-004 통합 테스트 작성 시 endpoint에 .withSockJS()가 필요해질 수 있음(후속 빚으로 남김).
+- **잠재 위험**:
+  - 구독자 없는 /topic 발송 가시성: 아직 @MessageMapping/broadcast가 없어 이 스토리 자체는 무발송. US-002~006에서 SimpleBroker로 발송 시작.
+  - SimpleBroker는 단일 인스턴스 인메모리 → 다중 인스턴스 스케일아웃 시 토픽 fan-out이 인스턴스 경계를 못 넘음(원래 계획상 Redis Pub/Sub 백플레인 필요). 1차 단일 인스턴스 전제로 보류.
+  - 메시지 크기 64KB는 텍스트/바이너리 STOMP 프레임 한도. 분할 전송(partial)·sendBufferSizeLimit은 미설정 — 대용량 누적 시 재검토 필요.
+- **검증/완화**: compileJava + 전체 test 통과로 새 broker 빈이 기존 @SpringBootTest 컨텍스트와 충돌 없음 확인(SimpleBrokerMessageHandler 기동 로그). endpoint 경로를 raw("/ws/stt")와 분리("/ws")해 마이그레이션 공존 중 충돌 차단. SockJS/백플레인 한계는 후속 스토리(US-004 통합 테스트, 운영 단계 Redis 백플레인)로 위임.
+---

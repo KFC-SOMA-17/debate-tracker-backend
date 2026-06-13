@@ -1,0 +1,30 @@
+# Ralph Progress Log — ralph/websocket-stomp
+
+## Codebase Patterns
+- 빌드/검증: macOS 환경이므로 `./gradlew` 사용. typecheck = `./gradlew :app-debate:compileJava`, 테스트 = `./gradlew :app-debate:test`.
+- 컨벤션: 루트 CLAUDE.md + CLAUDE.local.md 우선. final 금지, DTO는 record + 보조 생성자(정팩메 회피), 예외는 DebateTrackerException + ErrorCode(던지기 전 log.error), 삼항연산자 금지(Optional), 타입 레벨 주석 금지(TODO만 예외).
+- 테스트: @Nested 클래스 + 한글 메서드명(@DisplayName 금지), 검증 2개 이상이면 assertAll로 묶기.
+- STOMP 통합 테스트: docs/websocket-stomp-convention.md의 BaseStompTest 패턴(SockJS + WebSocketStompClient, CompletableFuture + 타임아웃)을 따른다.
+- 메시지 페이로드 WebSocketMessage(debateId/type/data)와 MessageType enum은 그대로 유지 — transport/destination만 교체.
+- debateId는 REST POST /api/debates로 이미 사전 발급됨(DebateRestController).
+- 브랜치 고정: refactor/#50-stomp-migration 에서만 작업. git checkout/switch/branch 금지.
+- 커밋은 최대한 잘게(스토리당 여러 커밋). config/프로덕션/테스트, 클래스/관심사 단위로 분리. 각 커밋은 단독 컴파일 통과.
+- 커밋 전 손댄 파일의 미사용 import 제거.
+- 통합 테스트는 새 WS destination(@MessageMapping) 추가 스토리에만, 서비스 변경엔 항상 서비스 단위 테스트.
+- 스토리 완료마다 ralph/migration_thinking.md 에 고민/트레이드오프/잠재위험/완화 기록.
+
+---
+
+## 2026-06-13 14:10 - US-001
+- STOMP 메시지 브로커 설정 추가. WebSocketMessageBrokerConfigurer 구현 StompConfig를 controller/config에 신설.
+  - @EnableWebSocketMessageBroker, registerStompEndpoints: addEndpoint("/ws").setAllowedOrigins(corsProperties.getOriginUrls())
+  - configureMessageBroker: setApplicationDestinationPrefixes("/app"), enableSimpleBroker("/topic")
+  - configureWebSocketTransport: setMessageSizeLimit(64*1024) — ~6400B 바이너리 오디오 청크 수용
+- Files changed: app-debate/.../controller/config/StompConfig.java (신규)
+- 검증: ./gradlew :app-debate:compileJava 통과, :app-debate:test BUILD SUCCESSFUL(컨텍스트에 SimpleBrokerMessageHandler 기동 확인 → 새 broker 빈이 기존 @SpringBootTest 컨텍스트와 충돌 없음)
+- **Learnings for future iterations:**
+  - CorsProperties는 CorsConfig의 @EnableConfigurationProperties(CorsProperties.class)로 이미 빈 등록됨 → @RequiredArgsConstructor로 바로 주입 가능. setAllowedOrigins는 String... 가변인자라 getOriginUrls()(String[])를 그대로 넘긴다.
+  - 신설 STOMP endpoint는 "/ws", 기존 raw WS는 "/ws/stt" — 경로가 달라 마이그레이션 중 공존 충돌 없음. (BaseStompTest 템플릿 SOCKET_ENDPOINT도 "/ws")
+  - 기존 raw WebSocketConfig는 @ConditionalOnProperty(stt.azure.enabled=true)로만 활성. StompConfig는 조건 없이 항상 활성(transport 교체 목표). US-007에서 raw config 제거 예정.
+  - 어노테이션 길이순 정렬: @Configuration → @RequiredArgsConstructor → @EnableWebSocketMessageBroker.
+---

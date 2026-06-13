@@ -1,0 +1,131 @@
+{
+  "project": "DebateTracker (app-debate)",
+  "branchName": "refactor/#50-stomp-migration",
+  "description": "실시간 STT/토론 세션 전송 경로를 Raw WebSocket(/ws/stt 단일 채널)에서 Spring STOMP(/app, /topic destination 라우팅 + 1:N broadcast)로 마이그레이션한다. 메시지 페이로드(WebSocketMessage: debateId/type/data)와 비즈니스 로직은 그대로 두고 transport/destination만 교체한다. debateId는 이미 REST POST /api/debates로 사전 발급된다. 작업은 현재 체크아웃된 refactor/#50-stomp-migration 브랜치에서만 진행하며 브랜치를 새로 만들거나 이동하지 않는다.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "STOMP 메시지 브로커 설정 추가",
+      "description": "As a 백엔드 개발자, STOMP 핸드셰이크 endpoint와 destination prefix를 등록해 /app(클라→서버)·/topic(서버→클라 broadcast) 라우팅 기반을 마련한다. spring-boot-starter-websocket에 이미 포함된 spring-messaging을 사용하므로 새 의존성은 추가하지 않는다.",
+      "acceptanceCriteria": [
+        "WebSocketMessageBrokerConfigurer를 구현하는 설정 클래스를 controller/config 패키지에 추가하고 @EnableWebSocketMessageBroker를 단다",
+        "registerStompEndpoints에서 endpoint '/ws'를 등록하고 CorsProperties의 origin들로 setAllowedOrigins를 설정한다",
+        "configureMessageBroker에서 setApplicationDestinationPrefixes(\"/app\"), enableSimpleBroker(\"/topic\")를 설정한다",
+        "configureWebSocketTransport에서 바이너리 오디오 청크(~6400 bytes)를 수용하도록 setMessageSizeLimit을 64KB 이상으로 설정한다",
+        "타입 레벨 주석을 달지 않고 CLAUDE.md 컨벤션(final 금지, 어노테이션 길이순)을 따른다",
+        "이 스토리는 @MessageMapping API를 아직 추가하지 않으므로 STOMP 통합 테스트는 생략한다(설정만 추가)",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": "StompConfig 추가(controller/config). @EnableWebSocketMessageBroker, endpoint /ws + setAllowedOrigins(CorsProperties), /app·/topic prefix, setMessageSizeLimit 64KB. 컨텍스트 로드 확인(SimpleBrokerMessageHandler 기동), 기존 테스트 전부 통과."
+    },
+    {
+      "id": "US-002",
+      "title": "서버→클라이언트 메시지를 /topic으로 broadcast",
+      "description": "As a 구독자(Host·Viewer), 전사/보정 결과를 단건 연결이 아니라 /topic/debate/{debateId}로 broadcast 받는다. WebSocketMessageSender가 SimpMessagingTemplate로 debateId 키 기반 broadcast하도록 바꾸고, 비동기 발송 경로(TRANSCRIPTION·REFINED_TRANSCRIPTION)가 이를 사용하게 한다.",
+      "acceptanceCriteria": [
+        "WebSocketMessageSender에 SimpMessagingTemplate를 주입하고 broadcast(String debateId, WebSocketMessage message) 메서드를 추가해 convertAndSend(\"/topic/debate/\" + debateId, message)로 전송한다",
+        "TranscribeEventListener의 TRANSCRIPTION 발송이 broadcast(debateId, ...)를 사용하도록 변경한다",
+        "REFINED_TRANSCRIPTION 발송 경로(리파인 서비스)도 broadcast(debateId, ...)를 사용하도록 변경한다",
+        "기존 send(WebSocketSession, ...) 오버로드는 raw 핸들러 제거(US-007) 전까지 유지해 컴파일을 유지한다",
+        "WebSocketMessageSender 단위 테스트로 SimpMessagingTemplate.convertAndSend(\"/topic/debate/{debateId}\", message) 호출을 verify한다",
+        "TranscribeEventListener·리파인 서비스의 기존 단위 테스트가 broadcast 시그니처에 맞게 갱신되고 통과한다",
+        "신규 WS destination API가 없으므로 STOMP 통합 테스트는 추가하지 않는다(단위 테스트만)",
+        "Tests pass",
+        "Typecheck passes"
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-003",
+      "title": "세션 lifecycle을 debateId 키로 전환",
+      "description": "As a 서버, STOMP에는 단일 WebSocketSession 소유 개념이 없으므로 DebateSession에서 WebSocketSession 의존을 제거하고 debateId만으로 세션을 식별·관리한다. DebateStreamingService의 시작/종료 시그니처를 debateId 기반으로 정리한다.",
+      "acceptanceCriteria": [
+        "DebateSession record에서 WebSocketSession connection 필드를 제거하고 debateId 중심으로 재정의한다",
+        "DebateStreamingService.startDebate / stop 계열 메서드가 WebSocketSession 대신 debateId(String)를 받도록 시그니처를 변경한다",
+        "InMemoryDebateSessionRepository 및 호출부(스케줄러·이벤트·핸들러)를 새 시그니처에 맞게 갱신한다",
+        "raw SttWebSocketHandler는 보유한 WebSocketSession으로 send(WebSocketSession, ...)를 직접 호출하도록 바꿔 제거 전까지 컴파일을 유지한다",
+        "DebateStreamingService 단위 테스트(start/stop의 debateId 기반 동작·repository 상호작용)를 갱신하고 통과시킨다",
+        "세션 repository 단위 테스트를 새 DebateSession 정의에 맞게 갱신한다",
+        "신규 WS destination API가 없으므로 STOMP 통합 테스트는 추가하지 않는다(단위 테스트만)",
+        "Tests pass",
+        "Typecheck passes"
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-004",
+      "title": "STOMP 제어 컨트롤러(start/stop) 추가",
+      "description": "As a Host, /app/debate/{debateId}/start와 /stop으로 토론 시작·종료를 SEND하면 서버가 처리하고 DEBATE_START·DEBATE_END를 /topic으로 broadcast한다. 기존 ControlMessage type 분기를 destination 분기로 대체한다.",
+      "acceptanceCriteria": [
+        "@Controller에 @MessageMapping(\"/debate/{debateId}/start\")와 @MessageMapping(\"/debate/{debateId}/stop\")를 추가하고 @DestinationVariable로 debateId를 받는다",
+        "start는 DebateStreamingService로 Azure 전사 시작을 위임하고 DEBATE_START를 /topic/debate/{debateId}로 broadcast한다",
+        "stop은 종료(잔여 세그먼트 리파인 포함)를 위임하고 DEBATE_END를 broadcast한다",
+        "컨트롤러가 위임하는 서비스 로직에 대한 단위 테스트를 작성/갱신한다",
+        "신규 WS destination(/app start·stop, /topic)을 추가하므로 BaseStompTest(docs/websocket-stomp-convention.md) 패턴으로 통합 테스트를 작성: /topic 구독 후 start SEND 시 DEBATE_START 수신을 future.get(3s)로 단언한다",
+        "테스트는 @Nested + 한글 메서드명 컨벤션을 따른다",
+        "Tests pass",
+        "Typecheck passes"
+      ],
+      "priority": 4,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-005",
+      "title": "STOMP 바이너리 오디오 컨트롤러 추가",
+      "description": "As a Host, /app/debate/{debateId}/audio로 PCM16 바이너리 청크를 SEND하면 서버가 STT 푸시스트림에 흘려보내고 broadcast하지 않는다. debateId는 본문이 아니라 destination 경로로 전달된다.",
+      "acceptanceCriteria": [
+        "@MessageMapping(\"/debate/{debateId}/audio\")가 byte[] 본문과 @DestinationVariable debateId를 받는다",
+        "수신한 bytes를 DebateStreamingService.sendAudioChunk(debateId, bytes)로 위임한다",
+        "오디오 메시지는 /topic으로 broadcast하지 않는다(서버가 소비만)",
+        "sendAudioChunk 위임 동작에 대한 서비스 단위 테스트를 작성/갱신한다",
+        "신규 WS destination(/app audio)을 추가하므로 BaseStompTest 패턴으로 통합 테스트를 작성: 바이너리 SEND 후 sendAudioChunk 소비와 /topic 미수신(미-broadcast)을 검증한다",
+        "Tests pass",
+        "Typecheck passes"
+      ],
+      "priority": 5,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-006",
+      "title": "STOMP 예외를 ERROR로 broadcast",
+      "description": "As a 구독자, start/audio/stop 처리 중 발생한 예외(예: Azure 인증 실패)를 DEBATE_START 대신 ERROR 메시지로 /topic에서 수신한다. start 이전에 이미 토픽을 구독하므로 시작 단계 에러도 동일 토픽으로 전달된다.",
+      "acceptanceCriteria": [
+        "@MessageExceptionHandler를 두어 STOMP 컨트롤러 예외를 ErrorData(code/status/message)를 담은 ERROR WebSocketMessage로 변환한다",
+        "DebateTrackerException의 ErrorCode를 code·status로 매핑하고 /topic/debate/{debateId}로 broadcast한다",
+        "던지기/처리 직전 log.error로 컨텍스트(debateId/code)를 남긴다(삼항연산자 금지·Optional 컨벤션 준수)",
+        "예외→ERROR 변환 로직에 대한 단위 테스트를 작성한다",
+        "ERROR가 /topic으로 broadcast되는 경로는 BaseStompTest 패턴 통합 테스트로 검증한다(start 단계 예외 주입 시 ERROR 수신)",
+        "Tests pass",
+        "Typecheck passes"
+      ],
+      "priority": 6,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-007",
+      "title": "raw WebSocket 핸들러/설정 제거",
+      "description": "As a 유지보수자, STOMP 경로로 완전히 이전했으므로 더 이상 쓰지 않는 raw WebSocket 구성요소(/ws/stt endpoint, SttWebSocketHandler, ExceptionHandlingWebSocketHandler, ControlMessage 경로)와 관련 테스트를 제거한다.",
+      "acceptanceCriteria": [
+        "/ws/stt를 등록하던 raw WebSocketConfig와 WebSocketConfigurer 구성을 제거한다",
+        "SttWebSocketHandler·ExceptionHandlingWebSocketHandler 및 ControlMessage 기반 분기를 삭제한다",
+        "더 이상 쓰이지 않는 send(WebSocketSession, ...) 오버로드와 raw 전용 WebSocketSession import를 정리한다",
+        "SttWebSocketHandlerTest 등 raw 전용 테스트를 삭제한다(STOMP 통합 테스트는 US-004~006에서 이미 커버하므로 신규 추가 불필요)",
+        "app-debate가 정상 부팅되고(STOMP endpoint만 노출) 전체 테스트가 통과한다",
+        "Tests pass",
+        "Typecheck passes"
+      ],
+      "priority": 7,
+      "passes": false,
+      "notes": ""
+    }
+  ]
+}
