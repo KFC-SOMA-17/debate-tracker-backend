@@ -61,8 +61,8 @@ public class DebateStreamingService {
     }
 
 
-    public void sendAudioChunk(String sessionId, byte[] payload) {
-        sttClient.sendAudioChunk(String.valueOf(sessionId), payload);
+    public void sendAudioChunk(String debateId, byte[] payload) {
+        sttClient.sendAudioChunk(debateId, payload);
     }
 
     public List<DebateSession> findActiveSessions() {
