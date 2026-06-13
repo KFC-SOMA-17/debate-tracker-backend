@@ -179,8 +179,8 @@
         "Typecheck passes"
       ],
       "priority": 10,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": ".gitignore에 'Ralph runtime artifacts' 섹션 추가 — ralph/ralph-run.log, ralph/.last-branch, ralph/archive/, ralph/ralph.sh. 커밋 산출물(prd.json·progress.txt·migration_thinking.md·CLAUDE.md)은 ignore 대상에 없어 추적 유지(주석으로 명시). 세 런타임 파일은 이미 untracked 상태라 git rm --cached 불요(스킵). 검증: git check-ignore로 런타임 4개 패턴은 무시·산출물 4개는 비무시(exit 1) 확인, git ls-files로 인덱스에 추적 중인 무시대상 없음 확인. 프로덕션/테스트 코드 무변경, :app-debate:compileJava BUILD SUCCESSFUL. 커밋 1개(.gitignore 단일)."
     }
   ]
 }

@@ -151,3 +151,19 @@
   - 컨벤션 감사형 스토리는 코드 변경이 0건일 수 있다. 억지로 수정을 만들지 말 것(특히 단발 verify를 1개짜리 assertAll로 감싸는 건 규칙 위반). 감사 근거(파일:라인)를 notes/progress에 남겨 추적성을 확보한다.
   - 코드 변경이 없으면 커밋 대상은 Ralph 산출물(prd.json/progress.txt/migration_thinking.md)뿐 — chore 커밋 1개로 정리.
 ---
+
+## 2026-06-13 16:55 - US-010
+- Ralph 런타임 산출물 .gitignore 추가. .gitignore 끝에 "Ralph runtime artifacts (untracked)" 섹션 신설.
+  - 무시: ralph/ralph-run.log, ralph/.last-branch, ralph/archive/, ralph/ralph.sh
+  - 추적 유지(주석 명시): ralph/prd.json·progress.txt·migration_thinking.md·CLAUDE.md (Ralph가 커밋하는 산출물)
+- Files changed: .gitignore
+- 검증:
+  - git check-ignore — 런타임 4개(ralph-run.log·.last-branch·ralph.sh·archive/)는 무시됨, 산출물 4개는 비무시(exit 1).
+  - git ls-files — 인덱스에 추적 중인 무시 대상 없음 → git rm --cached 불요(AC의 "없으면 스킵" 경로).
+  - ./gradlew :app-debate:compileJava BUILD SUCCESSFUL(프로덕션/테스트 코드 무변경).
+- 커밋 1개: chore: .gitignore 단일 파일.
+- **Learnings for future iterations:**
+  - 이 시점 ralph/ralph-run.log·.last-branch·ralph.sh 는 이미 untracked(git status ??)였음 → rm --cached 불필요. 만약 과거 커밋에서 추적됐다면 git rm --cached 후 커밋해야 ignore가 실제로 동작함(추적 중 파일은 .gitignore가 무시 못 함).
+  - check-ignore는 무시 시 exit 0+경로 출력, 비무시 시 exit 1+무출력. 산출물 비무시 검증은 exit 1을 기대값으로 봐야 한다.
+  - 디렉터리 패턴 ralph/archive/ 는 아직 디렉터리가 없어도 check-ignore가 매칭 출력함(패턴 자체 평가).
+---
