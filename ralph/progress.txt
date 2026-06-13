@@ -28,3 +28,19 @@
   - 기존 raw WebSocketConfig는 @ConditionalOnProperty(stt.azure.enabled=true)로만 활성. StompConfig는 조건 없이 항상 활성(transport 교체 목표). US-007에서 raw config 제거 예정.
   - 어노테이션 길이순 정렬: @Configuration → @RequiredArgsConstructor → @EnableWebSocketMessageBroker.
 ---
+
+## 2026-06-13 14:16 - US-002
+- 서버→클라이언트 메시지를 /topic/debate/{debateId} 로 broadcast 하도록 전환.
+  - WebSocketMessageSender: @RequiredArgsConstructor 로 SimpMessagingTemplate 주입, broadcast(String debateId, WebSocketMessage) 추가 → convertAndSend("/topic/debate/%s".formatted(debateId), message). 기존 send(DebateSession/WebSocketSession,...) 오버로드는 raw 핸들러·예외핸들러 컴파일 위해 유지(US-007에서 제거).
+  - TranscribeEventListener: TRANSCRIPTION 발송을 broadcast(debateId,...) 로. sendTranscription 시그니처에서 DebateSession 제거(미사용 import 정리).
+  - TranscribeRefiningService: REFINED_TRANSCRIPTION 발송을 broadcast(debateId,...) 로. session 파라미터는 debateId() 추출에 여전히 사용.
+- Files changed: ws/sender/WebSocketMessageSender.java, event/TranscribeEventListener.java, service/transcript/TranscribeRefiningService.java, (test) ws/sender/WebSocketMessageSenderTest.java(신규), event/TranscribeEventListenerTest.java, service/transcript/TranscribeRefiningServiceTest.java
+- 검증: ./gradlew :app-debate:compileJava 통과, :app-debate:test BUILD SUCCESSFUL(MySQL 13306/Redis 16379 로컬 기동 상태).
+- 커밋 3개: (1) sender broadcast+test, (2) listener 전환+test, (3) refine 전환+test. 각각 단독 컴파일+테스트 통과.
+- **Learnings for future iterations:**
+  - SimpMessagingTemplate 빈은 US-001 StompConfig(@EnableWebSocketMessageBroker)가 자동 등록 → WebSocketMessageSender 가 조건 없이 주입 가능. @SpringBootTest 컨텍스트도 SimpleBrokerMessageHandler 기동되어 충돌 없음.
+  - broadcast 시그니처는 String debateId 를 받는다(메시지 페이로드의 long debateId 와 별개). 토픽 경로 포맷은 "/topic/debate/{debateId}" — BaseStompTest 구독 경로와 일치시킬 것(US-004~006).
+  - 단위 테스트 verify 전환 시: send(any(DebateSession.class),...) → broadcast(eq(debateId),...)/broadcast(any(),any()). ArgumentMatchers.eq static import 필요.
+  - 커밋 seam: 프로덕션 행위 변경은 해당 단위 테스트와 같은 커밋으로 묶어야 중간 커밋도 :app-debate:test 그린 유지(테스트만 뒤로 미루면 중간 커밋이 깨짐).
+  - 아직 raw 경로(SttWebSocketHandler·WebSocketExceptionHandler)는 send(...) 오버로드 사용 중 → broadcast 와 공존. US-007 제거 전까지 양 경로 동시 존재.
+---

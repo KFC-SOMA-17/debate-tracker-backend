@@ -36,8 +36,8 @@
         "Typecheck passes"
       ],
       "priority": 2,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "WebSocketMessageSender에 SimpMessagingTemplate 주입 + broadcast(debateId, msg)=convertAndSend(\"/topic/debate/\"+id, msg). TranscribeEventListener(TRANSCRIPTION)·TranscribeRefiningService(REFINED_TRANSCRIPTION) 둘 다 broadcast 사용. send(WebSocketSession/DebateSession,...) 오버로드는 US-007까지 유지. WebSocketMessageSenderTest(신규)·event·refine 단위테스트 broadcast로 갱신, 전체 :app-debate:test 통과(SimpleBrokerMessageHandler 기동 확인)."
     },
     {
       "id": "US-003",
