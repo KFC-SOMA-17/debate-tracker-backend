@@ -46,3 +46,10 @@
 - **잠재 위험**: (1) audio 미-broadcast 검증이 FakeSttClient 를 그대로 쓰면 깨진다 — Fake 가 sendAudioChunk 에서 TranscribeEvent 를 publish→TRANSCRIPTION 이 /topic 으로 broadcast 되기 때문. @MockitoBean 으로 STT 를 격리하지 않으면 "토픽 미수신" 단언이 항상 실패. (2) 프로덕션 JS 클라이언트가 native binary STOMP 프레임을 보내야 ByteArrayMessageConverter 가 원본 PCM 을 받는다 — 만약 클라가 JSON/base64 로 보내면 서버가 깨진 바이트를 STT 에 흘린다(프론트 계약 의존성, 후속 검증 필요). (3) setMessageSizeLimit(64KB, US-001)이 ~6400B 청크를 수용하지만 base64 인코딩 시 ~1.33배 팽창 — JSON 경로로 보내면 한도 여유 축소(native binary 면 무관).
 - **검증/완화**: @MockitoBean SttClient 로 다운스트림 전사 이벤트를 차단해 미-broadcast 를 결정적으로 단언. 소비는 Mockito timeout(3s) verify 로 비동기 처리 완료까지 대기 후 확정. 바이트 정확성은 서비스 단위 테스트에 위임. 하네스/프로덕션 인코딩 차이는 progress.txt Learnings 에 명시해 US-006(ERROR 경로)·향후 프론트 통합 시 참조하도록 남김.
 ---
+
+## US-006 - STOMP 예외를 ERROR로 broadcast
+- **고민했던 지점**: 예외 핸들러에서 debateId 를 어떻게 얻나. (A) @DestinationVariable 을 @MessageExceptionHandler 에 그대로 쓸 수 있나, (B) 불가하면 simpDestination 헤더를 파싱(`/app/debate/{id}/start` 분해)해야 하나. Spring 이 매칭 시 template 변수를 동일 mutable 메시지 헤더에 set 하고 예외 처리 시 같은 메시지를 재사용한다고 판단해 (A) 채택, 통합 테스트로 실증. broadcast 메커니즘도 @SendTo 로 바꿀지 고민했으나 US-002~004 와 일관되게 WebSocketMessageSender.broadcast 단일 경로 유지.
+- **트레이드오프**: @DestinationVariable(A) vs destination 파싱(B). A 는 코드가 짧고 라우팅 규칙 변경에 자동 추종하지만 Spring 내부 헤더 전파에 의존(버전 의존적). B 는 명시적이고 견고하나 destination 포맷 하드코딩·중복. → A 선택 + 통합 테스트로 회귀 가드(헤더 전파가 깨지면 통합 테스트가 즉시 실패). ErrorMessage 페이로드는 raw 핸들러와 동일 포맷 재사용 — 중복 ErrorMessage 타입을 새로 만들지 않아 클라이언트 스키마 일관.
+- **잠재 위험**: (1) @DestinationVariable 해석이 Spring 마이너 버전 업에서 깨지면 debateId 가 null→Long.parseLong NPE/예외 핸들러 내부 2차 예외(무한루프는 아니나 ERROR 미전달). (2) 예외 핸들러 자체가 던지면(broadcast 실패 등) 클라이언트는 아무 응답도 못 받음. (3) SimpleBroker 단일 인스턴스 가정 — 다중 인스턴스/외부 브로커 전환 시 구독자가 다른 노드면 ERROR 가 도달 안 할 수 있음(이는 broadcast 전반 공통 한계, US 범위 밖). (4) 구독 타이밍: start 직전에 토픽 구독이 끝나야 시작단계 ERROR 를 받는다 — 통합 테스트는 subscribe 후 send 라 OK지만 실 클라이언트는 구독-후-start 순서 보장 필요.
+- **검증/완화**: 단위 테스트로 DebateTrackerException 코드 보존·일반 예외 INTERNAL_SERVER_ERROR 매핑 검증(위험1의 매핑 로직). 통합 테스트로 @DestinationVariable 전파+ERROR 토픽 수신 end-to-end 검증(위험1의 헤더 전파 회귀 가드). logBySeverity 로 5xx/4xx 분리 로깅해 운영 가시성 확보(위험2 의 silent 실패 추적). 위험3/4 는 후속(외부 브로커 도입·클라이언트 구독 순서 컨벤션 docs)으로 위임.
+---

@@ -107,8 +107,8 @@
         "Typecheck passes"
       ],
       "priority": 6,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "DebateStompController에 @MessageExceptionHandler handleException(@DestinationVariable String debateId, Throwable) 추가. toErrorCode(DebateTrackerException→getErrorCode, 그 외→INTERNAL_SERVER_ERROR), logBySeverity(5xx=error/4xx=warn, debateId·code 컨텍스트, 삼항 없이 if/return), broadcast(debateId, new ErrorMessage(parseLong, errorCode))로 /topic/debate/{debateId} 전송(US-002 메커니즘 재사용). @DestinationVariable이 @MessageExceptionHandler에서도 해석됨(Spring이 매칭 시 DESTINATION_TEMPLATE_VARIABLES_HEADER를 동일 mutable 메시지에 set→예외 처리 시 재사용). 단위 테스트(DebateStompControllerExceptionHandlerTest: DebateTrackerException 코드 보존·일반 예외 INTERNAL_SERVER_ERROR 매핑, ArgumentCaptor). 통합 테스트(DebateStompErrorControllerTest: @MockitoBean DebateStreamingService.startDebate willThrow→start SEND 시 ERROR future.get(3s) 수신). 커밋 3개. :app-debate:test BUILD SUCCESSFUL."
     },
     {
       "id": "US-007",

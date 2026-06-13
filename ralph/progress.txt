@@ -93,3 +93,18 @@
   - 따라서 통합 테스트에서 **바이트 정확 일치(captor)는 검증하지 말 것** — 하네스 아티팩트로 깨진다. 소비 검증은 `verify(sttClient, timeout(3s)).sendAudioChunk(eq(debateId), any(byte[].class))`(destination 의 debateId 추출+위임 경로 확인)로 충분. 바이트 pass-through 정확성은 서비스 단위 테스트(verify(sttClient).sendAudioChunk(debateId, pcm))가 이미 커버.
   - **FakeSttClient.sendAudioChunk 는 TranscribeEvent 를 publish** → TranscribeEventListener 가 TRANSCRIPTION 을 /topic 으로 broadcast 한다. 그래서 audio 미-broadcast 를 검증하려면 실 Fake 가 아니라 @MockitoBean SttClient(아무것도 안 함)로 대체해야 토픽에 메시지가 안 오는 걸 단언할 수 있다. timeout verify 로 서버 처리 완료를 보장한 뒤 future.get(500ms) TimeoutException 으로 미-broadcast 확인.
   - Mockito `timeout(ms)` verification mode 가 STOMP 비동기(clientInboundChannel 스레드) 처리 대기에 적합 — Awaitility 불필요.
+
+## 2026-06-13 14:50 - US-006
+- STOMP 예외를 ERROR 로 /topic broadcast. DebateStompController 에 @MessageExceptionHandler 추가.
+  - handleException(@DestinationVariable String debateId, Throwable): toErrorCode→logBySeverity→broadcast(debateId, new ErrorMessage(parseLong, errorCode)).
+  - toErrorCode: DebateTrackerException 은 getErrorCode(), 그 외는 INTERNAL_SERVER_ERROR. logBySeverity: 5xx=log.error / 4xx=log.warn (debateId·code 컨텍스트, 삼항 금지 — if/return).
+  - broadcast 는 US-002 WebSocketMessageSender.broadcast 재사용 → start/stop/audio/예외 모두 단일 /topic/debate/{debateId} 메커니즘.
+- Files changed: ws/controller/DebateStompController.java, (test) ws/controller/DebateStompControllerExceptionHandlerTest.java(신규 단위), ws/controller/DebateStompErrorControllerTest.java(신규 통합)
+- 검증: ./gradlew :app-debate:compileJava·compileTestJava 통과, :app-debate:test BUILD SUCCESSFUL(MySQL 13306/Redis 16379 로컬).
+- 커밋 3개: (1) controller 예외핸들러, (2) 단위 테스트, (3) 통합 테스트.
+- **Learnings for future iterations:**
+  - **@DestinationVariable 은 @MessageExceptionHandler 에서도 해석된다.** Spring SimpAnnotationMethodMessageHandler.handleMatch 가 매칭 시 DESTINATION_TEMPLATE_VARIABLES_HEADER 를 **동일 mutable 메시지**(clientInboundChannel 메시지)에 set 하고, 핸들러가 던지면 processHandlerMethodException 이 그 메시지를 그대로 넘겨 같은 ArgumentResolver 로 debateId 를 다시 해석. destination 문자열 파싱 불필요. (통합 테스트로 확인.)
+  - 예외 단계별 broadcast 검증은 **@MockitoBean DebateStreamingService.startDebate 에 willThrow** 로 주입. 컨트롤러가 service 호출 직후 던지므로 DEBATE_START broadcast 는 스킵되고 예외핸들러의 ERROR broadcast 만 /topic 에 도달 → future.get(3s) 로 ERROR 수신 단언.
+  - 예외→ERROR 변환 로직 단위 테스트는 컨트롤러를 plain mock 생성(new DebateStompController(mock svc, mock sender))해 handleException 직접 호출 + ArgumentCaptor<WebSocketMessage> 로 type/debateId/ErrorResponse.code() 단언. (Spring 컨텍스트 불필요.)
+  - ErrorMessage(long debateId, ErrorCode) 는 data() 로 ErrorResponse(code/status/message) 노출 — 기존 raw WebSocketExceptionHandler 와 동일 페이로드 포맷 재사용(클라이언트는 transport 무관하게 같은 ERROR 스키마 수신). raw 핸들러는 US-007 에서 제거 예정이나 ErrorMessage·ErrorResponse 는 STOMP 경로가 계속 사용.
+---
