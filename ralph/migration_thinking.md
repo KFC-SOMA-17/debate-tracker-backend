@@ -67,3 +67,10 @@
 - **잠재 위험**: (1) native 정확매칭 핸들러와 SockJS /ws/** 핸들러의 매핑 우선순위가 꼬이면 한쪽이 다른쪽을 가릴 수 있음 — Spring 은 정확매칭(/ws)과 패턴(/ws/**)을 분리 처리해 실제론 충돌 없음. (2) SockJS 활성화로 /ws/info 등 추가 HTTP endpoint 가 노출 → CORS(setAllowedOrigins)를 양쪽 등록 모두에 적용해 동일 출처 정책 유지. (3) setAllowedOrigins 에 "*" 가 아닌 명시 origin 만 있어 SockJS 의 origin 검사도 동일 화이트리스트로 동작(와일드카드였다면 SockJS info 요청에서 제약 가능성).
 - **검증/완화**: 신규 SockJS 통합 테스트로 핸드셰이크뿐 아니라 start→DEBATE_START broadcast 왕복까지 단언(SockJS transport 위 STOMP 정상 동작 증명). 동시에 기존 native DebateStompControllerTest 를 같은 실행에서 통과시켜 이중 등록이 native 경로를 깨지 않음을 확인. 전체 :app-debate:test 그린으로 회귀 없음 확정.
 ---
+
+## US-009 - 테스트 verify를 assertAll 안으로 통합 (감사형)
+- **고민했던 지점**: 이 스토리는 transport 전환이 아니라 테스트 컨벤션 정리다. verify( 13개 파일 전수 조사 결과 위반 0건 — 멀티 검증은 모두 assertAll 람다 안, 단발 verify는 미포장, capturing verify는 assertAll 앞. "구현"으로 억지 변경을 만들지(예: 단발 verify를 1개짜리 assertAll로 감싸기), 아니면 감사 결과(0건)를 그대로 인정하고 passes:true로 둘지 망설였다.
+- **트레이드오프**: (A) 억지 수정 — diff는 생기지만 CLAUDE.local.md '람다 1개짜리 assertAll 금지'·'capturing verify는 assertAll 앞' 규칙을 오히려 위반하고 노이즈만 추가. (B) 무변경 + 감사 근거 기록 — diff 0이지만 추적성(파일:라인)을 notes/progress에 남겨 "정말 다 봤다"를 증명. (B) 선택: 컨벤션의 목적(가독성·soft assertion)을 이미 달성한 코드를 건드리지 않는 게 규칙 정신에 부합.
+- **잠재 위험**: 코드 변경이 없어 "스토리를 실제로 했나"가 불투명할 수 있다(감사형 스토리의 본질적 리스크). 또 향후 새 테스트가 규칙을 어겨 유입될 여지는 남는다(자동 강제 장치 부재 — ArchUnit/커스텀 린트 없음).
+- **검증/완화**: verify( grep 전수 + 각 라인을 단발/멀티/capturing 3분류로 판정해 근거를 prd.json notes·progress.txt에 파일:라인까지 기록. :app-debate:test BUILD SUCCESSFUL로 그린 유지 확인. 향후 강제는 코드 리뷰 체크리스트에 위임(자동화는 별도 과제).
+---

@@ -136,3 +136,18 @@
   - BaseStompTest 는 native 전용(StandardWebSocketClient 직접)이라 SockJS 테스트는 상속하지 않고 독립 @SpringBootTest 로 자체 SockJS 클라이언트 구성. 컨버터(MappingJackson2+JavaTimeModule)는 동일 패턴 복제. 향후 SockJS 테스트가 늘면 BaseSockJsStompTest 추출 고려.
   - SockJS 핸드셰이크/연결만 검증하지 말고 실제 /topic broadcast 수신(start→DEBATE_START)까지 단언하면 SockJS transport 위에서 STOMP 프레임이 정상 왕복함을 함께 증명한다.
 ---
+
+## 2026-06-13 17:10 - US-009
+- 테스트의 mock verify를 assertAll 안으로 통합. **감사 결과 이미 전면 준수 → 프로덕션/테스트 코드 변경 없음(0건 수정).**
+- verify( 전수 조사(13개 파일):
+  - 멀티 검증 then-블록은 모두 verify가 assertAll 람다 안에 위치(DebateStreamingServiceTest·TranscribeRefiningServiceTest·SpeechBoxServiceTest·AgendaAnalyzeServiceTest·TranscribeEventListenerTest·TranscribeRefiningSchedulerTest·AgendaAnalyzeSchedulerTest·DebateStompAudioControllerTest).
+  - 단발 verify(DebateStreamingServiceTest:97/104/132·WebSocketMessageSenderTest:38·DebateSessionDomainRepositoryTest:37·scheduler never)는 검증 1개뿐 → assertAll 미적용(람다1개 금지 예외 준수).
+  - capturing verify(captor.capture())는 captor.getValue() 전에 실행돼야 해 assertAll 앞 배치 후 추출값 단언만 assertAll(LlmUtteranceCorrectorAdapterTest:49·LlmDebateAgendaAnalyzerAdapterTest:62·TranscribeEventListenerTest:63·DebateStompControllerExceptionHandlerTest:44/60·TranscribeRefiningServiceTest:75/167·SpeechBoxServiceTest:53).
+  - assertThatCode/assertThatThrownBy 동작-단언은 첫 람다로 들어가 있고 이어서 never 검증 람다.
+- Files changed: (코드 변경 없음) ralph/prd.json(US-009 passes:true), ralph/progress.txt, ralph/migration_thinking.md
+- 검증: ./gradlew :app-debate:test BUILD SUCCESSFUL(UP-TO-DATE, 직전 그린 상태 유지). MySQL 13306/Redis 16379 로컬 기동.
+- **Learnings for future iterations:**
+  - US-002~US-008 STOMP 마이그레이션 동안 추가/수정된 테스트가 CLAUDE.local.md '검증·단언은 assertAll 로 묶는다(verify 포함)' 규칙을 작성 시점부터 일관 적용해 둬서, 컨벤션 정리 전용 스토리(US-009)는 이미 충족 상태였다 → 컨벤션을 매 스토리 작성 시 지키면 사후 정리 스토리가 no-op 이 된다.
+  - 컨벤션 감사형 스토리는 코드 변경이 0건일 수 있다. 억지로 수정을 만들지 말 것(특히 단발 verify를 1개짜리 assertAll로 감싸는 건 규칙 위반). 감사 근거(파일:라인)를 notes/progress에 남겨 추적성을 확보한다.
+  - 코드 변경이 없으면 커밋 대상은 Ralph 산출물(prd.json/progress.txt/migration_thinking.md)뿐 — chore 커밋 1개로 정리.
+---
