@@ -39,8 +39,7 @@ out/
 
 ### AI ###
 .omc
-
-# Claude Code local-only instructions
+.claude
 CLAUDE.local.md
 
 ### Local STT test harness (untracked) ###
