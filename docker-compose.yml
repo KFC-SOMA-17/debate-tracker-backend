@@ -37,23 +37,62 @@ services:
       dockerfile: app-debate/Dockerfile
     container_name: debate-app
     profiles: ["app"]
+    env_file:
+      - app-debate/.env
     environment:
       SPRING_PROFILES_ACTIVE: local
-      DB_HOST: mysql
-      DB_PORT: 3306
-      DB_NAME: ${MYSQL_DATABASE:-debate}
-      DB_USER: ${MYSQL_USER:-debate}
-      DB_PASSWORD: ${MYSQL_PASSWORD:-debate}
+      # Database connection settings (reuse MySQL env vars)
+      MYSQL_HOST: mysql
+      MYSQL_PORT: 3306
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-debate}
+      MYSQL_USER: ${MYSQL_USER:-debate}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-debate}
       REDIS_HOST: redis
       REDIS_PORT: 6379
     ports:
       - "8080:8080"
+      - "8083:8083"
     depends_on:
       mysql:
         condition: service_healthy
       redis:
         condition: service_healthy
 
+  prometheus:
+    image: prom/prometheus:v3.2.0
+    container_name: debate-prometheus
+    profiles: ["monitoring"]
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+    ports:
+      - "${PROMETHEUS_HOST_PORT:-19090}:9090"
+    volumes:
+      - ./docker/monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:11.5.0
+    container_name: debate-grafana
+    profiles: ["monitoring"]
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin}
+      - GF_USERS_ALLOW_SIGN_UP=false
+    ports:
+      - "${GRAFANA_HOST_PORT:-13000}:3000"
+    volumes:
+      - ./docker/monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - grafana-data:/var/lib/grafana
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+
 volumes:
   mysql-data:
   redis-data:
+  prometheus-data:
+  grafana-data:

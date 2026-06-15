@@ -1,0 +1,20 @@
+# Prometheus scrape configuration for local development
+# For production environments:
+#   - Use Kubernetes Service Discovery instead of static_configs
+#   - Or update targets and environment labels manually
+# Scrape interval: 15s (balance between freshness and overhead)
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    monitor: 'debate-tracker'
+
+scrape_configs:
+  - job_name: 'app-debate'
+    metrics_path: '/monitoring/prometheus'
+    static_configs:
+      - targets: ['host.docker.internal:8083']
+        labels:
+          application: 'app-debate'
+          environment: 'local'
