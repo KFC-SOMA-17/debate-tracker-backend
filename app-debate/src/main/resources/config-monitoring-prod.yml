@@ -46,3 +46,12 @@ server:
   tomcat:
     mbeanregistry:
       enabled: true
+
+spring:
+  ai:
+    chat:
+      client:
+        observations:
+          enabled: true
+          include-prompt: false
+          include-completion: false
