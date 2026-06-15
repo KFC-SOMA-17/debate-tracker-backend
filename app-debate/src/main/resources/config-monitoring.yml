@@ -1,0 +1,29 @@
+management:
+  server:
+    port: 8083
+
+  endpoints:
+    web:
+      exposure:
+        include: '*'
+      base-path: /monitoring
+
+  prometheus:
+    metrics:
+      export:
+        enabled: true
+
+  endpoint:
+    health:
+      show-components: always
+
+  info:
+    java:
+      enabled: true
+    os:
+      enabled: true
+
+server:
+  tomcat:
+    mbeanregistry:
+      enabled: true

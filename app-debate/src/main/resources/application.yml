@@ -5,8 +5,8 @@ spring:
     active: local
   config:
     import:
-      - classpath:stt-config.yml
-      - classpath:llm-config.yml
+      - classpath:config-stt.yml
+      - classpath:config-llm.yml
 
   jpa:
     open-in-view: false

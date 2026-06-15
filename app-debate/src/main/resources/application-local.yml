@@ -1,4 +1,8 @@
 spring:
+  config:
+    import:
+      - classpath:config-monitoring.yml
+
   datasource:
     url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:13306}/${DB_NAME:debate}?serverTimezone=Asia/Seoul&characterEncoding=UTF-8
     username: ${DB_USER:debate}
