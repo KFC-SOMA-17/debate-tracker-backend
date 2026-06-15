@@ -62,6 +62,8 @@ services:
     image: prom/prometheus:v3.2.0
     container_name: debate-prometheus
     profiles: ["monitoring"]
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
       - '--storage.tsdb.path=/prometheus'
