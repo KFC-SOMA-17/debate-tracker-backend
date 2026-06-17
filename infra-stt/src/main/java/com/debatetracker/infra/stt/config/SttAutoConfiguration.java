@@ -1,10 +1,11 @@
 package com.debatetracker.infra.stt.config;
 
-import com.debatetracker.infra.stt.adapter.azure.AzureAdapter;
+import com.debatetracker.infra.stt.session.azure.AzureSessionCreator;
 import com.debatetracker.infra.stt.client.SttClient;
-import com.debatetracker.infra.stt.repository.AzureSessionRepository;
-import com.debatetracker.infra.stt.repository.InMemoryAzureSessionRepository;
-import com.debatetracker.infra.stt.service.azure.AzureSttService;
+import com.debatetracker.infra.stt.router.SttClientRouter;
+import com.debatetracker.infra.stt.router.SttSessionCreator;
+import com.debatetracker.infra.stt.router.SttSessionRepository;
+import com.debatetracker.infra.stt.repository.InMemorySttSessionRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -18,31 +19,29 @@ import org.springframework.context.annotation.Configuration;
 public class SttAutoConfiguration {
 
     @Bean
-    public AzureSessionRepository azureSessionRepository() {
-        return new InMemoryAzureSessionRepository();
+    @ConditionalOnProperty(name = "stt.azure.enabled", havingValue = "true")
+    public SttClient sttClient(SttSessionCreator sessionCreator,
+                               SttSessionRepository sessionRepository) {
+        return new SttClientRouter(sessionCreator, sessionRepository);
     }
 
     @Bean
     @ConditionalOnProperty(name = "stt.azure.enabled", havingValue = "true")
-    public AzureSttService azureSttService(AzureSessionRepository sessionRepository,
-                                           ApplicationEventPublisher eventPublisher) {
-        return new AzureSttService(sessionRepository, eventPublisher);
-    }
-
-    @Bean
-    @ConditionalOnProperty(name = "stt.azure.enabled", havingValue = "true")
-    public SttClient azureSttClient(AzureConfig azureConfig,
-                                    AudioProperties audioProperties,
-                                    AzureSttService azureSttService) {
+    public SttSessionCreator azureSessionCreator(AzureConfig azureConfig,
+                                                 AudioProperties audioProperties,
+                                                 ApplicationEventPublisher eventPublisher) {
         log.info("[STT] AzureConfig 주입 확인 — region={}, language={}, silenceTimeoutMs={}",
                 azureConfig.region(), azureConfig.language(), azureConfig.silenceTimeoutMs());
-
         log.info("[STT] AudioProperties 주입 확인 — sampleRate={}, channels={}, encoding={}, chunkDurationMs={}",
                 audioProperties.sampleRate(),
                 audioProperties.channels(),
                 audioProperties.encoding(),
-                audioProperties.chunkDurationMs()
-        );
-        return new AzureAdapter(azureConfig, audioProperties, azureSttService);
+                audioProperties.chunkDurationMs());
+        return new AzureSessionCreator(azureConfig, audioProperties, eventPublisher);
+    }
+
+    @Bean
+    public SttSessionRepository sttSessionRepository() {
+        return new InMemorySttSessionRepository();
     }
 }
