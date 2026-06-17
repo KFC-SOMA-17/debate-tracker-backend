@@ -58,7 +58,7 @@ class DebateStompSockJsControllerTest {
 
     @AfterEach
     void disconnect() {
-        if (stompSession.isConnected()) {
+        if (stompSession != null && stompSession.isConnected()) {
             stompSession.disconnect();
         }
     }
