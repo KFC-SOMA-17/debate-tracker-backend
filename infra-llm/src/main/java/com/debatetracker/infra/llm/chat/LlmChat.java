@@ -1,23 +1,23 @@
 package com.debatetracker.infra.llm.chat;
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.ai.chat.client.ChatClient;
 
 @RequiredArgsConstructor
 public abstract class LlmChat<REQ, RES> {
 
-    private final LlmSelector selector;
+    private final LlmCaller llmCaller;
     private final String systemPrompt;
     private final String userPrompt;
 
     public final RES fetch(REQ request) {
-        ChatClient chatClient = selector.select();
-        String rawResponse = chatClient.prompt()
-                .system(processSystemPrompt(request))
-                .user(processUserPrompt(request))
-                .call()
-                .content();
+        return llmCaller.call(
+                processSystemPrompt(request),
+                processUserPrompt(request),
+                raw -> processResponse(request, raw)
+        );
+    }
 
+    private RES processResponse(REQ request, String rawResponse) {
         String stripResponse = stripCodeFence(rawResponse);
         RES response = refineResponse(request, stripResponse);
         validate(request, response);

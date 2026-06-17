@@ -2,8 +2,8 @@ package com.debatetracker.infra.llm.chat.refine;
 
 import com.debatetracker.exception.DebateTrackerException;
 import com.debatetracker.exception.ErrorCode;
+import com.debatetracker.infra.llm.chat.LlmCaller;
 import com.debatetracker.infra.llm.chat.LlmChat;
-import com.debatetracker.infra.llm.chat.LlmSelector;
 import com.debatetracker.infra.llm.client.RefineRequest;
 import com.debatetracker.infra.llm.client.RefineResponse;
 import com.debatetracker.infra.llm.client.TranscriptSegment;
@@ -20,8 +20,9 @@ public class RefineLlmChat extends LlmChat<RefineRequest, RefineResponse> {
 
     private final ObjectMapper objectMapper;
 
-    public RefineLlmChat(LlmSelector selector, String systemPrompt, String userPrompt, ObjectMapper objectMapper) {
-        super(selector, systemPrompt, userPrompt);
+    public RefineLlmChat(LlmCaller llmCaller, String systemPrompt, String userPrompt,
+                         ObjectMapper objectMapper) {
+        super(llmCaller, systemPrompt, userPrompt);
         this.objectMapper = objectMapper;
     }
 

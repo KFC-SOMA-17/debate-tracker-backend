@@ -9,6 +9,7 @@ import com.debatetracker.infra.llm.client.ExtractAgendaResponse;
 import com.debatetracker.infra.llm.client.ExtractClaim;
 import com.debatetracker.infra.llm.client.ExtractStance;
 import com.debatetracker.infra.llm.client.TranscriptSegment;
+import com.debatetracker.infra.llm.log.LlmChatLogger;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -46,7 +47,7 @@ import org.springframework.test.context.TestPropertySource;
  * </ol>
  *
  * <p>프로덕션 {@code LlmAutoConfiguration} 에 의존하지 않고, Spring AI 의 {@link ChatModel} 만 autoconfig 로
- * 생성한 뒤 프로덕션과 동일한 방식으로 {@link ExtractLlmSelector} + {@link ExtractLlmChat} 를 직접 조립한다.
+ * 생성한 뒤 프로덕션과 동일한 방식으로 {@link com.debatetracker.infra.llm.chat.ChatClientCaller} + {@link ExtractLlmChat} 를 직접 조립한다.
  * 프롬프트는 프로덕션과 동일한 {@code prompts/extract-*.txt} 클래스패스 리소스에서 주입받아
  * 프롬프트 품질까지 함께 검증한다.
  */
@@ -74,8 +75,13 @@ class ExtractLlmChatApiTest {
 
         @Test
         void 실제_API로_발화에서_쟁점_트리를_추출한다() throws IOException {
+            LlmChatLogger logger = org.mockito.Mockito.mock(LlmChatLogger.class,
+                org.mockito.Mockito.RETURNS_DEEP_STUBS);
+            com.debatetracker.infra.llm.chat.ChatClientCaller caller =
+                    new com.debatetracker.infra.llm.chat.ChatClientCaller(
+                            ChatClient.create(chatModel), logger, "extract");
             ExtractLlmChat extractLlmChat = new ExtractLlmChat(
-                    new ExtractLlmSelector(ChatClient.create(chatModel)),
+                    caller,
                     systemPrompt.getContentAsString(StandardCharsets.UTF_8),
                     userPrompt.getContentAsString(StandardCharsets.UTF_8),
                     new ObjectMapper());

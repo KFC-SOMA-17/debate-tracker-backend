@@ -2,8 +2,8 @@ package com.debatetracker.infra.llm.chat.extract;
 
 import com.debatetracker.exception.DebateTrackerException;
 import com.debatetracker.exception.ErrorCode;
+import com.debatetracker.infra.llm.chat.LlmCaller;
 import com.debatetracker.infra.llm.chat.LlmChat;
-import com.debatetracker.infra.llm.chat.LlmSelector;
 import com.debatetracker.infra.llm.client.ExtractAgenda;
 import com.debatetracker.infra.llm.client.ExtractAgendaRequest;
 import com.debatetracker.infra.llm.client.ExtractAgendaResponse;
@@ -38,8 +38,9 @@ public class ExtractLlmChat extends LlmChat<ExtractAgendaRequest, ExtractAgendaR
 
     private final ObjectMapper objectMapper;
 
-    public ExtractLlmChat(LlmSelector selector, String systemPrompt, String userPrompt, ObjectMapper objectMapper) {
-        super(selector, systemPrompt, userPrompt);
+    public ExtractLlmChat(LlmCaller llmCaller, String systemPrompt, String userPrompt,
+                          ObjectMapper objectMapper) {
+        super(llmCaller, systemPrompt, userPrompt);
         this.objectMapper = objectMapper;
     }
 
@@ -151,4 +152,5 @@ public class ExtractLlmChat extends LlmChat<ExtractAgendaRequest, ExtractAgendaR
             throw new DebateTrackerException(ErrorCode.LLM_RESPONSE_PARSING_FAILED, exception);
         }
     }
+
 }

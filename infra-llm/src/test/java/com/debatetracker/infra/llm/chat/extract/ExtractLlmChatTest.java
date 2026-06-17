@@ -10,12 +10,13 @@ import static org.mockito.Mockito.mock;
 
 import com.debatetracker.exception.DebateTrackerException;
 import com.debatetracker.exception.ErrorCode;
-import com.debatetracker.infra.llm.chat.LlmSelector;
+import com.debatetracker.infra.llm.chat.ChatClientCaller;
 import com.debatetracker.infra.llm.client.ExtractAgenda;
 import com.debatetracker.infra.llm.client.ExtractAgendaRequest;
 import com.debatetracker.infra.llm.client.ExtractAgendaResponse;
 import com.debatetracker.infra.llm.client.ExtractStance;
 import com.debatetracker.infra.llm.client.TranscriptSegment;
+import com.debatetracker.infra.llm.log.LlmChatLogger;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.math.BigDecimal;
 import java.util.List;
@@ -198,14 +199,19 @@ class ExtractLlmChatTest {
 
     private ExtractLlmChat chatReturning(String cannedResponse) {
         ChatClient chatClient = mock(ChatClient.class, RETURNS_DEEP_STUBS);
-        given(chatClient.prompt().system(anyString()).user(anyString()).call().content())
+        given(chatClient.prompt().system(anyString()).user(anyString()).call().chatResponse().getResult().getOutput().getText())
                 .willReturn(cannedResponse);
         return newChat(chatClient);
     }
 
     private ExtractLlmChat newChat(ChatClient chatClient) {
-        LlmSelector selector = () -> chatClient;
-        return new ExtractLlmChat(selector, SYSTEM_PROMPT, USER_PROMPT, objectMapper);
+        given(chatClient.prompt().system(anyString()).user(anyString()).call().chatResponse().getMetadata().getUsage())
+                .willReturn(null);
+        given(chatClient.prompt().system(anyString()).user(anyString()).call().chatResponse().getResult().getMetadata().getFinishReason())
+                .willReturn(null);
+        LlmChatLogger logger = mock(LlmChatLogger.class, RETURNS_DEEP_STUBS);
+        ChatClientCaller caller = new ChatClientCaller(chatClient, logger, "extract");
+        return new ExtractLlmChat(caller, SYSTEM_PROMPT, USER_PROMPT, objectMapper);
     }
 
     private static ExtractAgendaRequest request(List<TranscriptSegment> contexts) {

@@ -10,10 +10,11 @@ import static org.mockito.Mockito.mock;
 
 import com.debatetracker.exception.DebateTrackerException;
 import com.debatetracker.exception.ErrorCode;
-import com.debatetracker.infra.llm.chat.LlmSelector;
+import com.debatetracker.infra.llm.chat.ChatClientCaller;
 import com.debatetracker.infra.llm.client.RefineRequest;
 import com.debatetracker.infra.llm.client.RefineResponse;
 import com.debatetracker.infra.llm.client.TranscriptSegment;
+import com.debatetracker.infra.llm.log.LlmChatLogger;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.math.BigDecimal;
 import java.util.List;
@@ -191,14 +192,19 @@ class RefineLlmChatTest {
 
     private RefineLlmChat chatReturning(String cannedResponse) {
         ChatClient chatClient = mock(ChatClient.class, RETURNS_DEEP_STUBS);
-        given(chatClient.prompt().system(anyString()).user(anyString()).call().content())
+        given(chatClient.prompt().system(anyString()).user(anyString()).call().chatResponse().getResult().getOutput().getText())
                 .willReturn(cannedResponse);
         return newChat(chatClient);
     }
 
     private RefineLlmChat newChat(ChatClient chatClient) {
-        LlmSelector selector = () -> chatClient;
-        return new RefineLlmChat(selector, SYSTEM_PROMPT, USER_PROMPT, objectMapper);
+        given(chatClient.prompt().system(anyString()).user(anyString()).call().chatResponse().getMetadata().getUsage())
+                .willReturn(null);
+        given(chatClient.prompt().system(anyString()).user(anyString()).call().chatResponse().getResult().getMetadata().getFinishReason())
+                .willReturn(null);
+        LlmChatLogger logger = mock(LlmChatLogger.class, RETURNS_DEEP_STUBS);
+        ChatClientCaller caller = new ChatClientCaller(chatClient, logger, "refine");
+        return new RefineLlmChat(caller, SYSTEM_PROMPT, USER_PROMPT, objectMapper);
     }
 
     private static RefineRequest request(List<TranscriptSegment> targets) {
