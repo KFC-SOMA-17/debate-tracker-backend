@@ -1,5 +1,6 @@
 package com.debatetracker.debate.controller.config;
 
+import java.time.Duration;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -16,6 +17,8 @@ import org.springframework.web.socket.config.annotation.WebSocketTransportRegist
 public class StompConfig implements WebSocketMessageBrokerConfigurer {
 
     private static final int MAX_MESSAGE_SIZE = 64 * 1024;
+    private static final int MAX_SESSION_BUFFER_SIZE = 64 * 1024;
+    private static final int MAX_SENT_TIMEOUT_LIMIT = Math.toIntExact(Duration.ofSeconds(10).toMillis());
     private static final long HEARTBEAT_INTERVAL_MS = 2_000L;
     private static final int HEARTBEAT_POOL_SIZE = 1;
     private static final String HEARTBEAT_THREAD_NAME_PREFIX = "ws-heartbeat-";
@@ -41,7 +44,9 @@ public class StompConfig implements WebSocketMessageBrokerConfigurer {
 
     @Override
     public void configureWebSocketTransport(WebSocketTransportRegistration registry) {
-        registry.setMessageSizeLimit(MAX_MESSAGE_SIZE);
+        registry.setMessageSizeLimit(MAX_MESSAGE_SIZE)
+                .setSendBufferSizeLimit(MAX_SESSION_BUFFER_SIZE)
+                .setSendTimeLimit(MAX_SENT_TIMEOUT_LIMIT);
     }
 
     @Bean
