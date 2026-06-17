@@ -21,15 +21,16 @@ public class DebateStreamingService {
     private final TranscribeRefiningService refiningService;
 
     //TODO 어디까지 실패하냐에 따라 각 롤백전략 분기 필요
-    public void stopDebateWithRemainingRefine(String debateId) {
+    public boolean stopDebateWithRemainingRefine(String debateId) {
         if (debateId == null || !sessionRepository.existsByDebateId(debateId)) {
-            return;
+            return false;
         }
         sttClient.stopStreaming(debateId);
         sessionRepository.deleteByDebateId(debateId);
         refiningService.refineRemaining(new DebateSession(debateId));
         bufferRepository.clear(debateId);
         log.info("STOP 으로 토론 정리(남은 raw 보정 후): debateId={}", debateId);
+        return true;
     }
 
     public void startDebate(String debateId) {

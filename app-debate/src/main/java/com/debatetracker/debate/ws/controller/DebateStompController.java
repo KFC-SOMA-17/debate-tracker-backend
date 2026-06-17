@@ -31,8 +31,9 @@ public class DebateStompController {
 
     @MessageMapping("/debate/{debateId}/stop")
     public void stopDebate(@DestinationVariable String debateId) {
-        debateStreamingService.stopDebateWithRemainingRefine(debateId);
-        messageSender.broadcast(debateId, new DebateEndMessage(Long.parseLong(debateId)));
+        if (debateStreamingService.stopDebateWithRemainingRefine(debateId)) {
+            messageSender.broadcast(debateId, new DebateEndMessage(Long.parseLong(debateId)));
+        }
     }
 
     @MessageMapping("/debate/{debateId}/audio")

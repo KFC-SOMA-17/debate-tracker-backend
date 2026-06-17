@@ -57,14 +57,15 @@ class DebateStreamingServiceTest extends BaseServiceTest {
     class StopDebateWithRemainingRefine {
 
         @Test
-        void STT_종료_세션_삭제_후_남은_raw를_보정하고_버퍼를_정리한다() {
+        void STT_종료_세션_삭제_후_남은_raw를_보정하고_버퍼를_정리하고_true를_반환한다() {
             String debateId = "7";
             debateStreamingService.startDebate(debateId);
 
-            debateStreamingService.stopDebateWithRemainingRefine(debateId);
+            boolean stopped = debateStreamingService.stopDebateWithRemainingRefine(debateId);
 
             InOrder order = Mockito.inOrder(sttClient, refiningService, bufferRepository);
             assertAll(
+                    () -> assertThat(stopped).isTrue(),
                     () -> order.verify(sttClient).stopStreaming(debateId),
                     () -> order.verify(refiningService).refineRemaining(any(DebateSession.class)),
                     () -> order.verify(bufferRepository).clear(debateId),
@@ -73,14 +74,25 @@ class DebateStreamingServiceTest extends BaseServiceTest {
         }
 
         @Test
-        void 활성_세션이_없으면_보정도_정리도_하지_않는다() {
+        void 활성_세션이_없으면_보정도_정리도_하지_않고_false를_반환한다() {
             String debateId = "404";
 
-            debateStreamingService.stopDebateWithRemainingRefine(debateId);
+            boolean stopped = debateStreamingService.stopDebateWithRemainingRefine(debateId);
 
             assertAll(
+                    () -> assertThat(stopped).isFalse(),
                     () -> verify(sttClient, never()).stopStreaming(debateId),
                     () -> verify(refiningService, never()).refineRemaining(any(DebateSession.class))
+            );
+        }
+
+        @Test
+        void debateId가_null이면_아무것도_하지_않고_false를_반환한다() {
+            boolean stopped = debateStreamingService.stopDebateWithRemainingRefine(null);
+
+            assertAll(
+                    () -> assertThat(stopped).isFalse(),
+                    () -> verify(sttClient, never()).stopStreaming(Mockito.anyString())
             );
         }
     }
