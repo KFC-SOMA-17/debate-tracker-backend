@@ -12,10 +12,12 @@ import com.debatetracker.infra.llm.client.ExtractEvidenceType;
 import com.debatetracker.infra.llm.client.ExtractStance;
 import com.debatetracker.infra.llm.client.ExtractedEvidence;
 import com.debatetracker.serdes.JsonUtils;
+
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
+
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -126,7 +128,4 @@ public class ExtractLlmChat extends LlmChat<ExtractAgendaRequest, ExtractAgendaR
                 .map(Enum::name)
                 .collect(Collectors.joining(", "));
     }
-
-
 }
-환
