@@ -1,8 +1,10 @@
 plugins {
-	id 'java-library'
+    id 'java-library'
 }
 
 dependencies {
-	implementation 'com.fasterxml.jackson.core:jackson-databind'
-	implementation 'org.slf4j:slf4j-api'
+    implementation 'com.fasterxml.jackson.core:jackson-databind'
+
+    implementation 'org.slf4j:slf4j-api'
+    implementation 'io.micrometer:micrometer-core'
 }

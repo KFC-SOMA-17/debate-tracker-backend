@@ -1,8 +1,12 @@
 spring:
+  config:
+    import:
+      - classpath:config-monitoring-dev.yml
+
   datasource:
-    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:13306}/${DB_NAME:debate}?serverTimezone=Asia/Seoul&characterEncoding=UTF-8
-    username: ${DB_USER:debate}
-    password: ${DB_PASSWORD:debate}
+    url: jdbc:mysql://${MYSQL_HOST:localhost}:${MYSQL_PORT:13306}/${MYSQL_DATABASE:debate}?serverTimezone=Asia/Seoul&characterEncoding=UTF-8
+    username: ${MYSQL_USER:debate}
+    password: ${MYSQL_PASSWORD:debate}
     driver-class-name: com.mysql.cj.jdbc.Driver
 
   data:

@@ -1,0 +1,55 @@
+management:
+  server:
+    port: 8083
+
+  endpoints:
+    web:
+      exposure:
+        include: health,prometheus,metrics,info
+      base-path: /monitoring
+
+  endpoint:
+    health:
+      show-details: always
+      show-components: always
+
+  metrics:
+    tags:
+      application: ${spring.application.name}
+      environment: ${spring.profiles.active:unknown}
+
+    export:
+      prometheus:
+        enabled: true
+
+    enable:
+      jvm: true
+      process: true
+      system: true
+      tomcat: true
+      jdbc: true
+      hikaricp: true
+
+  health:
+    redis:
+      enabled: true
+
+  info:
+    java:
+      enabled: true
+    os:
+      enabled: true
+
+server:
+  tomcat:
+    mbeanregistry:
+      enabled: true
+
+spring:
+  ai:
+    chat:
+      client:
+        observations:
+          enabled: true
+          include-prompt: false
+          include-completion: false
