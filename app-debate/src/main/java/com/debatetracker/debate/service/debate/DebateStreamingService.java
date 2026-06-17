@@ -9,6 +9,7 @@ import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Slf4j
 @Service
@@ -20,6 +21,7 @@ public class DebateStreamingService {
     private final TranscriptBufferRepository bufferRepository;
     private final TranscribeRefiningService refiningService;
 
+    //TODO 어디까지 실패하냐에 따라 각 롤백전략 분기 필요
     public void stopDebateWithRemainingRefine(String debateId) {
         if (debateId == null || !sessionRepository.existsByDebateId(debateId)) {
             return;
@@ -42,9 +44,14 @@ public class DebateStreamingService {
     }
 
     public void startDebate(String debateId) {
-        sessionRepository.save(new DebateSession(debateId));
-        sttClient.startStreaming(debateId);
-        log.info("토론 시작: debateId={}", debateId);
+        try {
+            sessionRepository.save(new DebateSession(debateId));
+            sttClient.startStreaming(debateId);
+            log.info("토론 시작: debateId={}", debateId);
+        }catch (Exception exception) {
+            sessionRepository.deleteByDebateId(debateId);
+            throw exception;
+        }
     }
 
 
