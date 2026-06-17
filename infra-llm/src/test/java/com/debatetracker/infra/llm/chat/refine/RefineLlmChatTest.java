@@ -179,12 +179,12 @@ class RefineLlmChatTest {
 
         @Test
         void JSON이_아닌_응답이면_예외를_던진다() {
-            RefineLlmChat chat = chatReturning("이건 JSON 이 아니다");
+            RefineLlmChat chat = chatReturning("이건 JSON이 아니다");
 
             assertThatThrownBy(() -> chat.fetch(request(List.of(segment("1", "A", "원본")))))
                     .isInstanceOf(DebateTrackerException.class)
                     .extracting(ex -> ((DebateTrackerException) ex).getErrorCode())
-                    .isEqualTo(ErrorCode.LLM_RESPONSE_PARSING_FAILED);
+                    .isEqualTo(ErrorCode.DESERIALIZATION_ERROR);
         }
     }
 

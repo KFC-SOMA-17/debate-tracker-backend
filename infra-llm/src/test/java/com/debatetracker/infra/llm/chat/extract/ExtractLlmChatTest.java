@@ -158,7 +158,7 @@ class ExtractLlmChatTest {
             assertThatThrownBy(() -> chat.fetch(request(List.of(segment("1", "A", "발화")))))
                     .isInstanceOf(DebateTrackerException.class)
                     .extracting(ex -> ((DebateTrackerException) ex).getErrorCode())
-                    .isEqualTo(ErrorCode.LLM_RESPONSE_PARSING_FAILED);
+                    .isEqualTo(ErrorCode.DESERIALIZATION_ERROR);
         }
 
         @Test
@@ -191,7 +191,7 @@ class ExtractLlmChatTest {
             assertThatThrownBy(() -> chat.fetch(request(List.of(segment("1", "A", "발화")))))
                     .isInstanceOf(DebateTrackerException.class)
                     .extracting(ex -> ((DebateTrackerException) ex).getErrorCode())
-                    .isEqualTo(ErrorCode.LLM_RESPONSE_PARSING_FAILED);
+                    .isEqualTo(ErrorCode.DESERIALIZATION_ERROR);
         }
     }
 
