@@ -14,7 +14,6 @@ import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.springframework.web.socket.WebSocketSession;
 
 class TranscribeRefiningSchedulerTest {
 
@@ -36,8 +35,8 @@ class TranscribeRefiningSchedulerTest {
         void 활성_세션마다_보정을_위임_호출한다() {
             String firstDebateId = "1";
             String secondDebateId = "2";
-            DebateSession first = new DebateSession(firstDebateId, mock(WebSocketSession.class));
-            DebateSession second = new DebateSession(secondDebateId, mock(WebSocketSession.class));
+            DebateSession first = new DebateSession(firstDebateId);
+            DebateSession second = new DebateSession(secondDebateId);
             when(streamingService.findActiveSessions()).thenReturn(List.of(first, second));
 
             scheduler.refineActiveSessions();

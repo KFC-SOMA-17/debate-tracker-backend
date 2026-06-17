@@ -2,7 +2,6 @@ package com.debatetracker.debate.infrastructure.persistence.inmemory.session;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertAll;
-import static org.mockito.Mockito.mock;
 
 import com.debatetracker.debate.domain.session.DebateSession;
 import com.debatetracker.debate.infrastructure.persistence.inmemory.session.InMemoryDebateSessionRepository;
@@ -10,7 +9,6 @@ import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.springframework.web.socket.WebSocketSession;
 
 class InMemoryDebateSessionRepositoryTest {
 
@@ -136,6 +134,6 @@ class InMemoryDebateSessionRepositoryTest {
     }
 
     private DebateSession createSession(String debateId) {
-        return new DebateSession(debateId, mock(WebSocketSession.class));
+        return new DebateSession(debateId);
     }
 }

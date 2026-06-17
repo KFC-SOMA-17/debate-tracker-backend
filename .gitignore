@@ -44,3 +44,7 @@ CLAUDE.local.md
 
 ### Local STT test harness (untracked) ###
 /local-harness/
+
+### Ralph (untracked) ###
+# Ralph 작업 디렉터리 전체를 git 추적에서 제외 (문서·산출물·스크립트 모두 로컬 전용)
+ralph/

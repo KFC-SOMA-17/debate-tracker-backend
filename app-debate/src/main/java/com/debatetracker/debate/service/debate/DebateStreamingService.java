@@ -4,16 +4,11 @@ import com.debatetracker.debate.domain.session.DebateSession;
 import com.debatetracker.debate.domain.session.DebateSessionRepository;
 import com.debatetracker.debate.domain.transcript.repository.TranscriptBufferRepository;
 import com.debatetracker.debate.service.transcript.TranscribeRefiningService;
-import com.debatetracker.debate.ws.message.ControlMessage;
-import com.debatetracker.debate.ws.message.DebateEndMessage;
-import com.debatetracker.debate.ws.message.DebateStartMessage;
-import com.debatetracker.debate.ws.message.WebSocketMessage;
 import com.debatetracker.infra.stt.client.SttClient;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import org.springframework.web.socket.WebSocketSession;
 
 @Slf4j
 @Service
@@ -25,48 +20,37 @@ public class DebateStreamingService {
     private final TranscriptBufferRepository bufferRepository;
     private final TranscribeRefiningService refiningService;
 
-    public WebSocketMessage handleControlMessage(ControlMessage message, WebSocketSession session) {
-        if (message.isStart()) {
-            startDebate(session, message.sessionId());
-            return new DebateStartMessage(Long.parseLong(message.sessionId()));
+    //TODO 어디까지 실패하냐에 따라 각 롤백전략 분기 필요
+    public boolean stopDebateWithRemainingRefine(String debateId) {
+        if (debateId == null || !sessionRepository.existsByDebateId(debateId)) {
+            return false;
         }
-        stopDebateWithRemainingRefine(session);
-        return new DebateEndMessage(Long.parseLong(message.sessionId()));
-    }
-
-    public void stopDebateWithRemainingRefine(WebSocketSession session) {
-        Object debateId = session.getAttributes().get(DebateSession.ATTR_DEBATE_ID);
-        if (debateId == null || !sessionRepository.existsByDebateId(debateId.toString())) {
-            return;
+        sttClient.stopStreaming(debateId);
+        sessionRepository.deleteByDebateId(debateId);
+        boolean refined = refiningService.refineRemaining(new DebateSession(debateId));
+        if (refined) {
+            bufferRepository.clear(debateId);
+            log.info("STOP 으로 토론 정리(남은 raw 보정 후): debateId={}", debateId);
+            return true;
         }
-        sttClient.stopStreaming(debateId.toString());
-        sessionRepository.deleteByDebateId(debateId.toString());
-        refiningService.refineRemaining(new DebateSession(session));
-        bufferRepository.clear(debateId.toString());
-        log.info("STOP 으로 토론 정리(남은 raw 보정 후): debateId={}", debateId);
+        log.warn("STOP 시 남은 raw 보정 실패 — buffer 를 유지한다: debateId={}", debateId);
+        return true;
     }
 
-    public void stopDebateIfActive(WebSocketSession session) {
-        Object debateId = session.getAttributes().get(DebateSession.ATTR_DEBATE_ID);
-        if (debateId == null || !sessionRepository.existsByDebateId(debateId.toString())) {
-            return;
+    public void startDebate(String debateId) {
+        try {
+            sessionRepository.save(new DebateSession(debateId));
+            sttClient.startStreaming(debateId);
+            log.info("토론 시작: debateId={}", debateId);
+        } catch (Exception exception) {
+            sessionRepository.deleteByDebateId(debateId);
+            throw exception;
         }
-        sttClient.stopStreaming(debateId.toString());
-        sessionRepository.deleteByDebateId(debateId.toString());
-        bufferRepository.clear(debateId.toString());
-        log.info("연결 종료로 토론 정리: debateId={}", debateId);
-    }
-
-    private void startDebate(WebSocketSession session, String sessionId) {
-        session.getAttributes().put(DebateSession.ATTR_DEBATE_ID, sessionId);
-        sessionRepository.save(new DebateSession(sessionId, session));
-        sttClient.startStreaming(sessionId);
-        log.info("토론 시작: debateId={}", sessionId);
     }
 
 
-    public void sendAudioChunk(String sessionId, byte[] payload) {
-        sttClient.sendAudioChunk(String.valueOf(sessionId), payload);
+    public void sendAudioChunk(String debateId, byte[] payload) {
+        sttClient.sendAudioChunk(debateId, payload);
     }
 
     public List<DebateSession> findActiveSessions() {

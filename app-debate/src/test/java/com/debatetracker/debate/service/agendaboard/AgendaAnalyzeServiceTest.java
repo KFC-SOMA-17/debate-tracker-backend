@@ -20,7 +20,6 @@ import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.springframework.web.socket.WebSocketSession;
 
 class AgendaAnalyzeServiceTest {
 
@@ -39,7 +38,7 @@ class AgendaAnalyzeServiceTest {
         agendaBoardRepository = mock(AgendaBoardRepository.class);
         agendaAnalyzer = mock(DebateAgendaAnalyzer.class);
         service = new AgendaAnalyzeService(speechBoxRepository, agendaBoardRepository, agendaAnalyzer);
-        session = new DebateSession(DEBATE_ID, mock(WebSocketSession.class));
+        session = new DebateSession(DEBATE_ID);
     }
 
     @Nested
