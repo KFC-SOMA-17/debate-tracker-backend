@@ -7,7 +7,6 @@ import com.debatetracker.infra.llm.client.RefineRequest;
 import com.debatetracker.infra.llm.client.RefineResponse;
 import com.debatetracker.infra.llm.client.TranscriptSegment;
 import com.debatetracker.infra.llm.log.LlmChatLogger;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
@@ -79,8 +78,7 @@ class RefineLlmChatApiTest {
             RefineLlmChat refineLlmChat = new RefineLlmChat(
                     caller,
                     systemPrompt.getContentAsString(StandardCharsets.UTF_8),
-                    userPrompt.getContentAsString(StandardCharsets.UTF_8),
-                    new ObjectMapper());
+                    userPrompt.getContentAsString(StandardCharsets.UTF_8));
 
             TranscriptSegment context = new TranscriptSegment(
                     "ctx-1", "찬성 1", new BigDecimal("0.0"), new BigDecimal("4.2"),

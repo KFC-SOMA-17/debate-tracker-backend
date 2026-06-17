@@ -17,7 +17,6 @@ import com.debatetracker.infra.llm.client.ExtractAgendaResponse;
 import com.debatetracker.infra.llm.client.ExtractStance;
 import com.debatetracker.infra.llm.client.TranscriptSegment;
 import com.debatetracker.infra.llm.log.LlmChatLogger;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.math.BigDecimal;
 import java.util.List;
 import org.junit.jupiter.api.Nested;
@@ -30,7 +29,6 @@ class ExtractLlmChatTest {
             "응답 형식: <RESPONSE_JSON_FORMAT>\n입장: <STANCE_VALUES>\n근거유형: <EVIDENCE_TYPE_VALUES>";
     private static final String USER_PROMPT = "맥락: <CONTEXTS>\n이전 쟁점: <BEFORE_AGENDAS>";
 
-    private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Nested
     class ProcessSystemPrompt {
@@ -211,7 +209,7 @@ class ExtractLlmChatTest {
                 .willReturn(null);
         LlmChatLogger logger = mock(LlmChatLogger.class, RETURNS_DEEP_STUBS);
         ChatClientCaller caller = new ChatClientCaller(chatClient, logger, "extract");
-        return new ExtractLlmChat(caller, SYSTEM_PROMPT, USER_PROMPT, objectMapper);
+        return new ExtractLlmChat(caller, SYSTEM_PROMPT, USER_PROMPT);
     }
 
     private static ExtractAgendaRequest request(List<TranscriptSegment> contexts) {

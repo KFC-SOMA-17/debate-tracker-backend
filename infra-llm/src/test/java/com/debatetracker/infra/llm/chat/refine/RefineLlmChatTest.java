@@ -15,7 +15,6 @@ import com.debatetracker.infra.llm.client.RefineRequest;
 import com.debatetracker.infra.llm.client.RefineResponse;
 import com.debatetracker.infra.llm.client.TranscriptSegment;
 import com.debatetracker.infra.llm.log.LlmChatLogger;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.math.BigDecimal;
 import java.util.List;
 import org.junit.jupiter.api.Nested;
@@ -27,7 +26,6 @@ class RefineLlmChatTest {
     private static final String SYSTEM_PROMPT = "응답 형식: <RESPONSE_JSON_FORMAT>";
     private static final String USER_PROMPT = "맥락: <CONTEXTS>\n대상: <TARGETS>";
 
-    private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Nested
     class ProcessSystemPrompt {
@@ -204,7 +202,7 @@ class RefineLlmChatTest {
                 .willReturn(null);
         LlmChatLogger logger = mock(LlmChatLogger.class, RETURNS_DEEP_STUBS);
         ChatClientCaller caller = new ChatClientCaller(chatClient, logger, "refine");
-        return new RefineLlmChat(caller, SYSTEM_PROMPT, USER_PROMPT, objectMapper);
+        return new RefineLlmChat(caller, SYSTEM_PROMPT, USER_PROMPT);
     }
 
     private static RefineRequest request(List<TranscriptSegment> targets) {

@@ -6,12 +6,10 @@ import com.debatetracker.infra.llm.chat.extract.ExtractLlmChat;
 import com.debatetracker.infra.llm.chat.refine.RefineLlmChat;
 import com.debatetracker.infra.llm.client.LlmClient;
 import com.debatetracker.infra.llm.log.LlmChatLogger;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
-import lombok.RequiredArgsConstructor;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.prompt.ChatOptions;
@@ -24,10 +22,7 @@ import org.springframework.core.io.Resource;
 @AutoConfiguration(
         afterName = "org.springframework.ai.model.google.genai.autoconfigure.chat.GoogleGenAiChatAutoConfiguration")
 @ConditionalOnProperty(name = "llm.enabled", havingValue = "true")
-@RequiredArgsConstructor
 public class LlmAutoConfiguration {
-
-    private final ObjectMapper objectMapper;
 
     @Bean
     public LlmChatLogger llmChatLogger(MeterRegistry meterRegistry) {
@@ -41,7 +36,7 @@ public class LlmAutoConfiguration {
                                        @Value("classpath:prompts/refine-user.txt") Resource userPrompt,
                                        LlmChatLogger logger) {
         ChatClientCaller caller = new ChatClientCaller(createChatClient(chatModel, model), logger, "refine");
-        return new RefineLlmChat(caller, readPrompt(systemPrompt), readPrompt(userPrompt), objectMapper);
+        return new RefineLlmChat(caller, readPrompt(systemPrompt), readPrompt(userPrompt));
     }
 
     @Bean
@@ -51,7 +46,7 @@ public class LlmAutoConfiguration {
                                          @Value("classpath:prompts/extract-user.txt") Resource userPrompt,
                                          LlmChatLogger logger) {
         ChatClientCaller caller = new ChatClientCaller(createChatClient(chatModel, model), logger, "extract");
-        return new ExtractLlmChat(caller, readPrompt(systemPrompt), readPrompt(userPrompt), objectMapper);
+        return new ExtractLlmChat(caller, readPrompt(systemPrompt), readPrompt(userPrompt));
     }
 
     private ChatClient createChatClient(ChatModel chatModel, String model) {

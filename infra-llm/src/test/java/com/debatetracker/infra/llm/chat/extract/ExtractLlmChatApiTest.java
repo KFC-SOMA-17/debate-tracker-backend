@@ -10,7 +10,6 @@ import com.debatetracker.infra.llm.client.ExtractClaim;
 import com.debatetracker.infra.llm.client.ExtractStance;
 import com.debatetracker.infra.llm.client.TranscriptSegment;
 import com.debatetracker.infra.llm.log.LlmChatLogger;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
@@ -83,8 +82,7 @@ class ExtractLlmChatApiTest {
             ExtractLlmChat extractLlmChat = new ExtractLlmChat(
                     caller,
                     systemPrompt.getContentAsString(StandardCharsets.UTF_8),
-                    userPrompt.getContentAsString(StandardCharsets.UTF_8),
-                    new ObjectMapper());
+                    userPrompt.getContentAsString(StandardCharsets.UTF_8));
 
             TranscriptSegment context1 = new TranscriptSegment(
                     "ctx-1", "찬성 1", new BigDecimal("0.0"), new BigDecimal("6.0"),

@@ -11,8 +11,7 @@ import com.debatetracker.infra.llm.client.ExtractClaim;
 import com.debatetracker.infra.llm.client.ExtractEvidenceType;
 import com.debatetracker.infra.llm.client.ExtractStance;
 import com.debatetracker.infra.llm.client.ExtractedEvidence;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.debatetracker.serdes.JsonUtils;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -36,18 +35,14 @@ public class ExtractLlmChat extends LlmChat<ExtractAgendaRequest, ExtractAgendaR
                             new ExtractedEvidence(null, ExtractEvidenceType.EXAMPLE,
                                     "러시아 - 모병제 전환 후 국방비 31.2% 증가")))))));
 
-    private final ObjectMapper objectMapper;
-
-    public ExtractLlmChat(LlmCaller llmCaller, String systemPrompt, String userPrompt,
-                          ObjectMapper objectMapper) {
+    public ExtractLlmChat(LlmCaller llmCaller, String systemPrompt, String userPrompt) {
         super(llmCaller, systemPrompt, userPrompt);
-        this.objectMapper = objectMapper;
     }
 
     @Override
     protected String processSystemPrompt(ExtractAgendaRequest request) {
         return getSystemPrompt()
-                .replace("<RESPONSE_JSON_FORMAT>", toJson(RESPONSE_EXAMPLE))
+                .replace("<RESPONSE_JSON_FORMAT>", JsonUtils.serialize(RESPONSE_EXAMPLE))
                 .replace("<STANCE_VALUES>", enumValues(ExtractStance.values()))
                 .replace("<EVIDENCE_TYPE_VALUES>", enumValues(ExtractEvidenceType.values()));
     }
@@ -55,13 +50,13 @@ public class ExtractLlmChat extends LlmChat<ExtractAgendaRequest, ExtractAgendaR
     @Override
     protected String processUserPrompt(ExtractAgendaRequest request) {
         return getUserPrompt()
-                .replace("<CONTEXTS>", toJson(orEmpty(request.contexts())))
-                .replace("<BEFORE_AGENDAS>", toJson(orEmpty(request.beforeAgendas())));
+                .replace("<CONTEXTS>", JsonUtils.serialize(orEmpty(request.contexts())))
+                .replace("<BEFORE_AGENDAS>", JsonUtils.serialize(orEmpty(request.beforeAgendas())));
     }
 
     @Override
     protected ExtractAgendaResponse refineResponse(ExtractAgendaRequest request, String rawResponse) {
-        return toObject(rawResponse, ExtractAgendaResponse.class);
+        return JsonUtils.deserialize(rawResponse, ExtractAgendaResponse.class);
     }
 
     @Override
@@ -132,25 +127,6 @@ public class ExtractLlmChat extends LlmChat<ExtractAgendaRequest, ExtractAgendaR
                 .collect(Collectors.joining(", "));
     }
 
-    private String toJson(Object value) {
-        try {
-            return objectMapper.writeValueAsString(value);
-        } catch (JsonProcessingException exception) {
-            log.error("[ExtractLlmChat] LLM 요청 직렬화 실패. type={}",
-                    value == null ? "null" : value.getClass().getSimpleName(),
-                    exception);
-            throw new DebateTrackerException(ErrorCode.LLM_REQUEST_SERIALIZATION_FAILED, exception);
-        }
-    }
-
-    private <T> T toObject(String json, Class<T> tClass) {
-        try {
-            return objectMapper.readValue(json, tClass);
-        } catch (JsonProcessingException exception) {
-            log.warn("[ExtractLlmChat] LLM 응답 파싱 실패. targetType={}, rawResponse=<<<{}>>>", tClass.getSimpleName(), json,
-                    exception);
-            throw new DebateTrackerException(ErrorCode.LLM_RESPONSE_PARSING_FAILED, exception);
-        }
-    }
 
 }
+환
