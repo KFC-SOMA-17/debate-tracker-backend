@@ -31,10 +31,10 @@ public class TranscribeRefiningService {
     private final DebateRepository debateRepository;
     private final SpeechBoxService speechBoxService; //TODO 추상화 의존성 무너짐 -> Facade 고려
 
-    public void refineRemaining(DebateSession session) {
+    public boolean refineRemaining(DebateSession session) {
         String debateId = session.debateId();
         int count = (int) bufferRepository.rawSize(debateId);
-        refine(session, count);
+        return refine(session, count);
     }
 
     public void refineSession(DebateSession session) {
@@ -43,10 +43,10 @@ public class TranscribeRefiningService {
         refine(session, count);
     }
 
-    private void refine(DebateSession session, int count) {
+    private boolean refine(DebateSession session, int count) {
         String debateId = session.debateId();
         if (count == 0) {
-            return;
+            return true;
         }
         // 보정 이후 후속 3작업(buffer 갱신·SpeechBox 영속화·WebSocket 전송)을 한 사이클당 eventId 로 묶어 추적한다.
         String eventId = UUID.randomUUID().toString();
@@ -76,8 +76,10 @@ public class TranscribeRefiningService {
             log.info("[refineEvent={}] WebSocket 전송 완료: debateId={}, {}건", eventId, debateId, corrected.size());
 
             log.debug("[refineEvent={}] 전사 보정 사이클 완료: debateId={}, {}건", eventId, debateId, corrected.size());
+            return true;
         } catch (Exception e) {
             log.error("[refineEvent={}] 전사 보정 실패 — raw 를 유지하고 다음 틱에 재시도: debateId={}", eventId, debateId, e);
+            return false;
         }
     }
 

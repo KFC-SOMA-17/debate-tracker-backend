@@ -161,12 +161,13 @@ class TranscribeRefiningServiceTest {
             when(bufferRepository.recentRefined(DEBATE_ID, 5)).thenReturn(List.of());
             when(corrector.refine(eq(DEBATE_ID), any(), eq(List.of()), eq(batch))).thenReturn(corrected);
 
-            service.refineRemaining(session);
+            boolean refined = service.refineRemaining(session);
 
             ArgumentCaptor<WebSocketMessage> captor = ArgumentCaptor.forClass(WebSocketMessage.class);
             verify(messageSender).broadcast(eq(DEBATE_ID), captor.capture());
             RefinedSegmentsResponse data = (RefinedSegmentsResponse) captor.getValue().data();
             assertAll(
+                    () -> assertThat(refined).isTrue(),
                     () -> verify(bufferRepository).peekRaw(DEBATE_ID, remaining),
                     () -> verify(bufferRepository).trimRaw(DEBATE_ID, remaining),
                     () -> verify(bufferRepository).appendRefined(DEBATE_ID, corrected),
@@ -176,14 +177,31 @@ class TranscribeRefiningServiceTest {
         }
 
         @Test
-        void 남은_raw가_없으면_보정을_호출하지_않고_아무것도_전송하지_않는다() {
+        void 남은_raw가_없으면_보정을_호출하지_않고_아무것도_전송하지_않으며_true를_반환한다() {
             when(bufferRepository.rawSize(DEBATE_ID)).thenReturn(0L);
 
-            service.refineRemaining(session);
+            boolean refined = service.refineRemaining(session);
 
             assertAll(
+                    () -> assertThat(refined).isTrue(),
                     () -> verify(corrector, never()).refine(eq(DEBATE_ID), anyString(), anyList(), anyList()),
                     () -> verify(bufferRepository, never()).peekRaw(anyString(), anyInt()),
+                    () -> verify(messageSender, never()).broadcast(any(), any())
+            );
+        }
+
+        @Test
+        void 보정에_실패하면_raw를_유지하고_false를_반환한다() {
+            when(bufferRepository.rawSize(DEBATE_ID)).thenReturn(1L);
+            when(bufferRepository.peekRaw(DEBATE_ID, 1)).thenReturn(List.of(speech("a")));
+            when(bufferRepository.recentRefined(DEBATE_ID, 5)).thenReturn(List.of());
+            when(corrector.refine(anyString(), anyString(), anyList(), anyList())).thenThrow(new RuntimeException("보정 오류"));
+
+            boolean refined = service.refineRemaining(session);
+
+            assertAll(
+                    () -> assertThat(refined).isFalse(),
+                    () -> verify(bufferRepository, never()).trimRaw(anyString(), anyInt()),
                     () -> verify(messageSender, never()).broadcast(any(), any())
             );
         }

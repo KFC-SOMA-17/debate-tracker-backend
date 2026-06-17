@@ -3,6 +3,7 @@ package com.debatetracker.debate.service.debate;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
@@ -57,9 +58,10 @@ class DebateStreamingServiceTest extends BaseServiceTest {
     class StopDebateWithRemainingRefine {
 
         @Test
-        void STT_종료_세션_삭제_후_남은_raw를_보정하고_버퍼를_정리하고_true를_반환한다() {
+        void 보정에_성공하면_STT_종료_세션_삭제_후_버퍼를_정리하고_true를_반환한다() {
             String debateId = "7";
             debateStreamingService.startDebate(debateId);
+            given(refiningService.refineRemaining(any(DebateSession.class))).willReturn(true);
 
             boolean stopped = debateStreamingService.stopDebateWithRemainingRefine(debateId);
 
@@ -69,6 +71,22 @@ class DebateStreamingServiceTest extends BaseServiceTest {
                     () -> order.verify(sttClient).stopStreaming(debateId),
                     () -> order.verify(refiningService).refineRemaining(any(DebateSession.class)),
                     () -> order.verify(bufferRepository).clear(debateId),
+                    () -> assertThat(sessionRepository.existsByDebateId(debateId)).isFalse()
+            );
+        }
+
+        @Test
+        void 보정에_실패하면_버퍼를_지우지_않고_true를_반환한다() {
+            String debateId = "9";
+            debateStreamingService.startDebate(debateId);
+            given(refiningService.refineRemaining(any(DebateSession.class))).willReturn(false);
+
+            boolean stopped = debateStreamingService.stopDebateWithRemainingRefine(debateId);
+
+            assertAll(
+                    () -> assertThat(stopped).isTrue(),
+                    () -> verify(sttClient).stopStreaming(debateId),
+                    () -> verify(bufferRepository, never()).clear(debateId),
                     () -> assertThat(sessionRepository.existsByDebateId(debateId)).isFalse()
             );
         }

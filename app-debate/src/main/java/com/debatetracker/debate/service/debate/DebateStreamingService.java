@@ -27,9 +27,13 @@ public class DebateStreamingService {
         }
         sttClient.stopStreaming(debateId);
         sessionRepository.deleteByDebateId(debateId);
-        refiningService.refineRemaining(new DebateSession(debateId));
-        bufferRepository.clear(debateId);
-        log.info("STOP 으로 토론 정리(남은 raw 보정 후): debateId={}", debateId);
+        boolean refined = refiningService.refineRemaining(new DebateSession(debateId));
+        if (refined) {
+            bufferRepository.clear(debateId);
+            log.info("STOP 으로 토론 정리(남은 raw 보정 후): debateId={}", debateId);
+            return true;
+        }
+        log.warn("STOP 시 남은 raw 보정 실패 — buffer 를 유지한다: debateId={}", debateId);
         return true;
     }
 
