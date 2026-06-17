@@ -86,40 +86,6 @@ class DebateStreamingServiceTest extends BaseServiceTest {
     }
 
     @Nested
-    class StopDebateIfActive {
-
-        @Test
-        void 활성_세션이_없으면_전사를_종료하지_않는다() {
-            String debateId = "404";
-
-            debateStreamingService.stopDebateIfActive(debateId);
-
-            verify(sttClient, never()).stopStreaming(debateId);
-        }
-
-        @Test
-        void debateId가_null이면_아무것도_하지_않는다() {
-            debateStreamingService.stopDebateIfActive(null);
-
-            verify(sttClient, never()).stopStreaming(Mockito.anyString());
-        }
-
-        @Test
-        void 네트워크_끊김_정리는_남은_raw를_보정하지_않는다() {
-            String debateId = "8";
-            debateStreamingService.startDebate(debateId);
-
-            debateStreamingService.stopDebateIfActive(debateId);
-
-            assertAll(
-                    () -> verify(sttClient).stopStreaming(debateId),
-                    () -> verify(refiningService, never()).refineRemaining(any(DebateSession.class)),
-                    () -> verify(bufferRepository).clear(debateId)
-            );
-        }
-    }
-
-    @Nested
     class SendAudioChunk {
 
         @Test

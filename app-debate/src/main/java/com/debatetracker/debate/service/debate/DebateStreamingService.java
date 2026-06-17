@@ -9,7 +9,6 @@ import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 @Slf4j
 @Service
@@ -33,22 +32,12 @@ public class DebateStreamingService {
         log.info("STOP 으로 토론 정리(남은 raw 보정 후): debateId={}", debateId);
     }
 
-    public void stopDebateIfActive(String debateId) {
-        if (debateId == null || !sessionRepository.existsByDebateId(debateId)) {
-            return;
-        }
-        sttClient.stopStreaming(debateId);
-        sessionRepository.deleteByDebateId(debateId);
-        bufferRepository.clear(debateId);
-        log.info("연결 종료로 토론 정리: debateId={}", debateId);
-    }
-
     public void startDebate(String debateId) {
         try {
             sessionRepository.save(new DebateSession(debateId));
             sttClient.startStreaming(debateId);
             log.info("토론 시작: debateId={}", debateId);
-        }catch (Exception exception) {
+        } catch (Exception exception) {
             sessionRepository.deleteByDebateId(debateId);
             throw exception;
         }
