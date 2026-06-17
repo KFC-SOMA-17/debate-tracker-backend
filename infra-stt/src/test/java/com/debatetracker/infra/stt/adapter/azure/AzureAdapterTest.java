@@ -1,20 +1,20 @@
 package com.debatetracker.infra.stt.adapter.azure;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import com.debatetracker.infra.stt.config.AudioProperties;
 import com.debatetracker.infra.stt.config.AzureConfig;
-import com.debatetracker.infra.stt.repository.AzureSessionRepository;
 import com.debatetracker.infra.stt.repository.InMemoryAzureSessionRepository;
+import com.debatetracker.infra.stt.service.azure.AzureSttService;
 import com.debatetracker.infra.stt.session.AzureSession;
 import com.microsoft.cognitiveservices.speech.SpeechConfig;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -32,38 +32,16 @@ class AzureAdapterTest {
     );
     private static final AudioProperties AUDIO_PROPERTIES = new AudioProperties(16000, 1, "LINEAR16", 200);
 
-    private AzureSessionRepository sessionRepository;
-    private ApplicationEventPublisher eventPublisher;
+    private InMemoryAzureSessionRepository sessionRepository;
+    private AzureSttService sttService;
+    private AzureAdapter adapter;
 
-    private AzureAdapter createAdapter() {
+    @BeforeEach
+    void setUp() {
         sessionRepository = new InMemoryAzureSessionRepository();
-        eventPublisher = mock(ApplicationEventPublisher.class);
-        return new AzureAdapter(VALID_CONFIG, AUDIO_PROPERTIES, sessionRepository, eventPublisher);
-    }
-
-    @Nested
-    class Initialization {
-
-        @Test
-        void config이_null이면_예외를_던진다() {
-            assertThatThrownBy(() -> new AzureAdapter(null, AUDIO_PROPERTIES, new InMemoryAzureSessionRepository(), mock(ApplicationEventPublisher.class)))
-                    .isInstanceOf(RuntimeException.class);
-        }
-
-        @Test
-        void config이_비활성이면_예외를_던진다() {
-            AzureConfig disabledConfig = new AzureConfig(
-                    false,
-                    "test-key",
-                    "koreacentral",
-                    "ko-KR",
-                    "raw",
-                    500
-            );
-
-            assertThatThrownBy(() -> new AzureAdapter(disabledConfig, AUDIO_PROPERTIES, new InMemoryAzureSessionRepository(), mock(ApplicationEventPublisher.class)))
-                    .isInstanceOf(RuntimeException.class);
-        }
+        ApplicationEventPublisher eventPublisher = mock(ApplicationEventPublisher.class);
+        sttService = new AzureSttService(sessionRepository, eventPublisher);
+        adapter = new AzureAdapter(VALID_CONFIG, AUDIO_PROPERTIES, sttService);
     }
 
     @Nested
@@ -71,7 +49,6 @@ class AzureAdapterTest {
 
         @Test
         void 중복_세션ID로_시작하면_무시된다() {
-            AzureAdapter adapter = createAdapter();
             injectMockSession(SESSION_ID);
 
             adapter.startStreaming(SESSION_ID);
@@ -85,8 +62,6 @@ class AzureAdapterTest {
             speechConfigStatic.when(() -> SpeechConfig.fromSubscription(anyString(), anyString()))
                     .thenThrow(new RuntimeException("connection error"));
 
-            AzureAdapter adapter = createAdapter();
-
             assertThatThrownBy(() -> adapter.startStreaming(SESSION_ID))
                     .isInstanceOf(RuntimeException.class)
                     .hasMessage("Streaming Connection Failed");
@@ -98,23 +73,19 @@ class AzureAdapterTest {
 
         @Test
         void 스트리밍을_중지하면_세션이_제거된다() {
-            AzureAdapter adapter = createAdapter();
             AzureSession mockSession = injectMockSession(SESSION_ID);
 
             adapter.stopStreaming(SESSION_ID);
 
-            assertAll(
-                    () -> assertThat(adapter.isConnected(SESSION_ID)).isFalse(),
-                    () -> verify(mockSession).close()
-            );
+            assertThat(adapter.isConnected(SESSION_ID)).isFalse();
+            verify(mockSession).close();
         }
 
         @Test
         void 존재하지_않는_세션_중지는_무시된다() {
-            AzureAdapter adapter = createAdapter();
+            adapter.stopStreaming("nonexistent");
 
-            assertThatCode(() -> adapter.stopStreaming("nonexistent"))
-                    .doesNotThrowAnyException();
+            assertThat(adapter.isConnected("nonexistent")).isFalse();
         }
     }
 
@@ -123,7 +94,6 @@ class AzureAdapterTest {
 
         @Test
         void 활성_세션은_true를_반환한다() {
-            AzureAdapter adapter = createAdapter();
             injectMockSession(SESSION_ID);
 
             assertThat(adapter.isConnected(SESSION_ID)).isTrue();
@@ -131,8 +101,6 @@ class AzureAdapterTest {
 
         @Test
         void 비활성_세션은_false를_반환한다() {
-            AzureAdapter adapter = createAdapter();
-
             assertThat(adapter.isConnected(SESSION_ID)).isFalse();
         }
     }
@@ -142,7 +110,6 @@ class AzureAdapterTest {
 
         @Test
         void 다중_세션이_독립적으로_관리된다() {
-            AzureAdapter adapter = createAdapter();
             String sessionA = "session-a";
             String sessionB = "session-b";
             injectMockSession(sessionA);
@@ -150,17 +117,14 @@ class AzureAdapterTest {
 
             adapter.stopStreaming(sessionA);
 
-            assertAll(
-                    () -> assertThat(adapter.isConnected(sessionA)).isFalse(),
-                    () -> assertThat(adapter.isConnected(sessionB)).isTrue()
-            );
+            assertThat(adapter.isConnected(sessionA)).isFalse();
+            assertThat(adapter.isConnected(sessionB)).isTrue();
         }
     }
 
-    // --- 헬퍼 메서드 ---
     private AzureSession injectMockSession(String sessionId) {
         AzureSession mockSession = mock(AzureSession.class);
-        org.mockito.Mockito.when(mockSession.sessionId()).thenReturn(sessionId);
+        when(mockSession.sessionId()).thenReturn(sessionId);
         sessionRepository.save(mockSession);
         return mockSession;
     }

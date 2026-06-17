@@ -1,33 +1,24 @@
 package com.debatetracker.infra.stt.adapter.azure;
 
 import com.debatetracker.infra.stt.client.SttClient;
-import com.debatetracker.infra.stt.client.dto.SttSegment;
-import com.debatetracker.infra.stt.client.event.TranscribeEvent;
 import com.debatetracker.infra.stt.config.AudioProperties;
 import com.debatetracker.infra.stt.config.AzureConfig;
-import com.debatetracker.infra.stt.repository.AzureSessionRepository;
+import com.debatetracker.infra.stt.service.azure.AzureSttService;
 import com.debatetracker.infra.stt.session.AzureSession;
 import com.microsoft.cognitiveservices.speech.OutputFormat;
 import com.microsoft.cognitiveservices.speech.ProfanityOption;
 import com.microsoft.cognitiveservices.speech.PropertyId;
-import com.microsoft.cognitiveservices.speech.ResultReason;
 import com.microsoft.cognitiveservices.speech.SpeechConfig;
 import com.microsoft.cognitiveservices.speech.audio.AudioConfig;
 import com.microsoft.cognitiveservices.speech.audio.AudioInputStream;
 import com.microsoft.cognitiveservices.speech.audio.AudioStreamFormat;
 import com.microsoft.cognitiveservices.speech.audio.PushAudioInputStream;
 import com.microsoft.cognitiveservices.speech.transcription.ConversationTranscriber;
-import com.microsoft.cognitiveservices.speech.transcription.ConversationTranscriptionCanceledEventArgs;
-import com.microsoft.cognitiveservices.speech.transcription.ConversationTranscriptionEventArgs;
-import com.microsoft.cognitiveservices.speech.transcription.ConversationTranscriptionResult;
-import java.math.BigDecimal;
-import java.util.concurrent.TimeUnit;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.ApplicationEventPublisher;
 
-/**
- * Azure AI Speech STT 벤더 어댑터. ConversationTranscriber를 사용하여 화자분리 + 한국어 전사를 수행한다. 세션별로 독립된 연결을 관리하여 다중 세션 동시 처리를 지원한다.
- */
+import java.util.concurrent.TimeUnit;
+
+import lombok.extern.slf4j.Slf4j;
+
 @Slf4j
 public class AzureAdapter implements SttClient {
 
@@ -35,26 +26,20 @@ public class AzureAdapter implements SttClient {
 
     private final AzureConfig config;
     private final AudioProperties audioProperties;
-    private final AzureSessionRepository sessionRepository;
-    private final ApplicationEventPublisher eventPublisher;
+    private final AzureSttService sttService;
 
     public AzureAdapter(AzureConfig azureConfig,
                         AudioProperties audioProperties,
-                        AzureSessionRepository sessionRepository,
-                        ApplicationEventPublisher eventPublisher) {
-        if (azureConfig == null || !azureConfig.enabled()) {
-            throw new RuntimeException("Azure configuration is not set"); //TODO DebateTrackerException으로 변경 예정
-        }
+                        AzureSttService sttService) {
         this.config = azureConfig;
         this.audioProperties = audioProperties;
-        this.sessionRepository = sessionRepository;
-        this.eventPublisher = eventPublisher;
+        this.sttService = sttService;
     }
 
     @Override
     public void startStreaming(String sessionId) {
         //TODO 따닥 문제 추후 고려
-        if (sessionRepository.existsBySessionId(sessionId)) {
+        if (sttService.isSessionActive(sessionId)) {
             log.warn("[{}] 이미 활성 세션이 존재합니다: {}", VENDOR_NAME, sessionId);
             return;
         }
@@ -76,79 +61,18 @@ public class AzureAdapter implements SttClient {
                     speechConfig
             );
 
-            transcriber.transcribed.addEventListener((s, e) -> onTranscribed(sessionId, e));
-            transcriber.sessionStarted.addEventListener((s, e) -> onSessionStarted(sessionId));
-            transcriber.sessionStopped.addEventListener((s, e) -> onSessionStopped(sessionId));
-            transcriber.canceled.addEventListener((s, e) -> onCanceled(sessionId, e));
+            transcriber.transcribed.addEventListener((s, e) -> sttService.handleTranscribed(sessionId, e));
+            transcriber.sessionStarted.addEventListener((s, e) -> sttService.handleSessionStarted(sessionId));
+            transcriber.sessionStopped.addEventListener((s, e) -> sttService.handleSessionStopped(sessionId));
+            transcriber.canceled.addEventListener((s, e) -> sttService.handleCanceled(sessionId, e));
 
-            transcriber.startTranscribingAsync()
-                    .get(3L, TimeUnit.SECONDS);
-            sessionRepository.save(session);
-            log.info("[{}] 전사 시작 성공, session={}", VENDOR_NAME, sessionId);
+            transcriber.startTranscribingAsync().get(3L, TimeUnit.SECONDS);
+            sttService.handleStartStreaming(sessionId, session);
 
         } catch (Exception e) {
             log.error("[{}] 연결 실패: session={}, error={}", VENDOR_NAME, sessionId, e.getMessage(), e);
             throw new RuntimeException("Streaming Connection Failed"); //DebateTrackerException으로 변경 예정
         }
-    }
-
-    @Override
-    public void sendAudioChunk(String sessionId, byte[] pcmData) {
-        sessionRepository.findBySessionId(sessionId)
-                .ifPresentOrElse(
-                        session -> {
-                            try {
-                                session.pushStream().write(pcmData);
-                            } catch (Exception e) {
-                                log.error("[{}] 오디오 전송 에러: session={}, error={}", VENDOR_NAME, sessionId, e.getMessage(), e);
-                            }
-                        },
-                        () -> log.debug("[{}] 활성 세션 없음, 오디오 무시: {}", VENDOR_NAME, sessionId)
-                );
-    }
-
-    @Override
-    public void stopStreaming(String sessionId) {
-        log.info("[{}] stopStreaming called: {}", VENDOR_NAME, sessionId);
-        sessionRepository.deleteBySessionId(sessionId)
-                .ifPresent(AzureSession::close);
-    }
-
-    @Override
-    public boolean isConnected(String sessionId) {
-        return sessionRepository.existsBySessionId(sessionId);
-    }
-
-    private void onTranscribed(String sessionId, ConversationTranscriptionEventArgs e) {
-        ConversationTranscriptionResult result = e.getResult();
-        if (result.getReason() == ResultReason.RecognizedSpeech
-                && result.getText() != null
-                && !result.getText().isEmpty()
-        ) {
-            long offsetTicks = result.getOffset().longValue();
-            long durationTicks = result.getDuration().longValue();
-            SttSegment sttSegment = new SttSegment(
-                    BigDecimal.valueOf(offsetTicks / 10_000_000.0),
-                    BigDecimal.valueOf(((offsetTicks + durationTicks) / 10_000_000.0)),
-                    result.getSpeakerId(),
-                    result.getText()
-            );
-            eventPublisher.publishEvent(new TranscribeEvent(sessionId, sttSegment));
-        }
-    }
-
-    private void onSessionStarted(String sessionId) {
-        log.info("[{}] 세션 시작: {}", VENDOR_NAME, sessionId);
-    }
-
-    private void onSessionStopped(String sessionId) {
-        log.info("[{}] 세션 종료: {}", VENDOR_NAME, sessionId);
-        sessionRepository.deleteBySessionId(sessionId);
-    }
-
-    private void onCanceled(String sessionId, ConversationTranscriptionCanceledEventArgs e) {
-        log.error("[{}] 인식 취소: session={}, reason={}, errorCode={}, errorDetails={}",
-                VENDOR_NAME, sessionId, e.getReason(), e.getErrorCode(), e.getErrorDetails());
     }
 
     private SpeechConfig buildSpeechConfig() {
@@ -160,5 +84,20 @@ public class AzureAdapter implements SttClient {
         speechConfig.enableDictation();
         speechConfig.setOutputFormat(OutputFormat.Detailed);
         return speechConfig;
+    }
+
+    @Override
+    public void sendAudioChunk(String sessionId, byte[] pcmData) {
+        sttService.handleSendAudioChunk(sessionId, pcmData);
+    }
+
+    @Override
+    public void stopStreaming(String sessionId) {
+        sttService.handleStopStreaming(sessionId);
+    }
+
+    @Override
+    public boolean isConnected(String sessionId) {
+        return sttService.isSessionActive(sessionId);
     }
 }
