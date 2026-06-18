@@ -1,6 +1,7 @@
 package com.debatetracker.infra.stt.router;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -84,8 +85,10 @@ class SttClientRouterTest {
 
             router.stopStreaming(SESSION_ID);
 
-            assertThat(sessionRepository.existsBySessionId(SESSION_ID)).isFalse();
-            verify(session).stop();
+            assertAll(
+                    () -> assertThat(sessionRepository.existsBySessionId(SESSION_ID)).isFalse(),
+                    () -> verify(session).stop()
+            );
         }
 
         @Test
@@ -128,8 +131,10 @@ class SttClientRouterTest {
 
             router.stopStreaming(sessionA);
 
-            assertThat(sessionRepository.existsBySessionId(sessionA)).isFalse();
-            assertThat(sessionRepository.existsBySessionId(sessionB)).isTrue();
+            assertAll(
+                    () -> assertThat(sessionRepository.existsBySessionId(sessionA)).isFalse(),
+                    () -> assertThat(sessionRepository.existsBySessionId(sessionB)).isTrue()
+            );
         }
     }
 }
