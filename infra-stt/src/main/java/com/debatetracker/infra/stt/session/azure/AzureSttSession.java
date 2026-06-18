@@ -13,7 +13,6 @@ import com.microsoft.cognitiveservices.speech.transcription.ConversationTranscri
 import com.microsoft.cognitiveservices.speech.transcription.ConversationTranscriptionEventArgs;
 import com.microsoft.cognitiveservices.speech.transcription.ConversationTranscriptionResult;
 import java.math.BigDecimal;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
@@ -91,22 +90,16 @@ public class AzureSttSession implements SttSession {
             pushStream.write(pcmData);
         } catch (Exception e) {
             log.error("[{}] 오디오 전송 에러: session={}, error={}", VENDOR_NAME, sessionId,
-                e.getMessage(), e);
+                e.getMessage(), e); // TODO 재시도 로직 등 논의
         }
     }
 
     @Override
     public void stop() {
-        try {
-            pushStream.close();
-            transcriber.stopTranscribingAsync().get(3L, TimeUnit.SECONDS);
-        } catch (Exception e) {
-            log.warn("[{}] stop 중 에러: session={}, error={}", VENDOR_NAME, sessionId,
-                e.getMessage());
-        }
-        transcriber.close();
-        audioConfig.close();
-        speechConfig.close();
+        AzureUtils.close(pushStream);
+        AzureUtils.close(transcriber);
+        AzureUtils.close(audioConfig);
+        AzureUtils.close(speechConfig);
         connected.set(false);
     }
 

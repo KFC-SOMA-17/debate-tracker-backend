@@ -14,7 +14,7 @@ public class SttClientRouter implements SttClient {
     @Override
     public void startStreaming(String sessionId) {
         if (sessionRepository.existsBySessionId(sessionId)) {
-            log.warn("이미 활성 세션이 존재합니다: {}", sessionId); // TODO 클라이언트와 세션 중단
+            log.warn("이미 활성 세션이 존재합니다: {}", sessionId); // TODO 세션 중단 등 논의 필요
             return;
         }
         SttSession session = sessionCreator.create(sessionId);
@@ -26,7 +26,7 @@ public class SttClientRouter implements SttClient {
         sessionRepository.findBySessionId(sessionId)
                 .ifPresentOrElse(
                         session -> session.sendAudio(pcmData),
-                        () -> log.debug("활성 세션 없음, 오디오 무시: {}", sessionId) // TODO 클라이언트와 세션 중단
+                        () -> log.debug("활성 세션 없음, 오디오 무시: {}", sessionId) // TODO 세션 중단 등 논의 필요
                 );
     }
 

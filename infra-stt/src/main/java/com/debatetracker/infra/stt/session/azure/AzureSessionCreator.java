@@ -28,23 +28,39 @@ public class AzureSessionCreator implements SttSessionCreator {
 
     @Override
     public SttSession create(String sessionId) {
+        SpeechConfig speechConfig = null;
+        PushAudioInputStream pushStream = null;
+        AudioConfig audioConfig = null;
+        ConversationTranscriber transcriber = null;
+
         try {
-            SpeechConfig speechConfig = buildSpeechConfig();
+            speechConfig = buildSpeechConfig();
             AudioStreamFormat format = AudioStreamFormat.getWaveFormatPCM(
                     audioProperties.sampleRate(), (short) 16, (short) 1);
-            PushAudioInputStream pushStream = AudioInputStream.createPushStream(format);
-            AudioConfig audioConfig = AudioConfig.fromStreamInput(pushStream);
-            ConversationTranscriber transcriber = new ConversationTranscriber(speechConfig, audioConfig);
+            pushStream = AudioInputStream.createPushStream(format);
+            audioConfig = AudioConfig.fromStreamInput(pushStream);
+            transcriber = new ConversationTranscriber(speechConfig, audioConfig);
 
             AzureSttSession session = new AzureSttSession(
                     sessionId, transcriber, pushStream, audioConfig, speechConfig, eventPublisher);
 
             transcriber.startTranscribingAsync().get(3L, TimeUnit.SECONDS);
             log.info("[azure] 전사 시작 성공, session={}", sessionId);
-
             return session;
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            log.error("[azure] 연결 실패: session={}, error={}", sessionId, e.getMessage(), e);
+            AzureUtils.close(pushStream);
+            AzureUtils.close(transcriber);
+            AzureUtils.close(audioConfig);
+            AzureUtils.close(speechConfig);
+            throw new RuntimeException("Streaming Connection Failed", e);
         } catch (Exception e) {
             log.error("[azure] 연결 실패: session={}, error={}", sessionId, e.getMessage(), e);
+            AzureUtils.close(pushStream);
+            AzureUtils.close(transcriber);
+            AzureUtils.close(audioConfig);
+            AzureUtils.close(speechConfig);
             throw new RuntimeException("Streaming Connection Failed", e);
         }
     }
