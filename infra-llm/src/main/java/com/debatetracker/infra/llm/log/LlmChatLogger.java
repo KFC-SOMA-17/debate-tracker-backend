@@ -51,7 +51,7 @@ public class LlmChatLogger {
             meterRegistry.counter("llm.tokens.total",
                 "type", "prompt",
                 "operation", operationType.getValue(),
-                "model", model
+                "model", tagOrUnknown(model)
             ).increment(promptTokens);
         }
 
@@ -59,7 +59,7 @@ public class LlmChatLogger {
             meterRegistry.counter("llm.tokens.total",
                 "type", "generation",
                 "operation", operationType.getValue(),
-                "model", model
+                "model", tagOrUnknown(model)
             ).increment(generationTokens);
         }
     }
@@ -67,16 +67,20 @@ public class LlmChatLogger {
     public void recordFinishReason(LlmOperationType operationType, String model, String finishReason) {
         meterRegistry.counter("llm.finish_reason",
             "operation", operationType.getValue(),
-            "reason", finishReason,
-            "model", model
+            "reason", tagOrUnknown(finishReason),
+            "model", tagOrUnknown(model)
         ).increment();
     }
 
     public void recordValidationError(LlmOperationType operationType, String model, Exception exception) {
         meterRegistry.counter("llm.validation.error",
             "operation", operationType.getValue(),
-            "model", model,
+            "model", tagOrUnknown(model),
             "error_type", exception.getClass().getSimpleName()
         ).increment();
+    }
+
+    private String tagOrUnknown(String value) {
+        return (value == null || value.isBlank()) ? "unknown" : value;
     }
 }
