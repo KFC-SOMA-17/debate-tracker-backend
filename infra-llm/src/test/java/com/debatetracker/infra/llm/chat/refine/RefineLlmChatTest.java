@@ -145,8 +145,7 @@ class RefineLlmChatTest {
 
             assertThatThrownBy(() -> chat.fetch(request))
                     .isInstanceOf(DebateTrackerException.class)
-                    .extracting(ex -> ((DebateTrackerException) ex).getErrorCode())
-                    .isEqualTo(ErrorCode.REFINE_RESPONSE_SEGMENT_SIZE_MISMATCH);
+                    .hasMessage("정제 응답의 세그먼트 개수가 요청과 일치하지 않습니다.");
         }
 
         @Test
@@ -161,8 +160,7 @@ class RefineLlmChatTest {
 
             assertThatThrownBy(() -> chat.fetch(request))
                     .isInstanceOf(DebateTrackerException.class)
-                    .extracting(ex -> ((DebateTrackerException) ex).getErrorCode())
-                    .isEqualTo(ErrorCode.REFINE_RESPONSE_SEGMENT_ID_MISMATCH);
+                    .hasMessage("정제 응답의 세그먼트 ID 가 요청과 일치하지 않습니다.");
         }
 
         @Test
@@ -173,8 +171,7 @@ class RefineLlmChatTest {
 
             assertThatThrownBy(() -> chat.fetch(request))
                     .isInstanceOf(DebateTrackerException.class)
-                    .extracting(ex -> ((DebateTrackerException) ex).getErrorCode())
-                    .isEqualTo(ErrorCode.REFINE_RESPONSE_SEGMENT_ID_MISMATCH);
+                    .hasMessage("정제 응답의 세그먼트 ID 가 요청과 일치하지 않습니다.");
         }
 
         @Test
@@ -183,8 +180,7 @@ class RefineLlmChatTest {
 
             assertThatThrownBy(() -> chat.fetch(request(List.of(segment("1", "A", "원본")))))
                     .isInstanceOf(DebateTrackerException.class)
-                    .extracting(ex -> ((DebateTrackerException) ex).getErrorCode())
-                    .isEqualTo(ErrorCode.DESERIALIZATION_ERROR);
+                    .hasMessage("역직렬화에 실패했습니다.");
         }
     }
 

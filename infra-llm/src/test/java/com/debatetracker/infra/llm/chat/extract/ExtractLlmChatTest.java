@@ -157,8 +157,7 @@ class ExtractLlmChatTest {
 
             assertThatThrownBy(() -> chat.fetch(request(List.of(segment("1", "A", "발화")))))
                     .isInstanceOf(DebateTrackerException.class)
-                    .extracting(ex -> ((DebateTrackerException) ex).getErrorCode())
-                    .isEqualTo(ErrorCode.DESERIALIZATION_ERROR);
+                    .hasMessage("역직렬화에 실패했습니다.");
         }
 
         @Test
@@ -168,8 +167,7 @@ class ExtractLlmChatTest {
 
             assertThatThrownBy(() -> chat.fetch(request(List.of(segment("1", "A", "발화")))))
                     .isInstanceOf(DebateTrackerException.class)
-                    .extracting(ex -> ((DebateTrackerException) ex).getErrorCode())
-                    .isEqualTo(ErrorCode.EXTRACT_RESPONSE_INVALID_FORMAT);
+                    .hasMessage("쟁점 추출 응답 형식이 올바르지 않습니다.");
         }
 
         @Test
@@ -180,8 +178,7 @@ class ExtractLlmChatTest {
 
             assertThatThrownBy(() -> chat.fetch(request(List.of(segment("1", "A", "발화")))))
                     .isInstanceOf(DebateTrackerException.class)
-                    .extracting(ex -> ((DebateTrackerException) ex).getErrorCode())
-                    .isEqualTo(ErrorCode.EXTRACT_RESPONSE_INVALID_FORMAT);
+                    .hasMessage("쟁점 추출 응답 형식이 올바르지 않습니다.");
         }
 
         @Test
@@ -190,8 +187,7 @@ class ExtractLlmChatTest {
 
             assertThatThrownBy(() -> chat.fetch(request(List.of(segment("1", "A", "발화")))))
                     .isInstanceOf(DebateTrackerException.class)
-                    .extracting(ex -> ((DebateTrackerException) ex).getErrorCode())
-                    .isEqualTo(ErrorCode.DESERIALIZATION_ERROR);
+                    .hasMessage("역직렬화에 실패했습니다.");
         }
     }
 
