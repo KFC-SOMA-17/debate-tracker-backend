@@ -3,20 +3,22 @@ package com.debatetracker.infra.llm.chat.extract;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertAll;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 
 import com.debatetracker.exception.DebateTrackerException;
-import com.debatetracker.exception.ErrorCode;
-import com.debatetracker.infra.llm.chat.LlmSelector;
+import com.debatetracker.infra.llm.chat.ChatClientCaller;
 import com.debatetracker.infra.llm.client.ExtractAgenda;
 import com.debatetracker.infra.llm.client.ExtractAgendaRequest;
 import com.debatetracker.infra.llm.client.ExtractAgendaResponse;
 import com.debatetracker.infra.llm.client.ExtractStance;
 import com.debatetracker.infra.llm.client.TranscriptSegment;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.debatetracker.infra.llm.log.LlmChatLogger;
+import com.debatetracker.infra.llm.log.LlmOperationType;
 import java.math.BigDecimal;
 import java.util.List;
 import org.junit.jupiter.api.Nested;
@@ -29,7 +31,6 @@ class ExtractLlmChatTest {
             "응답 형식: <RESPONSE_JSON_FORMAT>\n입장: <STANCE_VALUES>\n근거유형: <EVIDENCE_TYPE_VALUES>";
     private static final String USER_PROMPT = "맥락: <CONTEXTS>\n이전 쟁점: <BEFORE_AGENDAS>";
 
-    private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Nested
     class ProcessSystemPrompt {
@@ -158,8 +159,7 @@ class ExtractLlmChatTest {
 
             assertThatThrownBy(() -> chat.fetch(request(List.of(segment("1", "A", "발화")))))
                     .isInstanceOf(DebateTrackerException.class)
-                    .extracting(ex -> ((DebateTrackerException) ex).getErrorCode())
-                    .isEqualTo(ErrorCode.LLM_RESPONSE_PARSING_FAILED);
+                    .hasMessage("역직렬화에 실패했습니다.");
         }
 
         @Test
@@ -169,8 +169,7 @@ class ExtractLlmChatTest {
 
             assertThatThrownBy(() -> chat.fetch(request(List.of(segment("1", "A", "발화")))))
                     .isInstanceOf(DebateTrackerException.class)
-                    .extracting(ex -> ((DebateTrackerException) ex).getErrorCode())
-                    .isEqualTo(ErrorCode.EXTRACT_RESPONSE_INVALID_FORMAT);
+                    .hasMessage("쟁점 추출 응답 형식이 올바르지 않습니다.");
         }
 
         @Test
@@ -181,8 +180,7 @@ class ExtractLlmChatTest {
 
             assertThatThrownBy(() -> chat.fetch(request(List.of(segment("1", "A", "발화")))))
                     .isInstanceOf(DebateTrackerException.class)
-                    .extracting(ex -> ((DebateTrackerException) ex).getErrorCode())
-                    .isEqualTo(ErrorCode.EXTRACT_RESPONSE_INVALID_FORMAT);
+                    .hasMessage("쟁점 추출 응답 형식이 올바르지 않습니다.");
         }
 
         @Test
@@ -191,21 +189,27 @@ class ExtractLlmChatTest {
 
             assertThatThrownBy(() -> chat.fetch(request(List.of(segment("1", "A", "발화")))))
                     .isInstanceOf(DebateTrackerException.class)
-                    .extracting(ex -> ((DebateTrackerException) ex).getErrorCode())
-                    .isEqualTo(ErrorCode.LLM_RESPONSE_PARSING_FAILED);
+                    .hasMessage("역직렬화에 실패했습니다.");
         }
     }
 
     private ExtractLlmChat chatReturning(String cannedResponse) {
         ChatClient chatClient = mock(ChatClient.class, RETURNS_DEEP_STUBS);
-        given(chatClient.prompt().system(anyString()).user(anyString()).call().content())
+        given(chatClient.prompt().system(anyString()).user(anyString()).call().chatResponse().getResult().getOutput().getText())
                 .willReturn(cannedResponse);
         return newChat(chatClient);
     }
 
     private ExtractLlmChat newChat(ChatClient chatClient) {
-        LlmSelector selector = () -> chatClient;
-        return new ExtractLlmChat(selector, SYSTEM_PROMPT, USER_PROMPT, objectMapper);
+        given(chatClient.prompt().system(anyString()).user(anyString()).call().chatResponse().getMetadata().getUsage())
+                .willReturn(null);
+        given(chatClient.prompt().system(anyString()).user(anyString()).call().chatResponse().getResult().getMetadata().getFinishReason())
+                .willReturn(null);
+        LlmChatLogger logger = mock(LlmChatLogger.class, RETURNS_DEEP_STUBS);
+        doAnswer(invocation -> invocation.getArgument(1, java.util.function.Supplier.class).get())
+                .when(logger).executeWithMetrics(any(LlmOperationType.class), any());
+        ChatClientCaller caller = new ChatClientCaller(chatClient, logger, LlmOperationType.EXTRACT);
+        return new ExtractLlmChat(caller, SYSTEM_PROMPT, USER_PROMPT);
     }
 
     private static ExtractAgendaRequest request(List<TranscriptSegment> contexts) {

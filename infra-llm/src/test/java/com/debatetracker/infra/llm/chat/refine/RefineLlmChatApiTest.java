@@ -6,7 +6,8 @@ import static org.junit.jupiter.api.Assertions.assertAll;
 import com.debatetracker.infra.llm.client.RefineRequest;
 import com.debatetracker.infra.llm.client.RefineResponse;
 import com.debatetracker.infra.llm.client.TranscriptSegment;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.debatetracker.infra.llm.log.LlmChatLogger;
+import com.debatetracker.infra.llm.log.LlmOperationType;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
@@ -42,7 +43,7 @@ import org.springframework.test.context.TestPropertySource;
  * </ol>
  *
  * <p>프로덕션 {@code LlmAutoConfiguration} 에 의존하지 않고, Spring AI 의 {@link ChatModel} 만 autoconfig 로
- * 생성한 뒤 프로덕션과 동일한 방식으로 {@link RefineLlmSelector} + {@link RefineLlmChat} 를 직접 조립한다.
+ * 생성한 뒤 프로덕션과 동일한 방식으로 {@link com.debatetracker.infra.llm.chat.ChatClientCaller} + {@link RefineLlmChat} 를 직접 조립한다.
  * 프롬프트는 프로덕션과 동일한 {@code prompts/refine-*.txt} 클래스패스 리소스에서 주입받아
  * 프롬프트 품질까지 함께 검증한다.
  */
@@ -70,11 +71,17 @@ class RefineLlmChatApiTest {
 
         @Test
         void 실제_API로_타임스탬프_골격을_유지하며_대상을_정제한다() throws IOException {
+            LlmChatLogger logger = org.mockito.Mockito.mock(LlmChatLogger.class,
+                org.mockito.Mockito.RETURNS_DEEP_STUBS);
+            org.mockito.Mockito.doAnswer(invocation -> invocation.getArgument(1, java.util.function.Supplier.class).get())
+                    .when(logger).executeWithMetrics(org.mockito.ArgumentMatchers.any(LlmOperationType.class), org.mockito.ArgumentMatchers.any());
+            com.debatetracker.infra.llm.chat.ChatClientCaller caller =
+                    new com.debatetracker.infra.llm.chat.ChatClientCaller(
+                            ChatClient.create(chatModel), logger, LlmOperationType.REFINE);
             RefineLlmChat refineLlmChat = new RefineLlmChat(
-                    new RefineLlmSelector(ChatClient.create(chatModel)),
+                    caller,
                     systemPrompt.getContentAsString(StandardCharsets.UTF_8),
-                    userPrompt.getContentAsString(StandardCharsets.UTF_8),
-                    new ObjectMapper());
+                    userPrompt.getContentAsString(StandardCharsets.UTF_8));
 
             TranscriptSegment context = new TranscriptSegment(
                     "ctx-1", "찬성 1", new BigDecimal("0.0"), new BigDecimal("4.2"),

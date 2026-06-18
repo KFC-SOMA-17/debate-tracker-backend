@@ -2,13 +2,12 @@ package com.debatetracker.infra.llm.chat.refine;
 
 import com.debatetracker.exception.DebateTrackerException;
 import com.debatetracker.exception.ErrorCode;
+import com.debatetracker.infra.llm.chat.LlmCaller;
 import com.debatetracker.infra.llm.chat.LlmChat;
-import com.debatetracker.infra.llm.chat.LlmSelector;
 import com.debatetracker.infra.llm.client.RefineRequest;
 import com.debatetracker.infra.llm.client.RefineResponse;
 import com.debatetracker.infra.llm.client.TranscriptSegment;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.debatetracker.serdes.JsonUtils;
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 
@@ -18,29 +17,26 @@ public class RefineLlmChat extends LlmChat<RefineRequest, RefineResponse> {
     private static final RefineLlmChatResponse RESPONSE_EXAMPLE = new RefineLlmChatResponse(
             List.of(new RefineLlmChatSegment("세그먼트 id", "화자 라벨", "정제된 발화")));
 
-    private final ObjectMapper objectMapper;
-
-    public RefineLlmChat(LlmSelector selector, String systemPrompt, String userPrompt, ObjectMapper objectMapper) {
-        super(selector, systemPrompt, userPrompt);
-        this.objectMapper = objectMapper;
+    public RefineLlmChat(LlmCaller llmCaller, String systemPrompt, String userPrompt) {
+        super(llmCaller, systemPrompt, userPrompt);
     }
 
     @Override
     protected String processSystemPrompt(RefineRequest request) {
         return getSystemPrompt()
-                .replace("<RESPONSE_JSON_FORMAT>", toJson(RESPONSE_EXAMPLE));
+                .replace("<RESPONSE_JSON_FORMAT>", JsonUtils.serialize(RESPONSE_EXAMPLE));
     }
 
     @Override
     protected String processUserPrompt(RefineRequest request) {
         return getUserPrompt()
-                .replace("<CONTEXTS>", toJson(toChatRequest(request.contexts())))
-                .replace("<TARGETS>", toJson(toChatRequest(request.targets())));
+                .replace("<CONTEXTS>", JsonUtils.serialize(toChatRequest(request.contexts())))
+                .replace("<TARGETS>", JsonUtils.serialize(toChatRequest(request.targets())));
     }
 
     @Override
     protected RefineResponse refineResponse(RefineRequest request, String rawResponse) {
-        RefineLlmChatResponse response = toObject(rawResponse, RefineLlmChatResponse.class);
+        RefineLlmChatResponse response = JsonUtils.deserialize(rawResponse, RefineLlmChatResponse.class);
         List<TranscriptSegment> segments = response.segments()
                 .stream()
                 .map(segment -> toTranscriptSegment(segment, request))
@@ -86,26 +82,6 @@ public class RefineLlmChat extends LlmChat<RefineRequest, RefineResponse> {
                 .toList();
     }
 
-    private String toJson(Object value) {
-        try {
-            return objectMapper.writeValueAsString(value);
-        } catch (JsonProcessingException exception) {
-            log.error("[RefineLlmChat] LLM 요청 직렬화 실패. type={}",
-                    value == null ? "null" : value.getClass().getSimpleName(),
-                    exception);
-            throw new DebateTrackerException(ErrorCode.LLM_REQUEST_SERIALIZATION_FAILED, exception);
-        }
-    }
-
-    private <T> T toObject(String json, Class<T> tClass) {
-        try {
-            return objectMapper.readValue(json, tClass);
-        } catch (JsonProcessingException exception) {
-            log.warn("[RefineLlmChat] LLM 응답 파싱 실패. targetType={}, rawResponse=<<<{}>>>", tClass.getSimpleName(), json,
-                    exception);
-            throw new DebateTrackerException(ErrorCode.LLM_RESPONSE_PARSING_FAILED, exception);
-        }
-    }
 
     private RefineLlmChatRequest toChatRequest(List<TranscriptSegment> segments) {
         if (segments == null) {

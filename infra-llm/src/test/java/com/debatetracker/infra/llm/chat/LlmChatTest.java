@@ -2,11 +2,15 @@ package com.debatetracker.infra.llm.chat;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 
+import com.debatetracker.infra.llm.log.LlmChatLogger;
+import com.debatetracker.infra.llm.log.LlmOperationType;
 import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.Nested;
@@ -16,6 +20,13 @@ import org.junit.jupiter.params.provider.CsvSource;
 import org.springframework.ai.chat.client.ChatClient;
 
 class LlmChatTest {
+
+    private static ChatClientCaller createCaller(ChatClient chatClient) {
+        LlmChatLogger logger = mock(LlmChatLogger.class, RETURNS_DEEP_STUBS);
+        doAnswer(invocation -> invocation.getArgument(1, java.util.function.Supplier.class).get())
+                .when(logger).executeWithMetrics(any(LlmOperationType.class), any());
+        return new ChatClientCaller(chatClient, logger, LlmOperationType.REFINE);
+    }
 
     @Nested
     class Fetch {
@@ -30,9 +41,13 @@ class LlmChatTest {
         @ParameterizedTest(name = "[{index}] {2}")
         void 응답을_감싼_코드_펜스를_제거한다(String raw, String expected, String description) {
             ChatClient chatClient = mock(ChatClient.class, RETURNS_DEEP_STUBS);
-            given(chatClient.prompt().system(anyString()).user(anyString()).call().content())
+            given(chatClient.prompt().system(anyString()).user(anyString()).call().chatResponse().getResult().getOutput().getText())
                     .willReturn(raw);
-            EchoLlmChat chat = new EchoLlmChat(() -> chatClient);
+            given(chatClient.prompt().system(anyString()).user(anyString()).call().chatResponse().getMetadata().getUsage())
+                    .willReturn(null);
+            given(chatClient.prompt().system(anyString()).user(anyString()).call().chatResponse().getResult().getMetadata().getFinishReason())
+                    .willReturn(null);
+            EchoLlmChat chat = new EchoLlmChat(createCaller(chatClient));
 
             String result = chat.fetch("ignored");
 
@@ -42,9 +57,13 @@ class LlmChatTest {
         @Test
         void 템플릿_단계를_정해진_순서대로_호출한다() {
             ChatClient chatClient = mock(ChatClient.class, RETURNS_DEEP_STUBS);
-            given(chatClient.prompt().system(anyString()).user(anyString()).call().content())
+            given(chatClient.prompt().system(anyString()).user(anyString()).call().chatResponse().getResult().getOutput().getText())
                     .willReturn("raw");
-            RecordingLlmChat chat = new RecordingLlmChat(() -> chatClient);
+            given(chatClient.prompt().system(anyString()).user(anyString()).call().chatResponse().getMetadata().getUsage())
+                    .willReturn(null);
+            given(chatClient.prompt().system(anyString()).user(anyString()).call().chatResponse().getResult().getMetadata().getFinishReason())
+                    .willReturn(null);
+            RecordingLlmChat chat = new RecordingLlmChat(createCaller(chatClient));
 
             chat.fetch("req");
 
@@ -55,9 +74,13 @@ class LlmChatTest {
         @Test
         void 검증_실패를_그대로_전파한다() {
             ChatClient chatClient = mock(ChatClient.class, RETURNS_DEEP_STUBS);
-            given(chatClient.prompt().system(anyString()).user(anyString()).call().content())
+            given(chatClient.prompt().system(anyString()).user(anyString()).call().chatResponse().getResult().getOutput().getText())
                     .willReturn("raw");
-            EchoLlmChat chat = new EchoLlmChat(() -> chatClient) {
+            given(chatClient.prompt().system(anyString()).user(anyString()).call().chatResponse().getMetadata().getUsage())
+                    .willReturn(null);
+            given(chatClient.prompt().system(anyString()).user(anyString()).call().chatResponse().getResult().getMetadata().getFinishReason())
+                    .willReturn(null);
+            EchoLlmChat chat = new EchoLlmChat(createCaller(chatClient)) {
                 @Override
                 protected void validate(String request, String response) {
                     throw new IllegalStateException("invalid");
@@ -72,8 +95,8 @@ class LlmChatTest {
 
     private static class EchoLlmChat extends LlmChat<String, String> {
 
-        EchoLlmChat(LlmSelector selector) {
-            super(selector, "system", "user");
+        EchoLlmChat(ChatClientCaller chatClientCaller) {
+            super(chatClientCaller, "system", "user");
         }
 
         @Override
@@ -100,8 +123,8 @@ class LlmChatTest {
 
         private final List<String> calls = new ArrayList<>();
 
-        RecordingLlmChat(LlmSelector selector) {
-            super(selector, "system", "user");
+        RecordingLlmChat(ChatClientCaller chatClientCaller) {
+            super(chatClientCaller, "system", "user");
         }
 
         @Override
