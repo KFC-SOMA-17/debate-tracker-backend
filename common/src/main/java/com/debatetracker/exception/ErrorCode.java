@@ -29,6 +29,11 @@ public enum ErrorCode {
     REFINE_RESPONSE_SEGMENT_SIZE_MISMATCH(500, "정제 응답의 세그먼트 개수가 요청과 일치하지 않습니다."),
     REFINE_RESPONSE_SEGMENT_ID_MISMATCH(500, "정제 응답의 세그먼트 ID 가 요청과 일치하지 않습니다."),
     EXTRACT_RESPONSE_INVALID_FORMAT(500, "쟁점 추출 응답 형식이 올바르지 않습니다."),
+
+    // infra-stt
+    STT_CONNECTION_FAILED(500, "STT 연결에 실패했습니다."),
+    STT_SESSION_START_INTERRUPTED(500, "STT 세션 시작이 중단되었습니다."),
+
     INTERNAL_SERVER_ERROR(500, "서버 오류가 발생했습니다. 관리자에게 문의하세요."),
     ;
 
