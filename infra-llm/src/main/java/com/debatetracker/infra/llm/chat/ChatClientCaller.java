@@ -1,9 +1,8 @@
 package com.debatetracker.infra.llm.chat;
 
 import com.debatetracker.infra.llm.log.LlmChatLogger;
-import io.micrometer.core.instrument.Timer;
+import com.debatetracker.infra.llm.log.LlmOperationType;
 import java.util.function.Function;
-import java.util.function.Supplier;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
@@ -15,13 +14,16 @@ import org.springframework.ai.chat.model.ChatResponse;
 @RequiredArgsConstructor
 public class ChatClientCaller implements LlmCaller {
 
+    private static final String FINISH_REASON_SAFETY = "SAFETY";
+    private static final String FINISH_REASON_MAX_TOKENS = "MAX_TOKENS";
+
     private final ChatClient chatClient;
     private final LlmChatLogger chatLogger;
-    private final String operation;
+    private final LlmOperationType operationType;
 
     @Override
     public <T> T call(String systemPrompt, String userPrompt, Function<String, T> responseProcessor) {
-        ChatResponse chatResponse = executeWithMetrics(() -> chatClient.prompt()
+        ChatResponse chatResponse = chatLogger.executeWithMetrics(operationType, () -> chatClient.prompt()
                 .system(systemPrompt)
                 .user(userPrompt)
                 .call()
@@ -31,20 +33,6 @@ public class ChatClientCaller implements LlmCaller {
         String text = chatResponse.getResult().getOutput().getText();
 
         return processResponse(responseProcessor, text, model);
-    }
-
-    private <T> T executeWithMetrics(Supplier<T> action) {
-        Timer.Sample sample = chatLogger.startRequestTimer();
-        try {
-            T result = action.get();
-            chatLogger.recordRequestSuccess(operation);
-            return result;
-        } catch (RuntimeException exception) {
-            chatLogger.recordRequestError(operation, exception);
-            throw exception;
-        } finally {
-            chatLogger.stopRequestTimer(operation, sample);
-        }
     }
 
     private String recordResponseMetadata(ChatResponse chatResponse) {
@@ -57,22 +45,22 @@ public class ChatClientCaller implements LlmCaller {
             Integer promptTokens = usage.getPromptTokens();
             Integer generationTokens = usage.getCompletionTokens();
             Integer totalTokens = usage.getTotalTokens();
+            chatLogger.recordTokenUsage(operationType, model, promptTokens, generationTokens);
 
-            chatLogger.recordTokenUsage(operation, model, promptTokens, generationTokens);
 
             log.debug("[{}] Response ID: {}, Model: {}, Tokens: prompt={}, generation={}, total={}",
-                    operation, responseId, model, promptTokens, generationTokens, totalTokens);
+                    operationType.getValue(), responseId, model, promptTokens, generationTokens, totalTokens);
         }
 
         String finishReason = chatResponse.getResult().getMetadata().getFinishReason();
         if (finishReason != null && !finishReason.isBlank()) {
-            chatLogger.recordFinishReason(operation, model, finishReason);
+            chatLogger.recordFinishReason(operationType, model, finishReason);
 
-            if ("SAFETY".equals(finishReason)) {
-                log.warn("[{}] Safety filtering triggered for response: {}", operation, responseId);
+            if (FINISH_REASON_SAFETY.equals(finishReason)) {
+                log.warn("[{}] Safety filtering triggered for response: {}", operationType.getValue(), responseId);
             }
-            if ("MAX_TOKENS".equals(finishReason)) {
-                log.warn("[{}] Max tokens exceeded for response: {}", operation, responseId);
+            if (FINISH_REASON_MAX_TOKENS.equals(finishReason)) {
+                log.warn("[{}] Max tokens exceeded for response: {}", operationType.getValue(), responseId);
             }
         }
 
@@ -83,7 +71,7 @@ public class ChatClientCaller implements LlmCaller {
         try {
             return responseProcessor.apply(text);
         } catch (RuntimeException exception) {
-            chatLogger.recordValidationError(operation, model, exception);
+            chatLogger.recordValidationError(operationType, model, exception);
             throw exception;
         }
     }

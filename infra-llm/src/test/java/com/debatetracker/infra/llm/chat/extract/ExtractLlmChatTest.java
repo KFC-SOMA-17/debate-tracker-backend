@@ -3,13 +3,14 @@ package com.debatetracker.infra.llm.chat.extract;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertAll;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 
 import com.debatetracker.exception.DebateTrackerException;
-import com.debatetracker.exception.ErrorCode;
 import com.debatetracker.infra.llm.chat.ChatClientCaller;
 import com.debatetracker.infra.llm.client.ExtractAgenda;
 import com.debatetracker.infra.llm.client.ExtractAgendaRequest;
@@ -17,6 +18,7 @@ import com.debatetracker.infra.llm.client.ExtractAgendaResponse;
 import com.debatetracker.infra.llm.client.ExtractStance;
 import com.debatetracker.infra.llm.client.TranscriptSegment;
 import com.debatetracker.infra.llm.log.LlmChatLogger;
+import com.debatetracker.infra.llm.log.LlmOperationType;
 import java.math.BigDecimal;
 import java.util.List;
 import org.junit.jupiter.api.Nested;
@@ -204,7 +206,9 @@ class ExtractLlmChatTest {
         given(chatClient.prompt().system(anyString()).user(anyString()).call().chatResponse().getResult().getMetadata().getFinishReason())
                 .willReturn(null);
         LlmChatLogger logger = mock(LlmChatLogger.class, RETURNS_DEEP_STUBS);
-        ChatClientCaller caller = new ChatClientCaller(chatClient, logger, "extract");
+        doAnswer(invocation -> invocation.getArgument(1, java.util.function.Supplier.class).get())
+                .when(logger).executeWithMetrics(any(LlmOperationType.class), any());
+        ChatClientCaller caller = new ChatClientCaller(chatClient, logger, LlmOperationType.EXTRACT);
         return new ExtractLlmChat(caller, SYSTEM_PROMPT, USER_PROMPT);
     }
 

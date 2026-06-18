@@ -2,12 +2,15 @@ package com.debatetracker.infra.llm.chat;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 
 import com.debatetracker.infra.llm.log.LlmChatLogger;
+import com.debatetracker.infra.llm.log.LlmOperationType;
 import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.Nested;
@@ -20,7 +23,9 @@ class LlmChatTest {
 
     private static ChatClientCaller createCaller(ChatClient chatClient) {
         LlmChatLogger logger = mock(LlmChatLogger.class, RETURNS_DEEP_STUBS);
-        return new ChatClientCaller(chatClient, logger, "test");
+        doAnswer(invocation -> invocation.getArgument(1, java.util.function.Supplier.class).get())
+                .when(logger).executeWithMetrics(any(LlmOperationType.class), any());
+        return new ChatClientCaller(chatClient, logger, LlmOperationType.REFINE);
     }
 
     @Nested

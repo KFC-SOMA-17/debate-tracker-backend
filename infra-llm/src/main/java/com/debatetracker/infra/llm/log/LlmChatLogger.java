@@ -2,6 +2,7 @@ package com.debatetracker.infra.llm.log;
 
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
+import java.util.function.Supplier;
 import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
@@ -9,37 +10,47 @@ public class LlmChatLogger {
 
     private final MeterRegistry meterRegistry;
 
-    public Timer.Sample startRequestTimer() {
-        return Timer.start(meterRegistry);
+    public <T> T executeWithMetrics(LlmOperationType operationType, Supplier<T> action) {
+        Timer.Sample sample = Timer.start(meterRegistry);
+        try {
+            T result = action.get();
+            recordRequestSuccess(operationType);
+            return result;
+        } catch (RuntimeException exception) {
+            recordRequestError(operationType, exception);
+            throw exception;
+        } finally {
+            stopRequestTimer(operationType, sample);
+        }
     }
 
-    public void recordRequestSuccess(String operation) {
+    private void recordRequestSuccess(LlmOperationType operationType) {
         meterRegistry.counter("llm.request.count",
-            "operation", operation,
+            "operation", operationType.getValue(),
             "status", "success"
         ).increment();
     }
 
-    public void stopRequestTimer(String operation, Timer.Sample sample) {
+    private void stopRequestTimer(LlmOperationType operationType, Timer.Sample sample) {
         sample.stop(meterRegistry.timer("llm.request.duration",
-            "operation", operation
+            "operation", operationType.getValue()
         ));
     }
 
-    public void recordRequestError(String operation, Exception exception) {
+    private void recordRequestError(LlmOperationType operationType, Exception exception) {
         meterRegistry.counter("llm.request.count",
-            "operation", operation,
+            "operation", operationType.getValue(),
             "status", "error",
             "error_type", exception.getClass().getSimpleName()
         ).increment();
     }
 
-    public void recordTokenUsage(String operation, String model,
+    public void recordTokenUsage(LlmOperationType operationType, String model,
                                   Integer promptTokens, Integer generationTokens) {
         if (promptTokens != null) {
             meterRegistry.counter("llm.tokens.total",
                 "type", "prompt",
-                "operation", operation,
+                "operation", operationType.getValue(),
                 "model", model
             ).increment(promptTokens);
         }
@@ -47,23 +58,23 @@ public class LlmChatLogger {
         if (generationTokens != null) {
             meterRegistry.counter("llm.tokens.total",
                 "type", "generation",
-                "operation", operation,
+                "operation", operationType.getValue(),
                 "model", model
             ).increment(generationTokens);
         }
     }
 
-    public void recordFinishReason(String operation, String model, String finishReason) {
+    public void recordFinishReason(LlmOperationType operationType, String model, String finishReason) {
         meterRegistry.counter("llm.finish_reason",
-            "operation", operation,
+            "operation", operationType.getValue(),
             "reason", finishReason,
             "model", model
         ).increment();
     }
 
-    public void recordValidationError(String operation, String model, Exception exception) {
+    public void recordValidationError(LlmOperationType operationType, String model, Exception exception) {
         meterRegistry.counter("llm.validation.error",
-            "operation", operation,
+            "operation", operationType.getValue(),
             "model", model,
             "error_type", exception.getClass().getSimpleName()
         ).increment();

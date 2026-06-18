@@ -10,6 +10,7 @@ import com.debatetracker.infra.llm.client.ExtractClaim;
 import com.debatetracker.infra.llm.client.ExtractStance;
 import com.debatetracker.infra.llm.client.TranscriptSegment;
 import com.debatetracker.infra.llm.log.LlmChatLogger;
+import com.debatetracker.infra.llm.log.LlmOperationType;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
@@ -76,9 +77,11 @@ class ExtractLlmChatApiTest {
         void 실제_API로_발화에서_쟁점_트리를_추출한다() throws IOException {
             LlmChatLogger logger = org.mockito.Mockito.mock(LlmChatLogger.class,
                 org.mockito.Mockito.RETURNS_DEEP_STUBS);
+            org.mockito.Mockito.doAnswer(invocation -> invocation.getArgument(1, java.util.function.Supplier.class).get())
+                    .when(logger).executeWithMetrics(org.mockito.ArgumentMatchers.any(LlmOperationType.class), org.mockito.ArgumentMatchers.any());
             com.debatetracker.infra.llm.chat.ChatClientCaller caller =
                     new com.debatetracker.infra.llm.chat.ChatClientCaller(
-                            ChatClient.create(chatModel), logger, "extract");
+                            ChatClient.create(chatModel), logger, LlmOperationType.EXTRACT);
             ExtractLlmChat extractLlmChat = new ExtractLlmChat(
                     caller,
                     systemPrompt.getContentAsString(StandardCharsets.UTF_8),

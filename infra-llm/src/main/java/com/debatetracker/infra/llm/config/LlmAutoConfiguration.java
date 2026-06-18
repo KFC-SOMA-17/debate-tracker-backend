@@ -6,6 +6,7 @@ import com.debatetracker.infra.llm.chat.extract.ExtractLlmChat;
 import com.debatetracker.infra.llm.chat.refine.RefineLlmChat;
 import com.debatetracker.infra.llm.client.LlmClient;
 import com.debatetracker.infra.llm.log.LlmChatLogger;
+import com.debatetracker.infra.llm.log.LlmOperationType;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -35,7 +36,7 @@ public class LlmAutoConfiguration {
                                        @Value("classpath:prompts/refine-system.txt") Resource systemPrompt,
                                        @Value("classpath:prompts/refine-user.txt") Resource userPrompt,
                                        LlmChatLogger logger) {
-        ChatClientCaller caller = new ChatClientCaller(createChatClient(chatModel, model), logger, "refine");
+        ChatClientCaller caller = new ChatClientCaller(createChatClient(chatModel, model), logger, LlmOperationType.REFINE);
         return new RefineLlmChat(caller, readPrompt(systemPrompt), readPrompt(userPrompt));
     }
 
@@ -45,7 +46,7 @@ public class LlmAutoConfiguration {
                                          @Value("classpath:prompts/extract-system.txt") Resource systemPrompt,
                                          @Value("classpath:prompts/extract-user.txt") Resource userPrompt,
                                          LlmChatLogger logger) {
-        ChatClientCaller caller = new ChatClientCaller(createChatClient(chatModel, model), logger, "extract");
+        ChatClientCaller caller = new ChatClientCaller(createChatClient(chatModel, model), logger, LlmOperationType.EXTRACT);
         return new ExtractLlmChat(caller, readPrompt(systemPrompt), readPrompt(userPrompt));
     }
 

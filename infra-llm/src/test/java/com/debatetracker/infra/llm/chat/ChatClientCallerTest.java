@@ -6,12 +6,13 @@ import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.debatetracker.infra.llm.log.LlmChatLogger;
+import com.debatetracker.infra.llm.log.LlmOperationType;
 import java.util.function.Function;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -28,7 +29,9 @@ class ChatClientCallerTest {
             // given
             ChatClient chatClient = mockChatClient("LLM response text", "gemini-2.5-flash", "STOP", null);
             LlmChatLogger logger = mock(LlmChatLogger.class, Answers.RETURNS_DEEP_STUBS);
-            ChatClientCaller caller = new ChatClientCaller(chatClient, logger, "refine");
+            doAnswer(invocation -> invocation.getArgument(1, java.util.function.Supplier.class).get())
+                    .when(logger).executeWithMetrics(any(LlmOperationType.class), any());
+            ChatClientCaller caller = new ChatClientCaller(chatClient, logger, LlmOperationType.REFINE);
 
             // when
             String result = caller.call("system", "user", Function.identity());
@@ -36,10 +39,8 @@ class ChatClientCallerTest {
             // then
             assertAll(
                     () -> assertThat(result).isEqualTo("LLM response text"),
-                    () -> verify(logger).startRequestTimer(),
-                    () -> verify(logger).recordRequestSuccess(eq("refine")),
-                    () -> verify(logger).recordFinishReason(eq("refine"), eq("gemini-2.5-flash"), eq("STOP")),
-                    () -> verify(logger, never()).recordRequestError(anyString(), any())
+                    () -> verify(logger).executeWithMetrics(eq(LlmOperationType.REFINE), any()),
+                    () -> verify(logger).recordFinishReason(eq(LlmOperationType.REFINE), eq("gemini-2.5-flash"), eq("STOP"))
             );
         }
 
@@ -56,16 +57,16 @@ class ChatClientCallerTest {
                     .thenThrow(apiError);
 
             LlmChatLogger logger = mock(LlmChatLogger.class, Answers.RETURNS_DEEP_STUBS);
-            ChatClientCaller caller = new ChatClientCaller(chatClient, logger, "extract");
+            doAnswer(invocation -> invocation.getArgument(1, java.util.function.Supplier.class).get())
+                    .when(logger).executeWithMetrics(any(LlmOperationType.class), any());
+            ChatClientCaller caller = new ChatClientCaller(chatClient, logger, LlmOperationType.EXTRACT);
 
             // when & then
             assertAll(
                     () -> assertThatThrownBy(() -> caller.call("system", "user", Function.identity()))
                             .isInstanceOf(RuntimeException.class)
                             .hasMessage("API error"),
-                    () -> verify(logger).startRequestTimer(),
-                    () -> verify(logger).recordRequestError(eq("extract"), eq(apiError)),
-                    () -> verify(logger, never()).recordRequestSuccess(anyString())
+                    () -> verify(logger).executeWithMetrics(eq(LlmOperationType.EXTRACT), any())
             );
         }
 
@@ -74,13 +75,15 @@ class ChatClientCallerTest {
             // given
             ChatClient chatClient = mockChatClientWithTokens("response", "gemini-2.5-flash", 100, 50);
             LlmChatLogger logger = mock(LlmChatLogger.class, Answers.RETURNS_DEEP_STUBS);
-            ChatClientCaller caller = new ChatClientCaller(chatClient, logger, "refine");
+            doAnswer(invocation -> invocation.getArgument(1, java.util.function.Supplier.class).get())
+                    .when(logger).executeWithMetrics(any(LlmOperationType.class), any());
+            ChatClientCaller caller = new ChatClientCaller(chatClient, logger, LlmOperationType.REFINE);
 
             // when
             caller.call("system", "user", Function.identity());
 
             // then
-            verify(logger).recordTokenUsage(eq("refine"), eq("gemini-2.5-flash"), eq(100), eq(50));
+            verify(logger).recordTokenUsage(eq(LlmOperationType.REFINE), eq("gemini-2.5-flash"), eq(100), eq(50));
         }
 
         @Test
@@ -88,14 +91,16 @@ class ChatClientCallerTest {
             // given
             ChatClient chatClient = mockChatClient("response", "gemini-2.5-pro", null, null);
             LlmChatLogger logger = mock(LlmChatLogger.class, Answers.RETURNS_DEEP_STUBS);
-            ChatClientCaller caller = new ChatClientCaller(chatClient, logger, "extract");
+            doAnswer(invocation -> invocation.getArgument(1, java.util.function.Supplier.class).get())
+                    .when(logger).executeWithMetrics(any(LlmOperationType.class), any());
+            ChatClientCaller caller = new ChatClientCaller(chatClient, logger, LlmOperationType.EXTRACT);
 
             // when & then
             assertAll(
-                    () -> assertThatThrownBy(() -> caller.call("system", "user", text -> new RuntimeException("Validation failed")))
+                    () -> assertThatThrownBy(() -> caller.call("system", "user", text -> { throw new RuntimeException("Validation failed"); }))
                             .isInstanceOf(RuntimeException.class)
                             .hasMessage("Validation failed"),
-                    () -> verify(logger).recordValidationError(eq("extract"), eq("gemini-2.5-pro"), eq(new RuntimeException("Validation failed")))
+                    () -> verify(logger).recordValidationError(eq(LlmOperationType.EXTRACT), eq("gemini-2.5-pro"), any(RuntimeException.class))
             );
         }
     }
