@@ -9,6 +9,7 @@ import com.debatetracker.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.JoinPoint;
+import org.aspectj.lang.annotation.AfterReturning;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.annotation.Before;
 import org.aspectj.lang.reflect.MethodSignature;
@@ -27,18 +28,18 @@ public class StompLoggingAspect {
     private final WebsocketLogger websocketLogger;
     private final DebateLogger debateLogger;
 
-    @Before("@annotation(com.debatetracker.debate.log.annotation.LogStompStart)")
+    @AfterReturning("@annotation(com.debatetracker.debate.log.annotation.LogStompStart)")
     public void recordStart(JoinPoint joinPoint) {
         websocketLogger.recordInboundMessage(StompMessageType.START);
         debateLogger.recordStart();
     }
 
-    @Before("@annotation(com.debatetracker.debate.log.annotation.LogStompStop)")
+    @AfterReturning("@annotation(com.debatetracker.debate.log.annotation.LogStompStop)")
     public void recordStop(JoinPoint joinPoint) {
         websocketLogger.recordInboundMessage(StompMessageType.STOP);
     }
 
-    @Before("@annotation(com.debatetracker.debate.log.annotation.LogStompAudio)")
+    @AfterReturning("@annotation(com.debatetracker.debate.log.annotation.LogStompAudio)")
     public void recordAudio(JoinPoint joinPoint) {
         websocketLogger.recordInboundMessage(StompMessageType.AUDIO);
         byte[] payload = findPayloadArg(joinPoint.getArgs());

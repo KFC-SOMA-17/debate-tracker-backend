@@ -59,6 +59,6 @@ public class StompMetricsListener implements ApplicationListener<AbstractSubProt
 
     private boolean isAbruptDisconnect(SessionDisconnectEvent event) {
         CloseStatus closeStatus = event.getCloseStatus();
-        return closeStatus != null && !CloseStatus.NORMAL.equalsCode(closeStatus);
+        return closeStatus == null || !CloseStatus.NORMAL.equalsCode(closeStatus);
     }
 }
