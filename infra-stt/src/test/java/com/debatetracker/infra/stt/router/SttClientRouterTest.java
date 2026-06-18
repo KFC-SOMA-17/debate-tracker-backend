@@ -10,23 +10,18 @@ import com.debatetracker.infra.stt.repository.InMemorySttSessionRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
 
-@ExtendWith(MockitoExtension.class)
 class SttClientRouterTest {
 
     private static final String SESSION_ID = "test-session-1";
 
-    @Mock
     private SttSessionCreator sessionCreator;
-
     private InMemorySttSessionRepository sessionRepository;
     private SttClientRouter router;
 
     @BeforeEach
     void setUp() {
+        sessionCreator = mock(SttSessionCreator.class);
         sessionRepository = new InMemorySttSessionRepository();
         router = new SttClientRouter(sessionCreator, sessionRepository);
     }
