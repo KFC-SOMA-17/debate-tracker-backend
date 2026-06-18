@@ -2,6 +2,7 @@ package com.debatetracker.infra.llm.chat;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -20,7 +21,7 @@ import org.springframework.ai.chat.client.ChatClient;
 class ChatClientCallerTest {
 
     @Nested
-    class call_메서드는 {
+    class Call {
 
         @Test
         void 성공_시_요청_지표와_응답_지표를_기록하고_콜백_결과를_반환한다() {
@@ -33,11 +34,13 @@ class ChatClientCallerTest {
             String result = caller.call("system", "user", Function.identity());
 
             // then
-            assertThat(result).isEqualTo("LLM response text");
-            verify(logger).startRequestTimer();
-            verify(logger).recordRequestSuccess(eq("refine"));
-            verify(logger).recordFinishReason(eq("refine"), eq("gemini-2.5-flash"), eq("STOP"));
-            verify(logger, never()).recordRequestError(anyString(), any());
+            assertAll(
+                    () -> assertThat(result).isEqualTo("LLM response text"),
+                    () -> verify(logger).startRequestTimer(),
+                    () -> verify(logger).recordRequestSuccess(eq("refine")),
+                    () -> verify(logger).recordFinishReason(eq("refine"), eq("gemini-2.5-flash"), eq("STOP")),
+                    () -> verify(logger, never()).recordRequestError(anyString(), any())
+            );
         }
 
         @Test
@@ -56,13 +59,14 @@ class ChatClientCallerTest {
             ChatClientCaller caller = new ChatClientCaller(chatClient, logger, "extract");
 
             // when & then
-            assertThatThrownBy(() -> caller.call("system", "user", Function.identity()))
-                    .isInstanceOf(RuntimeException.class)
-                    .hasMessage("API error");
-
-            verify(logger).startRequestTimer();
-            verify(logger).recordRequestError(eq("extract"), eq(apiError));
-            verify(logger, never()).recordRequestSuccess(anyString());
+            assertAll(
+                    () -> assertThatThrownBy(() -> caller.call("system", "user", Function.identity()))
+                            .isInstanceOf(RuntimeException.class)
+                            .hasMessage("API error"),
+                    () -> verify(logger).startRequestTimer(),
+                    () -> verify(logger).recordRequestError(eq("extract"), eq(apiError)),
+                    () -> verify(logger, never()).recordRequestSuccess(anyString())
+            );
         }
 
         @Test
@@ -86,16 +90,13 @@ class ChatClientCallerTest {
             LlmChatLogger logger = mock(LlmChatLogger.class, Answers.RETURNS_DEEP_STUBS);
             ChatClientCaller caller = new ChatClientCaller(chatClient, logger, "extract");
 
-            RuntimeException validationError = new RuntimeException("Validation failed");
-
             // when & then
-            assertThatThrownBy(() -> caller.call("system", "user", text -> {
-                throw validationError;
-            }))
-                    .isInstanceOf(RuntimeException.class)
-                    .hasMessage("Validation failed");
-
-            verify(logger).recordValidationError(eq("extract"), eq("gemini-2.5-pro"), eq(validationError));
+            assertAll(
+                    () -> assertThatThrownBy(() -> caller.call("system", "user", text -> new RuntimeException("Validation failed")))
+                            .isInstanceOf(RuntimeException.class)
+                            .hasMessage("Validation failed"),
+                    () -> verify(logger).recordValidationError(eq("extract"), eq("gemini-2.5-pro"), eq(new RuntimeException("Validation failed")))
+            );
         }
     }
 
