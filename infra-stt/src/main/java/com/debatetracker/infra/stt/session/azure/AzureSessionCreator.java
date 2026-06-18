@@ -1,5 +1,7 @@
 package com.debatetracker.infra.stt.session.azure;
 
+import com.debatetracker.exception.DebateTrackerException;
+import com.debatetracker.exception.ErrorCode;
 import com.debatetracker.infra.stt.router.SttSession;
 import com.debatetracker.infra.stt.router.SttSessionCreator;
 import com.debatetracker.infra.stt.config.AudioProperties;
@@ -54,14 +56,14 @@ public class AzureSessionCreator implements SttSessionCreator {
             AzureUtils.close(transcriber);
             AzureUtils.close(audioConfig);
             AzureUtils.close(speechConfig);
-            throw new RuntimeException("Streaming Connection Failed", e);
+            throw new DebateTrackerException(ErrorCode.STT_SESSION_START_INTERRUPTED, e);
         } catch (Exception e) {
             log.error("[azure] 연결 실패: session={}, error={}", sessionId, e.getMessage(), e);
             AzureUtils.close(pushStream);
             AzureUtils.close(transcriber);
             AzureUtils.close(audioConfig);
             AzureUtils.close(speechConfig);
-            throw new RuntimeException("Streaming Connection Failed", e);
+            throw new DebateTrackerException(ErrorCode.STT_CONNECTION_FAILED, e);
         }
     }
 
