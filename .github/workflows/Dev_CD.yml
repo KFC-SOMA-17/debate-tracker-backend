@@ -2,7 +2,9 @@ name: Dev CD
 
 on:
   push:
-    branches: [ develop ]
+    branches:
+      - develop
+      - feat/#72-dev-cd
     paths-ignore:
       - '**.md'
       - 'docs/**'
