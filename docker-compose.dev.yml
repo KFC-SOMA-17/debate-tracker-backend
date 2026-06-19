@@ -1,0 +1,10 @@
+services:
+  app-debate:
+    image: ${IMAGE}
+    container_name: debate-app
+    environment:
+      SPRING_PROFILES_ACTIVE: dev
+    ports:
+      - "8080:8080"
+      - "8083:8083"
+    restart: unless-stopped
