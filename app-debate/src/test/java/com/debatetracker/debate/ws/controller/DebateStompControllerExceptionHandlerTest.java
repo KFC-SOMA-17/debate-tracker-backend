@@ -11,6 +11,7 @@ import com.debatetracker.debate.service.debate.DebateStreamingService;
 import com.debatetracker.debate.ws.message.MessageType;
 import com.debatetracker.debate.ws.message.WebSocketMessage;
 import com.debatetracker.debate.ws.sender.WebSocketMessageSender;
+import com.debatetracker.debate.ws.session.BroadcasterReconnectGrace;
 import com.debatetracker.exception.DebateTrackerException;
 import com.debatetracker.exception.ErrorCode;
 import org.junit.jupiter.api.BeforeEach;
@@ -26,7 +27,8 @@ class DebateStompControllerExceptionHandlerTest {
     @BeforeEach
     void setUp() {
         messageSender = mock(WebSocketMessageSender.class);
-        controller = new DebateStompController(mock(DebateStreamingService.class), messageSender);
+        controller = new DebateStompController(
+                mock(DebateStreamingService.class), messageSender, mock(BroadcasterReconnectGrace.class));
     }
 
     @Nested

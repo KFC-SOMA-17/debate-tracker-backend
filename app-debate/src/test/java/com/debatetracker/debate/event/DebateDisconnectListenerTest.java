@@ -1,4 +1,4 @@
-현package com.debatetracker.debate.event;
+package com.debatetracker.debate.event;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertAll;
