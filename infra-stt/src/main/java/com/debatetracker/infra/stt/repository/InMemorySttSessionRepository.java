@@ -28,4 +28,8 @@ public class InMemorySttSessionRepository implements SttSessionRepository {
     public Optional<SttSession> deleteBySessionId(String sessionId) {
         return Optional.ofNullable(sessions.remove(sessionId));
     }
+
+    public int count() {
+        return sessions.size();
+    }
 }
