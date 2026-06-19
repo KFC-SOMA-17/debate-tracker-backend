@@ -7,6 +7,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
 import com.debatetracker.debate.exception.ErrorResponse;
+import com.debatetracker.debate.log.DebateLogger;
 import com.debatetracker.debate.service.debate.DebateStreamingService;
 import com.debatetracker.debate.ws.message.MessageType;
 import com.debatetracker.debate.ws.message.WebSocketMessage;
@@ -26,7 +27,7 @@ class DebateStompControllerExceptionHandlerTest {
     @BeforeEach
     void setUp() {
         messageSender = mock(WebSocketMessageSender.class);
-        controller = new DebateStompController(mock(DebateStreamingService.class), messageSender);
+        controller = new DebateStompController(mock(DebateStreamingService.class), messageSender, mock(DebateLogger.class));
     }
 
     @Nested
