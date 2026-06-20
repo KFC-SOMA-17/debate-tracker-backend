@@ -42,6 +42,9 @@ out/
 .claude
 CLAUDE.local.md
 
+### Secrets (CD 가 생성, 커밋 금지 — dev-secret.yml.example 은 추적) ###
+**/src/main/resources/dev-secret.yml
+
 ### Local STT test harness (untracked) ###
 /local-harness/
 
