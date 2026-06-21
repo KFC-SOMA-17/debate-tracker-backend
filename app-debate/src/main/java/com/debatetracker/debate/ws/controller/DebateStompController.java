@@ -5,6 +5,7 @@ import com.debatetracker.debate.ws.message.DebateEndMessage;
 import com.debatetracker.debate.ws.message.DebateStartMessage;
 import com.debatetracker.debate.ws.message.ErrorMessage;
 import com.debatetracker.debate.ws.sender.WebSocketMessageSender;
+import com.debatetracker.debate.ws.session.BroadcasterReconnectGrace;
 import com.debatetracker.exception.DebateTrackerException;
 import com.debatetracker.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
@@ -13,7 +14,10 @@ import org.springframework.messaging.handler.annotation.DestinationVariable;
 import org.springframework.messaging.handler.annotation.MessageExceptionHandler;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
+import org.springframework.messaging.simp.SimpMessageHeaderAccessor;
 import org.springframework.stereotype.Controller;
+
+import java.util.Map;
 
 @Slf4j
 @Controller
@@ -22,15 +26,22 @@ public class DebateStompController {
 
     private final DebateStreamingService debateStreamingService;
     private final WebSocketMessageSender messageSender;
+    private final BroadcasterReconnectGrace reconnectGrace;
 
     @MessageMapping("/debate/{debateId}/start")
-    public void startDebate(@DestinationVariable String debateId) {
+    public void startDebate(@DestinationVariable String debateId, SimpMessageHeaderAccessor headerAccessor) {
         debateStreamingService.startDebate(debateId);
+        Map<String, Object> sessionAttributes = headerAccessor.getSessionAttributes();
+        if (sessionAttributes != null) {
+            sessionAttributes.put("debateId", debateId); //세션에 진행 토론 기록
+        }
+        reconnectGrace.cancel(debateId); //재연결이면 예약된 종료 취소
         messageSender.broadcast(debateId, new DebateStartMessage(Long.parseLong(debateId)));
     }
 
     @MessageMapping("/debate/{debateId}/stop")
     public void stopDebate(@DestinationVariable String debateId) {
+        reconnectGrace.cancel(debateId);
         if (debateStreamingService.stopDebateWithRemainingRefine(debateId)) {
             messageSender.broadcast(debateId, new DebateEndMessage(Long.parseLong(debateId)));
         }
