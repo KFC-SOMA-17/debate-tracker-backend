@@ -89,8 +89,10 @@ public class SttLogger {
             TAG_VENDOR, vendor.getValue(), "status", status.getValue()
         ).increment();
         if (status == SttTranscriptionStatus.SUCCESS && speakerId != null) {
-            sessionSpeakers.computeIfAbsent(sessionId, k -> ConcurrentHashMap.newKeySet())
-                .add(speakerId);
+            Set<String> speakers = sessionSpeakers.get(sessionId);
+            if (speakers != null) {
+                speakers.add(speakerId);
+            }
         }
     }
 

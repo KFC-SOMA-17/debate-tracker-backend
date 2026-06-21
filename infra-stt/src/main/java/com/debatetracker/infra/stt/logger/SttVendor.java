@@ -7,7 +7,8 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public enum SttVendor {
 
-    AZURE("azure");
+    AZURE("azure"),
+    UNKNOWN("unknown");
 
     private final String value;
 }

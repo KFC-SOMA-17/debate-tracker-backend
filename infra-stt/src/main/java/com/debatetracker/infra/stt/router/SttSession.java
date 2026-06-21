@@ -6,7 +6,7 @@ public interface SttSession {
 
     SttVendor getVendor();
 
-    void sendAudio(byte[] pcmData);
+    boolean sendAudio(byte[] pcmData);
 
     void stop();
 

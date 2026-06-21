@@ -58,8 +58,6 @@ public class DebateStompController {
     private void logBySeverity(String debateId, ErrorCode errorCode, Throwable throwable) {
         if (errorCode.is5XxError()) {
             log.error("STOMP server error: debateId={}, code={}", debateId, errorCode, throwable);
-            return;
         }
-        log.warn("STOMP client error: debateId={}, code={}", debateId, errorCode, throwable);
     }
 }

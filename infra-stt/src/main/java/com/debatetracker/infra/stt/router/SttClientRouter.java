@@ -3,6 +3,7 @@ package com.debatetracker.infra.stt.router;
 import com.debatetracker.infra.stt.client.SttClient;
 import com.debatetracker.infra.stt.logger.SttAudioChunkStatus;
 import com.debatetracker.infra.stt.logger.SttLogger;
+import com.debatetracker.infra.stt.logger.SttVendor;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -29,10 +30,14 @@ public class SttClientRouter implements SttClient {
         sessionRepository.findBySessionId(sessionId)
                 .ifPresentOrElse(
                         session -> {
-                            session.sendAudio(pcmData);
-                            sttLogger.recordAudioChunkSent(session.getVendor(), SttAudioChunkStatus.SUCCESS);
+                            if (session.sendAudio(pcmData)) {
+                                sttLogger.recordAudioChunkSent(session.getVendor(), SttAudioChunkStatus.SUCCESS);
+                            }
                         },
-                        () -> log.debug("활성 세션 없음, 오디오 무시: {}", sessionId)
+                        () -> {
+                            log.debug("활성 세션 없음, 오디오 무시: {}", sessionId);
+                            sttLogger.recordAudioChunkSent(SttVendor.UNKNOWN, SttAudioChunkStatus.NO_SESSION);
+                        }
                 );
     }
 

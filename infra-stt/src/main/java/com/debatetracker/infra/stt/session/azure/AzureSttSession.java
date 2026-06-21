@@ -109,14 +109,16 @@ public class AzureSttSession implements SttSession {
     }
 
     @Override
-    public void sendAudio(byte[] pcmData) {
+    public boolean sendAudio(byte[] pcmData) {
         try {
             pushStream.write(pcmData);
             sttLogger.recordAudioBytesSent(VENDOR, pcmData.length);
+            return true;
         } catch (Exception e) {
             log.error("[{}] 오디오 전송 에러: session={}, error={}", VENDOR_NAME, sessionId,
                 e.getMessage(), e);
             sttLogger.recordAudioSendError(VENDOR, e);
+            return false;
         }
     }
 
