@@ -63,4 +63,14 @@ public class AzureUtils {
             log.warn("[azure-utils] SpeechConfig 닫기 실패: {}", e.getMessage());
         }
     }
+
+    public static void closeAll(PushAudioInputStream pushStream,
+                                ConversationTranscriber transcriber,
+                                AudioConfig audioConfig,
+                                SpeechConfig speechConfig) {
+        close(pushStream);
+        close(transcriber);
+        close(audioConfig);
+        close(speechConfig);
+    }
 }

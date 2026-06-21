@@ -7,6 +7,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.debatetracker.infra.stt.logger.SttLogger;
 import com.debatetracker.infra.stt.repository.InMemorySttSessionRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -18,13 +19,15 @@ class SttClientRouterTest {
 
     private SttSessionCreator sessionCreator;
     private InMemorySttSessionRepository sessionRepository;
+    private SttLogger sttLogger;
     private SttClientRouter router;
 
     @BeforeEach
     void setUp() {
         sessionCreator = mock(SttSessionCreator.class);
         sessionRepository = new InMemorySttSessionRepository();
-        router = new SttClientRouter(sessionCreator, sessionRepository);
+        sttLogger = mock(SttLogger.class);
+        router = new SttClientRouter(sessionCreator, sessionRepository, sttLogger);
     }
 
     @Nested

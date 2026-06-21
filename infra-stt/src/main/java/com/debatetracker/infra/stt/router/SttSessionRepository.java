@@ -11,4 +11,6 @@ public interface SttSessionRepository {
     boolean existsBySessionId(String sessionId);
 
     Optional<SttSession> deleteBySessionId(String sessionId);
+
+    int count();
 }

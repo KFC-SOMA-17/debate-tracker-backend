@@ -46,12 +46,14 @@ plugins {
 
 dependencies {
     implementation 'com.fasterxml.jackson.core:jackson-databind'  // JsonUtils 용
+    implementation 'org.slf4j:slf4j-api'
+    api 'io.micrometer:micrometer-core'  // infra-* 모듈에 전파
 }
 ```
 
 루트 `subprojects` 블록이 Java 21 toolchain, Lombok, JUnit 을 자동 주입.
 
-`api` 키워드 사용 금지 (현재). 만약 `infra-*` 의 public 인터페이스 시그니처에 `ErrorCode` / `DebateTrackerException` / `JsonUtils` 가 노출되는 시점이 오면 그때 `api` 승격 검토.
+**`api` vs `implementation`**: 벤더 중립 라이브러리(Micrometer, SLF4J)는 `api`로 노출 가능. `infra-*` 모듈들이 공통으로 사용하는 메트릭/로깅 추상화를 transitive dependency로 전파한다.
 
 ## 코드 배치
 
