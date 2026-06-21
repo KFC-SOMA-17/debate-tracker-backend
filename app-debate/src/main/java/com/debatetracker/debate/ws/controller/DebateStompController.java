@@ -17,6 +17,8 @@ import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.messaging.simp.SimpMessageHeaderAccessor;
 import org.springframework.stereotype.Controller;
 
+import java.util.Map;
+
 @Slf4j
 @Controller
 @RequiredArgsConstructor
@@ -29,7 +31,10 @@ public class DebateStompController {
     @MessageMapping("/debate/{debateId}/start")
     public void startDebate(@DestinationVariable String debateId, SimpMessageHeaderAccessor headerAccessor) {
         debateStreamingService.startDebate(debateId);
-        headerAccessor.getSessionAttributes().put("debateId", debateId); //세션에 진행 토론 기록
+        Map<String, Object> sessionAttributes = headerAccessor.getSessionAttributes();
+        if (sessionAttributes != null) {
+            sessionAttributes.put("debateId", debateId); //세션에 진행 토론 기록
+        }
         reconnectGrace.cancel(debateId); //재연결이면 예약된 종료 취소
         messageSender.broadcast(debateId, new DebateStartMessage(Long.parseLong(debateId)));
     }
