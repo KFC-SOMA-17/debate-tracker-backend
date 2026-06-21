@@ -53,6 +53,7 @@ app-debate/src/main/java/com/debatetracker/debate/
 │   ├── LlmUtteranceCorrectorAdapter.java
 │   └── LlmDebateAgendaAnalyzerAdapter.java
 ├── controller/                    # REST API
+│   ├── config/
 │   ├── debate/
 │   ├── transcript/
 │   └── agendaboard/
@@ -60,7 +61,9 @@ app-debate/src/main/java/com/debatetracker/debate/
 │   ├── debate/                   # 토론 메타
 │   ├── session/                  # 세션 메타
 │   ├── transcript/               # 전사/발화 (SpeechSegment, RefinedSpeechSegment)
+│   │   └── repository/
 │   └── agendaboard/              # 쟁점 트리 (Agenda, Claim, Evidence)
+│       └── repository/
 ├── event/                         # 도메인 이벤트
 ├── exception/                     # 앱 전용 예외
 ├── infrastructure/                # 인프라 구현
@@ -70,17 +73,26 @@ app-debate/src/main/java/com/debatetracker/debate/
 │       ├── redis/
 │       ├── jdbc/
 │       └── inmemory/
+├── log/                           # 모니터링 지표 수집
+│   ├── DebateLogger.java
+│   └── annotation/               # @LogStompStart, @LogStompStop, @LogStompAudio, @LogStompException
 ├── scheduler/                     # 주기 트리거
+│   ├── config/
 │   ├── TranscribeRefiningScheduler.java    # 보정 (30초)
 │   └── AgendaAnalyzeScheduler.java         # 쟁점추출 (60초)
 ├── service/                       # 비즈니스 로직
 │   ├── debate/
 │   ├── transcript/
-│   └── agendaboard/
+│   ├── agendaboard/
+│   └── dto/                      # 서비스 계층 DTO
+│       ├── transcript/
+│       └── agendaboard/
 └── ws/                            # WebSocket
-    ├── handler/
+    ├── controller/               # STOMP 컨트롤러 (DebateStompController)
+    ├── id/
+    ├── message/
     ├── sender/
-    └── message/
+    └── session/                  # BroadcasterReconnectGrace (재연결 grace 기간 관리)
 ```
 
 ## 현재 구현된 주요 정책

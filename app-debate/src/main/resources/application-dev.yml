@@ -1,0 +1,35 @@
+spring:
+  config:
+    import:
+      - classpath:config-monitoring-dev.yml
+      - classpath:dev-secret.yml
+
+  datasource:
+    url: jdbc:mysql://${secret.datasource.host}:${secret.datasource.port}/${secret.datasource.database}?serverTimezone=Asia/Seoul&characterEncoding=UTF-8
+    username: ${secret.datasource.username}
+    password: ${secret.datasource.password}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+
+  data:
+    redis:
+      host: ${secret.redis.host}
+      port: ${secret.redis.port}
+      ssl:
+        enabled: true
+
+  ai:
+    google:
+      genai:
+        api-key: ${secret.google.api-key}
+
+stt:
+  azure:
+    enabled: true
+    subscription-key: ${secret.azure.subscription-key}
+
+cors:
+  origin-urls: ${secret.cors.origin}
