@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - develop
+      - fix/#76-elasticcache
     paths-ignore:
       - '**.md'
       - 'docs/**'
