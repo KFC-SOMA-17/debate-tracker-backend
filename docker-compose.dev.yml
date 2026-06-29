@@ -8,3 +8,15 @@ services:
       - "8080:8080"
       - "8083:8083"
     restart: unless-stopped
+
+  # 모니터링 EC2 의 Prometheus 가 :9100 으로 스크랩하는 호스트 지표(CPU/Mem/Disk/Net) 노출.
+  node-exporter:
+    image: prom/node-exporter:v1.8.2
+    container_name: debate-node-exporter
+    command:
+      - '--path.rootfs=/host'
+    pid: host
+    network_mode: host
+    volumes:
+      - '/:/host:ro,rslave'
+    restart: unless-stopped

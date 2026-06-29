@@ -1,0 +1,115 @@
+name: Monitoring CD
+
+on:
+  push:
+    branches:
+      - develop
+    paths:
+      - 'monitoring/**'
+      - '.github/workflows/Monitoring_CD.yml'
+  workflow_dispatch:
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DEV_DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DEV_DOCKERHUB_TOKEN }}
+
+      - name: Build and push Prometheus image
+        uses: docker/build-push-action@v6
+        with:
+          context: monitoring/prometheus
+          push: true
+          tags: |
+            debatetracker/debate-monitoring-prometheus:latest
+            debatetracker/debate-monitoring-prometheus:${{ github.sha }}
+          cache-from: type=gha,scope=prometheus
+          cache-to: type=gha,mode=max,scope=prometheus
+
+      - name: Build and push Grafana image
+        uses: docker/build-push-action@v6
+        with:
+          context: monitoring/grafana
+          push: true
+          tags: |
+            debatetracker/debate-monitoring-grafana:latest
+            debatetracker/debate-monitoring-grafana:${{ github.sha }}
+          cache-from: type=gha,scope=grafana
+          cache-to: type=gha,mode=max,scope=grafana
+
+      - name: Build and push CloudWatch Exporter image
+        uses: docker/build-push-action@v6
+        with:
+          context: monitoring/cloudwatch-exporter
+          push: true
+          tags: |
+            debatetracker/debate-monitoring-cloudwatch-exporter:latest
+            debatetracker/debate-monitoring-cloudwatch-exporter:${{ github.sha }}
+          cache-from: type=gha,scope=cloudwatch-exporter
+          cache-to: type=gha,mode=max,scope=cloudwatch-exporter
+
+      - name: Copy compose file to monitoring EC2
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.MONITORING_EC2_HOST }}
+          username: ${{ secrets.MONITORING_EC2_USER }}
+          key: ${{ secrets.MONITORING_EC2_SSH_KEY }}
+          source: monitoring/docker-compose.monitoring.yml
+          target: monitoring
+          strip_components: 1
+
+      - name: Deploy on monitoring EC2
+        uses: appleboy/ssh-action@v1.2.0
+        env:
+          SHA: ${{ github.sha }}
+          DOCKERHUB_USERNAME: ${{ secrets.DEV_DOCKERHUB_USERNAME }}
+          DOCKERHUB_TOKEN: ${{ secrets.DEV_DOCKERHUB_TOKEN }}
+          APP_DEBATE_TARGET: ${{ secrets.APP_EC2_PRIVATE_IP }}:8083
+          NODE_EXPORTER_TARGET: ${{ secrets.APP_EC2_PRIVATE_IP }}:9100
+          GF_SECURITY_ADMIN_PASSWORD: ${{ secrets.GRAFANA_ADMIN_PASSWORD }}
+        with:
+          host: ${{ secrets.MONITORING_EC2_HOST }}
+          username: ${{ secrets.MONITORING_EC2_USER }}
+          key: ${{ secrets.MONITORING_EC2_SSH_KEY }}
+          envs: SHA,DOCKERHUB_USERNAME,DOCKERHUB_TOKEN,APP_DEBATE_TARGET,NODE_EXPORTER_TARGET,GF_SECURITY_ADMIN_PASSWORD
+          script: |
+            set -e
+            cd monitoring
+
+            cat > .env <<EOF
+            PROMETHEUS_IMAGE=debatetracker/debate-monitoring-prometheus:${SHA}
+            GRAFANA_IMAGE=debatetracker/debate-monitoring-grafana:${SHA}
+            CLOUDWATCH_EXPORTER_IMAGE=debatetracker/debate-monitoring-cloudwatch-exporter:${SHA}
+            ENVIRONMENT=dev
+            APP_DEBATE_TARGET=${APP_DEBATE_TARGET}
+            NODE_EXPORTER_TARGET=${NODE_EXPORTER_TARGET}
+            GF_SECURITY_ADMIN_PASSWORD=${GF_SECURITY_ADMIN_PASSWORD}
+            EOF
+
+            echo "${DOCKERHUB_TOKEN}" | docker login -u "${DOCKERHUB_USERNAME}" --password-stdin
+            docker compose -f docker-compose.monitoring.yml pull
+            docker compose -f docker-compose.monitoring.yml up -d
+            docker image prune -f
+
+            for i in $(seq 1 30); do
+              if curl -fsS http://localhost:9090/-/healthy > /dev/null \
+                 && curl -fsS http://localhost:3000/api/health > /dev/null; then
+                echo "monitoring stack healthy"
+                exit 0
+              fi
+              echo "waiting for monitoring stack... ($i/30)"
+              sleep 5
+            done
+            echo "health check failed after 150s"
+            exit 1
