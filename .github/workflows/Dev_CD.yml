@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - develop
-      - feat/monitoring-stack
     paths-ignore:
       - '**.md'
       - 'docs/**'
