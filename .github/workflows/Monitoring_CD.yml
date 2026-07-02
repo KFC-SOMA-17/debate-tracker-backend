@@ -1,0 +1,145 @@
+name: Monitoring CD
+
+on:
+  push:
+    branches:
+      - develop
+    paths:
+      - 'monitoring/**'
+      - '.github/workflows/Monitoring_CD.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: monitoring-cd-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DEV_DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DEV_DOCKERHUB_TOKEN }}
+
+      - name: Build and push Prometheus image
+        uses: docker/build-push-action@v6
+        with:
+          context: monitoring/prometheus
+          push: true
+          tags: |
+            debatetracker/debate-monitoring-prometheus:latest
+            debatetracker/debate-monitoring-prometheus:${{ github.sha }}
+          cache-from: type=gha,scope=prometheus
+          cache-to: type=gha,mode=max,scope=prometheus
+
+      - name: Build and push Grafana image
+        uses: docker/build-push-action@v6
+        with:
+          context: monitoring/grafana
+          push: true
+          tags: |
+            debatetracker/debate-monitoring-grafana:latest
+            debatetracker/debate-monitoring-grafana:${{ github.sha }}
+          cache-from: type=gha,scope=grafana
+          cache-to: type=gha,mode=max,scope=grafana
+
+      - name: Build and push CloudWatch Exporter image
+        uses: docker/build-push-action@v6
+        with:
+          context: monitoring/cloudwatch-exporter
+          push: true
+          tags: |
+            debatetracker/debate-monitoring-cloudwatch-exporter:latest
+            debatetracker/debate-monitoring-cloudwatch-exporter:${{ github.sha }}
+          cache-from: type=gha,scope=cloudwatch-exporter
+          cache-to: type=gha,mode=max,scope=cloudwatch-exporter
+
+      - name: Copy compose file to monitoring EC2
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.MONITORING_EC2_HOST }}
+          username: ${{ secrets.MONITORING_EC2_USER }}
+          key: ${{ secrets.MONITORING_EC2_SSH_KEY }}
+          source: monitoring/docker-compose.monitoring.yml
+          target: monitoring
+          strip_components: 1
+
+      - name: Deploy on monitoring EC2
+        uses: appleboy/ssh-action@v1.2.0
+        env:
+          SHA: ${{ github.sha }}
+          DOCKERHUB_USERNAME: ${{ secrets.DEV_DOCKERHUB_USERNAME }}
+          DOCKERHUB_TOKEN: ${{ secrets.DEV_DOCKERHUB_TOKEN }}
+          APP_DEBATE_TARGET: ${{ secrets.APP_EC2_PRIVATE_IP }}:8083
+          NODE_EXPORTER_TARGET: ${{ secrets.APP_EC2_PRIVATE_IP }}:9100
+          GF_SECURITY_ADMIN_PASSWORD: ${{ secrets.GRAFANA_ADMIN_PASSWORD }}
+        with:
+          host: ${{ secrets.MONITORING_EC2_HOST }}
+          username: ${{ secrets.MONITORING_EC2_USER }}
+          key: ${{ secrets.MONITORING_EC2_SSH_KEY }}
+          envs: SHA,DOCKERHUB_USERNAME,DOCKERHUB_TOKEN,APP_DEBATE_TARGET,NODE_EXPORTER_TARGET,GF_SECURITY_ADMIN_PASSWORD
+          script: |
+            set -e
+            cd monitoring
+
+            cat > .env <<EOF
+            PROMETHEUS_IMAGE=debatetracker/debate-monitoring-prometheus:${SHA}
+            GRAFANA_IMAGE=debatetracker/debate-monitoring-grafana:${SHA}
+            CLOUDWATCH_EXPORTER_IMAGE=debatetracker/debate-monitoring-cloudwatch-exporter:${SHA}
+            ENVIRONMENT=dev
+            APP_DEBATE_TARGET=${APP_DEBATE_TARGET}
+            NODE_EXPORTER_TARGET=${NODE_EXPORTER_TARGET}
+            GF_SECURITY_ADMIN_PASSWORD=${GF_SECURITY_ADMIN_PASSWORD}
+            EOF
+
+            echo "${DOCKERHUB_TOKEN}" | docker login -u "${DOCKERHUB_USERNAME}" --password-stdin
+            docker compose -f docker-compose.monitoring.yml pull
+            docker compose -f docker-compose.monitoring.yml up -d
+            docker image prune -f
+
+            # 수집 경로까지 검증: prometheus 가 실제로 up 인 job 인지 query API 로 확인.
+            # 프로세스만 살아있고 타깃이 전부 down 인 "빈 모니터링" 상태를 배포 성공으로 넘기지 않는다.
+            SCRAPE_JOBS="app-debate node-exporter cloudwatch-exporter"
+
+            job_is_up() {
+              job="$1"
+              resp=$(curl -fsS "http://localhost:9090/api/v1/query?query=up%7Bjob%3D%22${job}%22%7D" 2>/dev/null) || return 1
+              # 조회 성공 + up(1) 시계열이 있고 + down(0) 시계열은 하나도 없어야 통과
+              echo "$resp" | grep -q '"status":"success"' || return 1
+              echo "$resp" | grep -q ',"1"\]' || return 1
+              echo "$resp" | grep -q ',"0"\]' && return 1
+              return 0
+            }
+
+            for i in $(seq 1 30); do
+              if curl -fsS http://localhost:9090/-/healthy > /dev/null \
+                 && curl -fsS http://localhost:3000/api/health > /dev/null \
+                 && curl -fsS http://localhost:9106/metrics > /dev/null; then
+                all_up=true
+                for job in $SCRAPE_JOBS; do
+                  if ! job_is_up "$job"; then
+                    all_up=false
+                    echo "  scrape job not up yet: $job"
+                  fi
+                done
+                if [ "$all_up" = true ]; then
+                  echo "monitoring stack healthy (prometheus/grafana/cloudwatch-exporter up, scrape jobs up: ${SCRAPE_JOBS})"
+                  exit 0
+                fi
+              fi
+              echo "waiting for monitoring stack... ($i/30)"
+              sleep 5
+            done
+            echo "health check failed after 150s"
+            echo "----- scrape target 상태 (디버깅용) -----"
+            curl -fsS http://localhost:9090/api/v1/query?query=up || true
+            exit 1

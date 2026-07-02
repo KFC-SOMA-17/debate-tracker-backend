@@ -1,0 +1,73 @@
+# CloudWatch Exporter 설정 (ap-northeast-2).
+# 자격증명: 모니터링 EC2 의 IAM 인스턴스 역할(CloudWatchReadOnlyAccess)에서 자동 획득.
+# 비용: 각 metric 은 GetMetricStatistics 호출을 유발하므로 주기를 너무 짧게 두지 않는다.
+region: ap-northeast-2
+period_seconds: 60
+delay_seconds: 120
+range_seconds: 300
+
+metrics:
+  # ---------- RDS (MySQL) ----------
+  - aws_namespace: AWS/RDS
+    aws_metric_name: CPUUtilization
+    aws_dimensions: [DBInstanceIdentifier]
+    aws_statistics: [Average]
+  - aws_namespace: AWS/RDS
+    aws_metric_name: DatabaseConnections
+    aws_dimensions: [DBInstanceIdentifier]
+    aws_statistics: [Average, Maximum]
+  - aws_namespace: AWS/RDS
+    aws_metric_name: FreeableMemory
+    aws_dimensions: [DBInstanceIdentifier]
+    aws_statistics: [Average]
+  - aws_namespace: AWS/RDS
+    aws_metric_name: FreeStorageSpace
+    aws_dimensions: [DBInstanceIdentifier]
+    aws_statistics: [Average]
+  - aws_namespace: AWS/RDS
+    aws_metric_name: ReadIOPS
+    aws_dimensions: [DBInstanceIdentifier]
+    aws_statistics: [Average]
+  - aws_namespace: AWS/RDS
+    aws_metric_name: WriteIOPS
+    aws_dimensions: [DBInstanceIdentifier]
+    aws_statistics: [Average]
+  - aws_namespace: AWS/RDS
+    aws_metric_name: ReadLatency
+    aws_dimensions: [DBInstanceIdentifier]
+    aws_statistics: [Average]
+  - aws_namespace: AWS/RDS
+    aws_metric_name: WriteLatency
+    aws_dimensions: [DBInstanceIdentifier]
+    aws_statistics: [Average]
+
+  # ---------- ElastiCache (Valkey Serverless) ----------
+  # Serverless 캐시는 AWS/ElastiCache 네임스페이스에 clusterId 차원으로 노출된다.
+  - aws_namespace: AWS/ElastiCache
+    aws_metric_name: BytesUsedForCache
+    aws_dimensions: [clusterId]
+    aws_statistics: [Average, Maximum]
+  - aws_namespace: AWS/ElastiCache
+    aws_metric_name: DatabaseMemoryUsagePercentage
+    aws_dimensions: [clusterId]
+    aws_statistics: [Average, Maximum]
+  - aws_namespace: AWS/ElastiCache
+    aws_metric_name: ElastiCacheProcessingUnits
+    aws_dimensions: [clusterId]
+    aws_statistics: [Average, Maximum]
+  - aws_namespace: AWS/ElastiCache
+    aws_metric_name: CurrConnections
+    aws_dimensions: [clusterId]
+    aws_statistics: [Average, Maximum]
+  - aws_namespace: AWS/ElastiCache
+    aws_metric_name: CacheHits
+    aws_dimensions: [clusterId]
+    aws_statistics: [Sum]
+  - aws_namespace: AWS/ElastiCache
+    aws_metric_name: CacheMisses
+    aws_dimensions: [clusterId]
+    aws_statistics: [Sum]
+  - aws_namespace: AWS/ElastiCache
+    aws_metric_name: Evictions
+    aws_dimensions: [clusterId]
+    aws_statistics: [Sum]

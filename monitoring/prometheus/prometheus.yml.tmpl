@@ -1,0 +1,37 @@
+# 배포용 스크랩 설정 템플릿. ${...} 는 entrypoint.sh 의 envsubst 로 치환된다.
+#   APP_DEBATE_TARGET   : 앱 EC2 의 actuator 엔드포인트 (예: 10.0.1.23:8083)
+#   NODE_EXPORTER_TARGET: 앱 EC2 의 node_exporter (예: 10.0.1.23:9100)
+#   ENVIRONMENT         : 환경 라벨 (예: dev)
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    monitor: 'debate-tracker'
+    environment: '${ENVIRONMENT}'
+
+rule_files:
+  - /etc/prometheus/rules/*.yml
+
+scrape_configs:
+  - job_name: 'app-debate'
+    metrics_path: '/monitoring/prometheus'
+    static_configs:
+      - targets: ['${APP_DEBATE_TARGET}']
+        labels:
+          application: 'app-debate'
+          environment: '${ENVIRONMENT}'
+
+  - job_name: 'node-exporter'
+    static_configs:
+      - targets: ['${NODE_EXPORTER_TARGET}']
+        labels:
+          application: 'app-debate'
+          environment: '${ENVIRONMENT}'
+
+  - job_name: 'cloudwatch-exporter'
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: ['cloudwatch-exporter:9106']
+        labels:
+          environment: '${ENVIRONMENT}'

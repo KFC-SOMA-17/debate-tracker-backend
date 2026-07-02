@@ -1,0 +1,119 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "schemaVersion": 39,
+  "title": "JVM / Tomcat / HikariCP / ThreadPools",
+  "uid": "jvm-app",
+  "tags": ["debate-tracker", "jvm"],
+  "time": { "from": "now-6h", "to": "now" },
+  "refresh": "30s",
+  "templating": { "list": [] },
+  "panels": [
+    {
+      "type": "row", "title": "JVM", "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 }
+    },
+    {
+      "type": "timeseries", "title": "JVM Heap 사용량 (bytes)",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 7, "w": 8, "x": 0, "y": 1 },
+      "fieldConfig": { "defaults": { "unit": "bytes" }, "overrides": [] },
+      "targets": [
+        { "refId": "A", "expr": "sum(jvm_memory_used_bytes{area=\"heap\"})", "legendFormat": "used" },
+        { "refId": "B", "expr": "sum(jvm_memory_committed_bytes{area=\"heap\"})", "legendFormat": "committed" }
+      ]
+    },
+    {
+      "type": "timeseries", "title": "GC pause rate (s/s)",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 7, "w": 8, "x": 8, "y": 1 },
+      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] },
+      "targets": [
+        { "refId": "A", "expr": "sum by (cause) (rate(jvm_gc_pause_seconds_sum[5m]))", "legendFormat": "{{cause}}" }
+      ]
+    },
+    {
+      "type": "timeseries", "title": "JVM 스레드 수",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 7, "w": 8, "x": 16, "y": 1 },
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
+      "targets": [
+        { "refId": "A", "expr": "jvm_threads_live_threads", "legendFormat": "live" },
+        { "refId": "B", "expr": "jvm_threads_daemon_threads", "legendFormat": "daemon" }
+      ]
+    },
+    {
+      "type": "row", "title": "HikariCP", "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 8 }
+    },
+    {
+      "type": "timeseries", "title": "HikariCP 커넥션 (active/idle/max)",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 7, "w": 12, "x": 0, "y": 9 },
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
+      "targets": [
+        { "refId": "A", "expr": "hikaricp_connections_active", "legendFormat": "active {{pool}}" },
+        { "refId": "B", "expr": "hikaricp_connections_idle", "legendFormat": "idle {{pool}}" },
+        { "refId": "C", "expr": "hikaricp_connections_max", "legendFormat": "max {{pool}}" }
+      ]
+    },
+    {
+      "type": "timeseries", "title": "HikariCP 대기 (pending) / 획득 대기시간 p95",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 7, "w": 12, "x": 12, "y": 9 },
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
+      "targets": [
+        { "refId": "A", "expr": "hikaricp_connections_pending", "legendFormat": "pending {{pool}}" },
+        { "refId": "B", "expr": "histogram_quantile(0.95, sum by (le, pool) (rate(hikaricp_connections_acquire_seconds_bucket[5m])))", "legendFormat": "acquire p95 {{pool}}" }
+      ]
+    },
+    {
+      "type": "row", "title": "Thread Pools (executor)", "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 16 }
+    },
+    {
+      "type": "timeseries", "title": "Executor 활성 스레드 / 풀 크기",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 7, "w": 12, "x": 0, "y": 17 },
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
+      "targets": [
+        { "refId": "A", "expr": "executor_active_threads", "legendFormat": "active {{name}}" },
+        { "refId": "B", "expr": "executor_pool_size_threads", "legendFormat": "pool {{name}}" }
+      ]
+    },
+    {
+      "type": "timeseries", "title": "Executor 큐 대기 작업",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 7, "w": 12, "x": 12, "y": 17 },
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
+      "targets": [
+        { "refId": "A", "expr": "executor_queued_tasks", "legendFormat": "queued {{name}}" },
+        { "refId": "B", "expr": "executor_queue_remaining_tasks", "legendFormat": "remaining {{name}}" }
+      ]
+    },
+    {
+      "type": "row", "title": "Tomcat / HTTP", "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 24 }
+    },
+    {
+      "type": "timeseries", "title": "Tomcat 스레드 (busy/current)",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 7, "w": 12, "x": 0, "y": 25 },
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
+      "targets": [
+        { "refId": "A", "expr": "tomcat_threads_busy_threads", "legendFormat": "busy" },
+        { "refId": "B", "expr": "tomcat_threads_current_threads", "legendFormat": "current" },
+        { "refId": "C", "expr": "tomcat_threads_config_max_threads", "legendFormat": "max" }
+      ]
+    },
+    {
+      "type": "timeseries", "title": "HTTP 요청 p95 latency (s)",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 7, "w": 12, "x": 12, "y": 25 },
+      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] },
+      "targets": [
+        { "refId": "A", "expr": "histogram_quantile(0.95, sum by (le, uri) (rate(http_server_requests_seconds_bucket[5m])))", "legendFormat": "{{uri}}" }
+      ]
+    }
+  ]
+}

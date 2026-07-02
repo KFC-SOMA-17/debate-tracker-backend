@@ -1,0 +1,125 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "schemaVersion": 39,
+  "title": "App Service Metrics (STT / WS / LLM / Debate)",
+  "uid": "app-service",
+  "tags": ["debate-tracker", "app"],
+  "time": { "from": "now-6h", "to": "now" },
+  "refresh": "30s",
+  "templating": { "list": [] },
+  "panels": [
+    {
+      "type": "row", "title": "STT", "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 }
+    },
+    {
+      "type": "stat", "title": "활성 STT 세션",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 6, "w": 6, "x": 0, "y": 1 },
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
+      "targets": [
+        { "refId": "A", "expr": "sum(stt_session_active_count)", "legendFormat": "active" }
+      ]
+    },
+    {
+      "type": "timeseries", "title": "STT 세션 시작/종료 rate",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 6, "w": 9, "x": 6, "y": 1 },
+      "fieldConfig": { "defaults": { "unit": "ops" }, "overrides": [] },
+      "targets": [
+        { "refId": "A", "expr": "sum(rate(stt_session_started_total[5m]))", "legendFormat": "started" },
+        { "refId": "B", "expr": "sum(rate(stt_session_stopped_total[5m]))", "legendFormat": "stopped" },
+        { "refId": "C", "expr": "sum(rate(stt_session_canceled_total[5m]))", "legendFormat": "canceled" }
+      ]
+    },
+    {
+      "type": "timeseries", "title": "STT 세션 duration p95 (s)",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 6, "w": 9, "x": 15, "y": 1 },
+      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] },
+      "targets": [
+        { "refId": "A", "expr": "histogram_quantile(0.95, sum by (le) (rate(stt_session_duration_seconds_bucket[5m])))", "legendFormat": "p95" }
+      ]
+    },
+    {
+      "type": "row", "title": "WebSocket", "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 7 }
+    },
+    {
+      "type": "stat", "title": "활성 WS 세션 / 구독",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 6, "w": 6, "x": 0, "y": 8 },
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
+      "targets": [
+        { "refId": "A", "expr": "sum(ws_session_active)", "legendFormat": "sessions" },
+        { "refId": "B", "expr": "sum(ws_subscription_active)", "legendFormat": "subscriptions" }
+      ]
+    },
+    {
+      "type": "timeseries", "title": "WS inbound 메시지 rate (by type)",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 6, "w": 9, "x": 6, "y": 8 },
+      "fieldConfig": { "defaults": { "unit": "ops" }, "overrides": [] },
+      "targets": [
+        { "refId": "A", "expr": "sum by (type) (rate(ws_message_inbound_count_total[5m]))", "legendFormat": "{{type}}" }
+      ]
+    },
+    {
+      "type": "timeseries", "title": "WS 에러 rate (client/server)",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 6, "w": 9, "x": 15, "y": 8 },
+      "fieldConfig": { "defaults": { "unit": "ops" }, "overrides": [] },
+      "targets": [
+        { "refId": "A", "expr": "sum(rate(ws_error_client_count_total[5m]))", "legendFormat": "client" },
+        { "refId": "B", "expr": "sum(rate(ws_error_server_count_total[5m]))", "legendFormat": "server" }
+      ]
+    },
+    {
+      "type": "row", "title": "LLM", "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 14 }
+    },
+    {
+      "type": "timeseries", "title": "LLM request rate (by operation/status)",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 6, "w": 8, "x": 0, "y": 15 },
+      "fieldConfig": { "defaults": { "unit": "ops" }, "overrides": [] },
+      "targets": [
+        { "refId": "A", "expr": "sum by (operation, status) (rate(llm_request_count_total[5m]))", "legendFormat": "{{operation}}/{{status}}" }
+      ]
+    },
+    {
+      "type": "timeseries", "title": "LLM duration p95 (s, by operation)",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 6, "w": 8, "x": 8, "y": 15 },
+      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] },
+      "targets": [
+        { "refId": "A", "expr": "histogram_quantile(0.95, sum by (le, operation) (rate(llm_request_duration_seconds_bucket[5m])))", "legendFormat": "{{operation}}" }
+      ]
+    },
+    {
+      "type": "timeseries", "title": "LLM 토큰 rate (by type)",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 6, "w": 8, "x": 16, "y": 15 },
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
+      "targets": [
+        { "refId": "A", "expr": "sum by (type) (rate(llm_tokens_total[5m]))", "legendFormat": "{{type}}" }
+      ]
+    },
+    {
+      "type": "row", "title": "Debate", "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 21 }
+    },
+    {
+      "type": "timeseries", "title": "Debate start/stop/orphan rate",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 6, "w": 24, "x": 0, "y": 22 },
+      "fieldConfig": { "defaults": { "unit": "ops" }, "overrides": [] },
+      "targets": [
+        { "refId": "A", "expr": "sum(rate(debate_start_count_total[5m]))", "legendFormat": "start" },
+        { "refId": "B", "expr": "sum(rate(debate_stop_count_total[5m]))", "legendFormat": "stop" },
+        { "refId": "C", "expr": "sum(rate(debate_orphan_count_total[5m]))", "legendFormat": "orphan" }
+      ]
+    }
+  ]
+}

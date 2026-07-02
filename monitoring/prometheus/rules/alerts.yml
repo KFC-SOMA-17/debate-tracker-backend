@@ -1,0 +1,99 @@
+groups:
+  - name: app-debate
+    rules:
+      - alert: AppDebateDown
+        expr: up{job="app-debate"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: 'app-debate 스크랩 실패 (2분 이상)'
+          description: '{{ $labels.instance }} 의 actuator(:8083) 응답이 없습니다.'
+
+      - alert: HikariPoolNearExhaustion
+        expr: >
+          hikaricp_connections_active / hikaricp_connections_max > 0.9
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: 'HikariCP 커넥션 풀 포화 임박'
+          description: 'pool={{ $labels.pool }} 활성 커넥션이 최대의 90% 를 5분 이상 초과.'
+
+      - alert: ThreadPoolQueueBacklog
+        expr: executor_queued_tasks > 100
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: '스레드풀 큐 적체'
+          description: 'name={{ $labels.name }} 대기 작업이 100 건을 5분 이상 초과.'
+
+  - name: node
+    rules:
+      - alert: NodeExporterDown
+        expr: up{job="node-exporter"} == 0
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: 'node-exporter 스크랩 실패'
+          description: '앱 EC2({{ $labels.instance }}) 호스트 지표 수집 중단.'
+
+      - alert: HostHighCpu
+        expr: >
+          100 - (avg by (instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 85
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: 'EC2 호스트 CPU 85% 초과'
+          description: '{{ $labels.instance }} CPU 사용률이 10분 이상 85% 초과.'
+
+      - alert: HostHighMemory
+        expr: >
+          (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100 > 90
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: 'EC2 호스트 메모리 90% 초과'
+          description: '{{ $labels.instance }} 메모리 사용률이 10분 이상 90% 초과.'
+
+  - name: aws
+    rules:
+      - alert: CloudWatchExporterDown
+        expr: up{job="cloudwatch-exporter"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: 'cloudwatch-exporter 스크랩 실패 (2분 이상)'
+          description: 'exporter(:9106) 가 내려가 aws_* 지표 수집이 중단됐습니다. RDS/ElastiCache 등 AWS 알림이 함께 침묵하니 즉시 조치 필요.'
+
+      - alert: RdsHighCpu
+        expr: aws_rds_cpuutilization_average > 85
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: 'RDS CPU 85% 초과'
+          description: 'DBInstance={{ $labels.dbinstance_identifier }} CPU 가 10분 이상 85% 초과.'
+
+      - alert: RdsLowStorage
+        expr: aws_rds_free_storage_space_average < 2e9
+        for: 10m
+        labels:
+          severity: critical
+        annotations:
+          summary: 'RDS 여유 스토리지 2GB 미만'
+          description: 'DBInstance={{ $labels.dbinstance_identifier }} 남은 스토리지가 2GB 미만.'
+
+      - alert: ElastiCacheHighMemory
+        expr: aws_elasticache_database_memory_usage_percentage_average > 85
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: 'ElastiCache 메모리 사용률 85% 초과'
+          description: 'ElastiCache 메모리 사용률이 10분 이상 85% 초과.'

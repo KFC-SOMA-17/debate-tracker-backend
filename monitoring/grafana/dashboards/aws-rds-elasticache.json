@@ -1,0 +1,116 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "schemaVersion": 39,
+  "title": "AWS RDS / ElastiCache (CloudWatch)",
+  "uid": "aws-rds-elasticache",
+  "tags": ["debate-tracker", "aws"],
+  "time": { "from": "now-6h", "to": "now" },
+  "refresh": "1m",
+  "templating": { "list": [] },
+  "panels": [
+    {
+      "type": "row", "title": "RDS (MySQL)", "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 }
+    },
+    {
+      "type": "timeseries", "title": "RDS CPU 사용률 (%)",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 7, "w": 8, "x": 0, "y": 1 },
+      "fieldConfig": { "defaults": { "unit": "percent" }, "overrides": [] },
+      "targets": [
+        { "refId": "A", "expr": "aws_rds_cpuutilization_average", "legendFormat": "{{dbinstance_identifier}}" }
+      ]
+    },
+    {
+      "type": "timeseries", "title": "RDS DB 커넥션 수",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 7, "w": 8, "x": 8, "y": 1 },
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
+      "targets": [
+        { "refId": "A", "expr": "aws_rds_database_connections_average", "legendFormat": "{{dbinstance_identifier}}" }
+      ]
+    },
+    {
+      "type": "timeseries", "title": "RDS Freeable Memory / Free Storage (bytes)",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 7, "w": 8, "x": 16, "y": 1 },
+      "fieldConfig": { "defaults": { "unit": "bytes" }, "overrides": [] },
+      "targets": [
+        { "refId": "A", "expr": "aws_rds_freeable_memory_average", "legendFormat": "mem {{dbinstance_identifier}}" },
+        { "refId": "B", "expr": "aws_rds_free_storage_space_average", "legendFormat": "storage {{dbinstance_identifier}}" }
+      ]
+    },
+    {
+      "type": "timeseries", "title": "RDS IOPS (read/write)",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 7, "w": 12, "x": 0, "y": 8 },
+      "fieldConfig": { "defaults": { "unit": "iops" }, "overrides": [] },
+      "targets": [
+        { "refId": "A", "expr": "aws_rds_read_iops_average", "legendFormat": "read {{dbinstance_identifier}}" },
+        { "refId": "B", "expr": "aws_rds_write_iops_average", "legendFormat": "write {{dbinstance_identifier}}" }
+      ]
+    },
+    {
+      "type": "timeseries", "title": "RDS Latency (read/write, s)",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 7, "w": 12, "x": 12, "y": 8 },
+      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] },
+      "targets": [
+        { "refId": "A", "expr": "aws_rds_read_latency_average", "legendFormat": "read {{dbinstance_identifier}}" },
+        { "refId": "B", "expr": "aws_rds_write_latency_average", "legendFormat": "write {{dbinstance_identifier}}" }
+      ]
+    },
+    {
+      "type": "row", "title": "ElastiCache (Valkey Serverless)", "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 15 }
+    },
+    {
+      "type": "stat", "title": "메모리 사용률 (%)",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 7, "w": 6, "x": 0, "y": 16 },
+      "fieldConfig": { "defaults": { "unit": "percent", "min": 0, "max": 100 }, "overrides": [] },
+      "targets": [
+        { "refId": "A", "expr": "max(aws_elasticache_database_memory_usage_percentage_average)", "legendFormat": "mem %" }
+      ]
+    },
+    {
+      "type": "timeseries", "title": "사용 캐시 메모리 (bytes)",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 7, "w": 9, "x": 6, "y": 16 },
+      "fieldConfig": { "defaults": { "unit": "bytes" }, "overrides": [] },
+      "targets": [
+        { "refId": "A", "expr": "aws_elasticache_bytes_used_for_cache_average", "legendFormat": "{{clusterid}}" }
+      ]
+    },
+    {
+      "type": "timeseries", "title": "ElastiCache Processing Units (ECPU)",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 7, "w": 9, "x": 15, "y": 16 },
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
+      "targets": [
+        { "refId": "A", "expr": "aws_elasticache_elasti_cache_processing_units_average", "legendFormat": "{{clusterid}}" }
+      ]
+    },
+    {
+      "type": "timeseries", "title": "커넥션 수 / Evictions",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 7, "w": 12, "x": 0, "y": 23 },
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
+      "targets": [
+        { "refId": "A", "expr": "aws_elasticache_curr_connections_average", "legendFormat": "connections {{clusterid}}" },
+        { "refId": "B", "expr": "aws_elasticache_evictions_sum", "legendFormat": "evictions {{clusterid}}" }
+      ]
+    },
+    {
+      "type": "timeseries", "title": "Cache Hit / Miss (rate)",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 7, "w": 12, "x": 12, "y": 23 },
+      "fieldConfig": { "defaults": { "unit": "ops" }, "overrides": [] },
+      "targets": [
+        { "refId": "A", "expr": "rate(aws_elasticache_cache_hits_sum[5m])", "legendFormat": "hits {{clusterid}}" },
+        { "refId": "B", "expr": "rate(aws_elasticache_cache_misses_sum[5m])", "legendFormat": "misses {{clusterid}}" }
+      ]
+    }
+  ]
+}
