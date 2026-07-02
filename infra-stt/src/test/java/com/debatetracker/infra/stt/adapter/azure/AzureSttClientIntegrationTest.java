@@ -9,6 +9,7 @@ import com.debatetracker.infra.stt.client.event.TranscribeEvent;
 import com.debatetracker.infra.stt.client.SttClient;
 import com.debatetracker.infra.stt.config.AudioProperties;
 import com.debatetracker.infra.stt.config.SttAutoConfiguration;
+import io.micrometer.core.instrument.MeterRegistry;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -26,6 +27,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 @Disabled("실제 Azure 연동 테스트 — application-test.yml 설정 및 test-audio.pcm 준비 후 수동 실행")
 @SpringBootTest(classes = {SttAutoConfiguration.class,
@@ -41,6 +43,9 @@ class AzureSttClientIntegrationTest {
 
     @Autowired
     private TranscribeEventCollector eventCollector;
+
+    @MockitoBean
+    private MeterRegistry metaRegistry;
 
     @Nested
     class Streaming {

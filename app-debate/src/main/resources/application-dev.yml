@@ -16,8 +16,9 @@ spring:
 
   data:
     redis:
-      host: ${secret.redis.host}
-      port: ${secret.redis.port}
+      cluster:
+        nodes: ${secret.redis.host}:${secret.redis.port}
+        max-redirects: 3
       ssl:
         enabled: true
 
