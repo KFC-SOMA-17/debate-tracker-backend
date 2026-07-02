@@ -106,14 +106,40 @@ jobs:
             docker compose -f docker-compose.monitoring.yml up -d
             docker image prune -f
 
+            # 수집 경로까지 검증: prometheus 가 실제로 up 인 job 인지 query API 로 확인.
+            # 프로세스만 살아있고 타깃이 전부 down 인 "빈 모니터링" 상태를 배포 성공으로 넘기지 않는다.
+            SCRAPE_JOBS="app-debate node-exporter cloudwatch-exporter"
+
+            job_is_up() {
+              job="$1"
+              resp=$(curl -fsS "http://localhost:9090/api/v1/query?query=up%7Bjob%3D%22${job}%22%7D" 2>/dev/null) || return 1
+              # 조회 성공 + up(1) 시계열이 있고 + down(0) 시계열은 하나도 없어야 통과
+              echo "$resp" | grep -q '"status":"success"' || return 1
+              echo "$resp" | grep -q ',"1"\]' || return 1
+              echo "$resp" | grep -q ',"0"\]' && return 1
+              return 0
+            }
+
             for i in $(seq 1 30); do
               if curl -fsS http://localhost:9090/-/healthy > /dev/null \
-                 && curl -fsS http://localhost:3000/api/health > /dev/null; then
-                echo "monitoring stack healthy"
-                exit 0
+                 && curl -fsS http://localhost:3000/api/health > /dev/null \
+                 && curl -fsS http://localhost:9106/metrics > /dev/null; then
+                all_up=true
+                for job in $SCRAPE_JOBS; do
+                  if ! job_is_up "$job"; then
+                    all_up=false
+                    echo "  scrape job not up yet: $job"
+                  fi
+                done
+                if [ "$all_up" = true ]; then
+                  echo "monitoring stack healthy (prometheus/grafana/cloudwatch-exporter up, scrape jobs up: ${SCRAPE_JOBS})"
+                  exit 0
+                fi
               fi
               echo "waiting for monitoring stack... ($i/30)"
               sleep 5
             done
             echo "health check failed after 150s"
+            echo "----- scrape target 상태 (디버깅용) -----"
+            curl -fsS http://localhost:9090/api/v1/query?query=up || true
             exit 1
