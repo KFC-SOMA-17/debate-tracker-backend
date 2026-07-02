@@ -62,6 +62,15 @@ groups:
 
   - name: aws
     rules:
+      - alert: CloudWatchExporterDown
+        expr: up{job="cloudwatch-exporter"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: 'cloudwatch-exporter 스크랩 실패 (2분 이상)'
+          description: 'exporter(:9106) 가 내려가 aws_* 지표 수집이 중단됐습니다. RDS/ElastiCache 등 AWS 알림이 함께 침묵하니 즉시 조치 필요.'
+
       - alert: RdsHighCpu
         expr: aws_rds_cpuutilization_average > 85
         for: 10m
