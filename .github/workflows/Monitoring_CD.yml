@@ -9,6 +9,10 @@ on:
       - '.github/workflows/Monitoring_CD.yml'
   workflow_dispatch:
 
+concurrency:
+  group: monitoring-cd-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
