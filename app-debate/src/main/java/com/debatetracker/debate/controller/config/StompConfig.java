@@ -30,8 +30,8 @@ public class StompConfig implements WebSocketMessageBrokerConfigurer {
         registry.addEndpoint("/ws")
                 .setAllowedOrigins(corsProperties.getOriginUrls());
         registry.addEndpoint("/ws")
-                .setAllowedOrigins(corsProperties.getOriginUrls())
-                .withSockJS();
+                .setAllowedOrigins(corsProperties.getOriginUrls());
+//                .withSockJS();
     }
 
     @Override
