@@ -1,17 +1,14 @@
 spring:
   ai:
-    model:
-      chat: google-genai
-    google:
-      genai:
-        api-key: ${GOOGLE_API_KEY:}
-        chat:
-          options:
-            model: gemini-2.5-flash
-            temperature: 0.0
+    bedrock:
+      converse:
+        aws:
+          access-key: ${secret.aws.access-key-id}
+          secret-key: ${secret.aws.secret-access-key}
+          region: ${secret.aws.region}
 
 llm:
   refine:
-    model: gemini-2.5-flash
+    model: us.amazon.nova-2-lite-v1:0
   extract:
-    model: gemini-2.5-pro
+    model: us.amazon.nova-pro-v1:0

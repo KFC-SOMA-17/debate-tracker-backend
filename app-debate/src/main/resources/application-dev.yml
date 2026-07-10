@@ -22,18 +22,9 @@ spring:
       ssl:
         enabled: true
 
-  ai:
-    bedrock:
-      converse:
-        aws:
-          access-key: ${secret.aws.access-key-id}
-          secret-key: ${secret.aws.secret-access-key}
-          region: ${secret.aws.region}
-
 stt:
   azure:
     enabled: true
-    subscription-key: ${secret.azure.subscription-key}
 
 cors:
   origin-urls: ${secret.cors.origin}
