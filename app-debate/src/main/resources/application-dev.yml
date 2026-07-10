@@ -23,9 +23,12 @@ spring:
         enabled: true
 
   ai:
-    google:
-      genai:
-        api-key: ${secret.google.api-key}
+    bedrock:
+      converse:
+        aws:
+          access-key: ${secret.aws.access-key-id}
+          secret-key: ${secret.aws.secret-access-key}
+          region: ${secret.aws.region}
 
 stt:
   azure:

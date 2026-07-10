@@ -21,7 +21,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.core.io.Resource;
 
 @AutoConfiguration(
-        afterName = "org.springframework.ai.model.google.genai.autoconfigure.chat.GoogleGenAiChatAutoConfiguration")
+        afterName = "org.springframework.ai.model.bedrock.converse.autoconfigure.BedrockConverseProxyChatAutoConfiguration")
 @ConditionalOnProperty(name = "llm.enabled", havingValue = "true")
 public class LlmAutoConfiguration {
 
