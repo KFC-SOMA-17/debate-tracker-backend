@@ -1,8 +1,8 @@
 stt:
   azure:
-    enabled: ${STT_AZURE_ENABLED:false}
-    subscription-key: ${AZURE_SUBSCRIPTION_KEY:}
-    region: ${AZURE_REGION:koreacentral}
+    enabled: ${secret.azure.enabled:false}
+    subscription-key: ${secret.azure.subscription-key:}
+    region: koreacentral
     language: ko-KR
     profanity: raw
     silence-timeout-ms: 500

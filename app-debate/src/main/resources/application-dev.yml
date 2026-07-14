@@ -22,15 +22,9 @@ spring:
       ssl:
         enabled: true
 
-  ai:
-    google:
-      genai:
-        api-key: ${secret.google.api-key}
-
 stt:
   azure:
     enabled: true
-    subscription-key: ${secret.azure.subscription-key}
 
 cors:
   origin-urls: ${secret.cors.origin}
