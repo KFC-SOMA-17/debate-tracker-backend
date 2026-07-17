@@ -1,11 +1,10 @@
 spring:
   ai:
     bedrock:
-      converse:
-        aws:
-          access-key: ${secret.aws.access-key-id}
-          secret-key: ${secret.aws.secret-access-key}
-          region: ${secret.aws.region}
+      aws:
+        access-key: ${secret.aws.access-key-id}
+        secret-key: ${secret.aws.secret-access-key}
+        region: ${secret.aws.region}
 
 llm:
   refine:

@@ -31,6 +31,15 @@ public class LlmAutoConfiguration {
     }
 
     @Bean
+    @ConditionalOnProperty(name = "llm.verify-connection", havingValue = "true", matchIfMissing = true)
+    public LlmConnectionVerifier llmConnectionVerifier(ChatModel chatModel,
+                                                       @Value("${spring.ai.bedrock.aws.region}") String region,
+                                                       @Value("${llm.refine.model}") String refineModel,
+                                                       @Value("${llm.extract.model}") String extractModel) {
+        return new LlmConnectionVerifier(chatModel, region, refineModel, extractModel);
+    }
+
+    @Bean
     public RefineLlmChat refineLlmChat(ChatModel chatModel,
                                        @Value("${llm.refine.model}") String model,
                                        @Value("classpath:prompts/refine-system.txt") Resource systemPrompt,

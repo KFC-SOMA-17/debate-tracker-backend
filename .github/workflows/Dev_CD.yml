@@ -4,7 +4,7 @@ on:
   push:
     branches:
       - develop
-      - fix/#80-delete-sockjs
+      - fix/#84-agenda-fix
     paths-ignore:
       - '**.md'
       - 'docs/**'
